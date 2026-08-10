@@ -16,6 +16,7 @@ import {
   mergerApplicationFormSchema,
 } from "@/lib/validation/merged-training";
 import { ActionState, firstFieldErrors } from "@/lib/actions/shared";
+import { siteUrl } from "@/lib/site";
 
 function daysBetween(start: Date, end: Date): number {
   const ms = end.getTime() - start.getTime();
@@ -265,7 +266,7 @@ export async function applyToMergedEventAction(_prev: ActionState, formData: For
 
 export async function voteForBidAction(formData: FormData): Promise<void> {
   const session = await auth();
-  if (!session) redirect("/login");
+  if (!session) redirect(`${siteUrl}/login`);
 
   const slug = formData.get("slug");
   const applicationId = formData.get("applicationId");
@@ -281,7 +282,7 @@ export async function voteForBidAction(formData: FormData): Promise<void> {
 
 export async function completeMergedTrainingAction(formData: FormData): Promise<void> {
   const session = await auth();
-  if (!session) redirect("/login");
+  if (!session) redirect(`${siteUrl}/login`);
 
   const slug = formData.get("slug");
   const mergedTrainingEventId = formData.get("mergedTrainingEventId");
@@ -297,7 +298,7 @@ export async function completeMergedTrainingAction(formData: FormData): Promise<
 
 export async function cancelMergedTrainingAction(formData: FormData): Promise<void> {
   const session = await auth();
-  if (!session) redirect("/login");
+  if (!session) redirect(`${siteUrl}/login`);
 
   const slug = formData.get("slug");
   if (typeof slug !== "string" || !slug) redirect("/merged-trainings");

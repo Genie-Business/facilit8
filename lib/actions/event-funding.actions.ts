@@ -7,6 +7,7 @@ import { auth } from "@/lib/auth";
 import { fundTrainingEvent } from "@/lib/services/event-funding.service";
 import { payFacilitatorForEvent } from "@/lib/services/payout.service";
 import { ActionState } from "@/lib/actions/shared";
+import { siteUrl } from "@/lib/site";
 
 export async function fundEventAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const session = await auth();
@@ -27,7 +28,7 @@ export async function fundEventAction(_prev: ActionState, formData: FormData): P
 
 export async function completeEventAction(formData: FormData): Promise<void> {
   const session = await auth();
-  if (!session) redirect("/login");
+  if (!session) redirect(`${siteUrl}/login`);
 
   const slug = formData.get("slug");
   const eventId = formData.get("eventId");

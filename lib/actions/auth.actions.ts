@@ -10,6 +10,7 @@ import { prisma } from "@/lib/db";
 import { signIn, signOut } from "@/lib/auth";
 import { sendEmail } from "@/lib/email/resend";
 import { generateUniqueSlug } from "@/lib/utils/slug";
+import { appUrl, siteUrl } from "@/lib/site";
 import { getBankOptions } from "@/lib/services/bank-list.service";
 import { provisionAnchorCustomer } from "@/lib/services/anchor-provisioning.service";
 import { joinOrCreateOrganization, requestOrganizationMembership } from "@/lib/services/organization.service";
@@ -108,7 +109,7 @@ export async function signupAction(_prev: ActionState, formData: FormData): Prom
     await signIn("credentials", {
       email: data.email,
       password: data.password,
-      redirectTo: "/dashboard",
+      redirectTo: `${appUrl}/dashboard`,
     });
   } catch (err) {
     if (err instanceof AuthError) {
@@ -132,7 +133,7 @@ export async function loginAction(_prev: ActionState, formData: FormData): Promi
   }
 
   const callbackUrl = formData.get("callbackUrl");
-  const redirectTo = typeof callbackUrl === "string" && callbackUrl ? callbackUrl : "/dashboard";
+  const redirectTo = typeof callbackUrl === "string" && callbackUrl ? callbackUrl : `${appUrl}/dashboard`;
 
   try {
     await signIn("credentials", { ...parsed.data, redirectTo });
@@ -147,7 +148,7 @@ export async function loginAction(_prev: ActionState, formData: FormData): Promi
 }
 
 export async function logoutAction(): Promise<void> {
-  await signOut({ redirectTo: "/" });
+  await signOut({ redirectTo: siteUrl });
 }
 
 const RESET_TOKEN_TTL_MS = 60 * 60 * 1000; // 1h

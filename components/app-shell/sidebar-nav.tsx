@@ -19,15 +19,18 @@ import {
   LifeBuoy,
   HelpCircle,
   UserCircle,
+  Sparkles,
 } from "lucide-react";
 
 import { useShell } from "./shell-root";
+import { siteUrl } from "@/lib/site";
 
 interface NavItem {
   href: string;
   label: string;
   icon: typeof Wallet;
-  external?: boolean;
+  external?: boolean; // opens in a new tab (genuinely external services)
+  crossDomain?: boolean; // same-tab plain <a> to the apex host (the app shell now lives on a subdomain)
 }
 
 const WORKSPACE_LINKS: NavItem[] = [{ href: "/dashboard", label: "Dashboard", icon: LayoutDashboard }];
@@ -42,7 +45,10 @@ const TRAINING_ECOSYSTEM_LINKS: NavItem[] = [
 
 const EVENT_MANAGEMENT_LINKS: NavItem[] = [{ href: "/calendar", label: "Calendar", icon: CalendarDays }];
 
-const COMMUNICATIONS_LINKS: NavItem[] = [{ href: "/chat", label: "Chat", icon: MessageCircle }];
+const COMMUNICATIONS_LINKS: NavItem[] = [
+  { href: "/chat", label: "Chat", icon: MessageCircle },
+  { href: "/awe", label: "Awe", icon: Sparkles },
+];
 
 const ACCOUNT_LINKS: NavItem[] = [
   { href: "/profile", label: "My Profile", icon: UserCircle },
@@ -52,22 +58,29 @@ const ACCOUNT_LINKS: NavItem[] = [
 
 const MISC_LINKS: NavItem[] = [
   { href: "https://tawk.to/chat/68e6bf047d2af41952a74645/1j72lkb85", label: "Support", icon: LifeBuoy, external: true },
-  { href: "/faq", label: "FAQs", icon: HelpCircle },
+  { href: `${siteUrl}/faq`, label: "FAQs", icon: HelpCircle, crossDomain: true },
 ];
 
 const ADMIN_LINKS: NavItem[] = [
-  { href: "/admin", label: "Admin Home", icon: LayoutGrid },
-  { href: "/admin/skills", label: "Skills", icon: Tags },
+  { href: `${siteUrl}/admin`, label: "Admin Home", icon: LayoutGrid, crossDomain: true },
+  { href: `${siteUrl}/admin/skills`, label: "Skills", icon: Tags, crossDomain: true },
+  { href: `${siteUrl}/admin/awe-pricing`, label: "Awe Pricing", icon: Sparkles, crossDomain: true },
 ];
 
-function NavLink({ href, label, icon: Icon, external }: NavItem) {
+function NavLink({ href, label, icon: Icon, external, crossDomain }: NavItem) {
   const pathname = usePathname();
   const { closeDrawer } = useShell();
-  const active = !external && (pathname === href || pathname.startsWith(`${href}/`));
+  const isPlainAnchor = external || crossDomain;
+  const active = !isPlainAnchor && (pathname === href || pathname.startsWith(`${href}/`));
 
-  if (external) {
+  if (isPlainAnchor) {
     return (
-      <a href={href} className="nav-link" target="_blank" rel="noopener noreferrer">
+      <a
+        href={href}
+        className="nav-link"
+        target={external ? "_blank" : undefined}
+        rel={external ? "noopener noreferrer" : undefined}
+      >
         <Icon />
         <span>{label}</span>
       </a>

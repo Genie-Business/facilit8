@@ -8,6 +8,7 @@ import { prisma } from "@/lib/db";
 import { generateUniqueSlug } from "@/lib/utils/slug";
 import { eventFormSchema } from "@/lib/validation/event";
 import { ActionState, firstFieldErrors } from "@/lib/actions/shared";
+import { siteUrl } from "@/lib/site";
 
 function daysBetween(start: Date, end: Date): number {
   const ms = end.getTime() - start.getTime();
@@ -125,7 +126,7 @@ export async function updateEventAction(_prev: ActionState, formData: FormData):
 
 export async function deleteEventAction(formData: FormData): Promise<void> {
   const session = await auth();
-  if (!session) redirect("/login");
+  if (!session) redirect(`${siteUrl}/login`);
 
   const slug = formData.get("slug");
   if (typeof slug !== "string" || !slug) redirect("/events");

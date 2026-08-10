@@ -9,6 +9,7 @@ import { generateUniqueSlug } from "@/lib/utils/slug";
 import { applicationFormSchema } from "@/lib/validation/application";
 import { createNotification } from "@/lib/services/notification.service";
 import { ActionState, firstFieldErrors } from "@/lib/actions/shared";
+import { siteUrl } from "@/lib/site";
 
 export async function applyToEventAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const session = await auth();
@@ -64,7 +65,7 @@ export async function applyToEventAction(_prev: ActionState, formData: FormData)
 
 export async function selectApplicationAction(formData: FormData): Promise<void> {
   const session = await auth();
-  if (!session) redirect("/login");
+  if (!session) redirect(`${siteUrl}/login`);
 
   const applicationSlug = formData.get("applicationSlug");
   if (typeof applicationSlug !== "string" || !applicationSlug) redirect("/events");
