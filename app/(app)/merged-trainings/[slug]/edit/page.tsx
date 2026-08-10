@@ -1,0 +1,57 @@
+import { notFound, redirect } from "next/navigation";
+
+import { auth } from "@/lib/auth";
+import { prisma } from "@/lib/db";
+import { updateMergedTrainingAction } from "@/lib/actions/merged-training.actions";
+import { MergedTrainingForm } from "@/components/merged-training/merged-training-form";
+
+export default async function EditMergedTrainingPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+  const session = await auth();
+  if (!session) return null;
+
+  const mergedEvent = await prisma.mergedTrainingEvent.findUnique({ where: { slug } });
+  if (!mergedEvent) notFound();
+  if (mergedEvent.initiatorId !== session.user.id) redirect(`/merged-trainings/${slug}`);
+  if (mergedEvent.paymentConfirmed) redirect(`/merged-trainings/${slug}`);
+
+  const participantCount = await prisma.mergedTrainingParticipant.count({
+    where: { mergedTrainingEventId: mergedEvent.id },
+  });
+  if (participantCount > 1) redirect(`/merged-trainings/${slug}`);
+
+  const companies = await prisma.user.findMany({
+    where: { role: "EVENT_MANAGER", id: { not: session.user.id } },
+    select: { id: true, firstName: true, lastName: true, organization: true },
+    take: 100,
+  });
+
+  return (
+    <div className="space-y-6">
+      <h1 className="text-2xl font-semibold">Edit merged training session</h1>
+      <MergedTrainingForm
+        action={updateMergedTrainingAction}
+        submitLabel="Save changes"
+        invitableCompanies={companies.map((c) => ({
+          id: c.id,
+          label: c.organization || `${c.firstName} ${c.lastName}`,
+        }))}
+        defaults={{
+          slug: mergedEvent.slug,
+          title: mergedEvent.title,
+          description: mergedEvent.description,
+          startDate: mergedEvent.startDate,
+          endDate: mergedEvent.endDate,
+          location: mergedEvent.location,
+          delegatesLevel: mergedEvent.delegatesLevel,
+          eventCategory: mergedEvent.eventCategory,
+          venueType: mergedEvent.venueType,
+          totalSlots: mergedEvent.totalSlots,
+          pricePerDelegate: mergedEvent.pricePerDelegate.toString(),
+          deadline: mergedEvent.deadline,
+          isInviteOnly: mergedEvent.isInviteOnly,
+        }}
+      />
+    </div>
+  );
+}

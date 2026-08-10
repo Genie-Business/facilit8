@@ -1,0 +1,772 @@
+// Facilit8 — Prisma schema
+// See plan: C:\Users\DELL\.claude\plans\tingly-knitting-engelbart.md
+
+generator client {
+  provider = "prisma-client"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ---------- Enums ----------
+
+enum Role {
+  FACILITATOR
+  EVENT_MANAGER
+  PROFESSIONAL
+  ADMIN
+}
+
+enum OrgMemberRole {
+  OWNER
+  MEMBER
+}
+
+enum OrgMembershipStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum Gender {
+  MALE
+  FEMALE
+}
+
+enum EventApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum ApplicationStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
+enum NotificationType {
+  EVENT_UPDATE
+  BID_RECEIVED
+  BID_ACCEPTED
+  BID_REJECTED
+  PAYMENT_CONFIRMED
+  CHAT_MESSAGE
+  EVENT_REMINDER
+  KYC_STATUS
+  WEBHOOK_ALERT
+  MERGED_TRAINING_FUNDED
+  SYSTEM
+}
+
+enum TrainingPaymentTargetType {
+  TRAINING_EVENT
+  MERGED_TRAINING_EVENT
+}
+
+enum TrainingPaymentStatus {
+  PENDING
+  SUCCESS
+  FAILED
+}
+
+enum TransactionType {
+  FUNDING
+  PAYOUT
+  WITHDRAWAL
+  CHAT_PAYMENT
+  INTERNAL_TRANSFER
+  FEE
+}
+
+enum TransactionStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  REVERSED
+}
+
+enum PlatformFeeScope {
+  FACILITATOR_PAYOUT
+  CHAT_ACCESS
+  WITHDRAWAL
+  MERGED_TRAINING_PAYOUT
+}
+
+// ---------- Auth / Wallet ----------
+
+model User {
+  id                 String  @id @default(cuid())
+  email              String  @unique
+  passwordHash       String
+  role               Role
+  firstName          String
+  lastName           String
+  middleName         String?
+  slug               String  @unique
+  mobilePhone        String  @unique
+  organization       String?
+  rcNumber           String? @unique
+  specialization     String?
+  qualification      String?
+  travel             Boolean @default(false)
+  experience         String?
+  profileDescription String?
+  state              String?
+  localGovt          String?
+  address            String?
+  profileImageUrl    String?
+  cvUrl              String?
+  certificateUrl     String?
+
+  // KYC
+  bvn             String?
+  dateOfBirth     DateTime?
+  gender          Gender?
+  kycVerified     Boolean   @default(false)
+  kycFailedReason String?
+  kycTier         Int       @default(0)
+
+  // Anchor linkage — own virtual account (for receiving funds)
+  anchorCustomerId     String? @unique
+  anchorCounterpartyId String? @unique
+  depositAccountId     String? @unique
+  anchorAccountId      String? @unique
+  anchorVaId           String? @unique
+  vaAccountNumber      String?
+  vaAccountName        String?
+  vaBankName           String?
+  vaCreationFailed     Boolean @default(false)
+  vaFailureReason      String?
+
+  // Linked external bank account (withdrawal destination, collected at signup;
+  // anchorCounterpartyId above is Anchor's CounterParty record for this account)
+  linkedBankCode      String?
+  linkedBankName      String?
+  linkedAccountNumber String?
+  linkedAccountName   String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  virtualAccount      VirtualAccount?
+  passwordResetTokens PasswordResetToken[]
+  transactions        Transaction[]
+
+  eventsAsCompany          TrainingEvent[]   @relation("CompanyEvents")
+  eventsSelectedAsTrainer  TrainingEvent[]   @relation("SelectedTrainer")
+  applications             Application[]     @relation("TrainerApplications")
+  notifications            Notification[]
+  reviewsGiven             Review[]          @relation("ReviewsGiven")
+  reviewsReceived          Review[]          @relation("ReviewsReceived")
+  trainingPaymentsReceived TrainingPayment[] @relation("FacilitatorPayments")
+
+  conversationsAsManager         Conversation[]      @relation("ManagerConversations")
+  conversationsAsFacilitator     Conversation[]      @relation("FacilitatorConversations")
+  messages                       Message[]
+  facilitatorAccessAsUser        FacilitatorAccess[] @relation("AccessAsUser")
+  facilitatorAccessAsFacilitator FacilitatorAccess[] @relation("AccessAsFacilitator")
+
+  mergedTrainingEventsInitiated   MergedTrainingEvent[]       @relation("Initiator")
+  mergedTrainingSelectedAsTrainer MergedTrainingEvent[]       @relation("SelectedTrainerMerged")
+  mergedTrainingInvites           MergedTrainingInvite[]
+  mergedTrainingParticipations    MergedTrainingParticipant[]
+  mergerApplications              MergerApplication[]
+  bidVotes                        BidVote[]
+
+  organizationMemberships OrganizationMembership[]
+  facilitatorSkills       FacilitatorSkill[]
+
+  @@index([role])
+}
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+}
+
+model VirtualAccount {
+  id            String   @id @default(cuid())
+  userId        String   @unique
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  provider      String   @default("anchor")
+  accountNumber String
+  accountName   String?
+  bankName      String
+  accountId     String
+  currency      String   @default("NGN")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+// Local audit ledger; live Anchor deposit-account balance is the source of truth for
+// actual spendable funds (fixes Django's User.wallet_balance, which referenced a
+// relation that never existed in that codebase).
+model Transaction {
+  id                           String            @id @default(cuid())
+  userId                       String
+  user                         User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type                         TransactionType
+  status                       TransactionStatus @default(PENDING)
+  amount                       Decimal           @db.Decimal(14, 2)
+  feeAmount                    Decimal?          @db.Decimal(14, 2)
+  netAmount                    Decimal?          @db.Decimal(14, 2)
+  currency                     String            @default("NGN")
+  reference                    String            @unique
+  anchorTransferId             String?
+  counterpartyAccountNumber    String?
+  counterpartyBankCode         String?
+  description                  String?
+  relatedTrainingEventId       String?
+  relatedMergedTrainingEventId String?
+  relatedConversationId        String?
+  metadata                     Json?
+  createdAt                    DateTime          @default(now())
+  updatedAt                    DateTime          @updatedAt
+
+  @@index([userId, createdAt])
+  @@index([reference])
+}
+
+// Fixes Django's duplicate PlatformFee / PlatformFeeMergerTraining models.
+model PlatformFee {
+  id            String           @id @default(cuid())
+  scope         PlatformFeeScope
+  percentage    Decimal          @db.Decimal(5, 2)
+  isActive      Boolean          @default(true)
+  effectiveFrom DateTime         @default(now())
+  createdAt     DateTime         @default(now())
+
+  @@index([scope, isActive])
+}
+
+// ---------- Core marketplace ----------
+
+model TrainingEvent {
+  id                     String              @id @default(cuid())
+  companyId              String
+  company                User                @relation("CompanyEvents", fields: [companyId], references: [id], onDelete: Cascade)
+  title                  String
+  startDate              DateTime
+  endDate                DateTime
+  location               String
+  flyerImageUrl          String?
+  capacity               Int
+  skillType              String
+  expectedTrainingSkills String?
+  eventObjective         String?
+  delegatesLevel         String
+  eventCategory          String
+  venueType              String
+  seriesLength           Int?
+  durationDays           Int
+  eventExpiryDate        DateTime
+  eventDetails           String?
+  trainingMaterials      Boolean             @default(false)
+  trainingBudget         Decimal             @db.Decimal(14, 2)
+  approval               EventApprovalStatus @default(PENDING)
+  isAvailable            Boolean             @default(true)
+  paymentConfirmed       Boolean             @default(false)
+  selectedTrainerId      String?
+  selectedTrainer        User?               @relation("SelectedTrainer", fields: [selectedTrainerId], references: [id])
+  slug                   String              @unique
+  isCompleted            Boolean             @default(false)
+  isPaid                 Boolean             @default(false)
+  completedAt            DateTime?
+  reminderSentAt         DateTime?
+  createdAt              DateTime            @default(now())
+  updatedAt              DateTime            @updatedAt
+
+  applications Application[]
+  reviews      Review[]
+  payments     TrainingPayment[] @relation("TrainingEventPayments")
+
+  @@index([companyId])
+  @@index([approval, isAvailable])
+}
+
+model Application {
+  id                String            @id @default(cuid())
+  trainerId         String
+  trainer           User              @relation("TrainerApplications", fields: [trainerId], references: [id], onDelete: Cascade)
+  trainingEventId   String
+  trainingEvent     TrainingEvent     @relation(fields: [trainingEventId], references: [id], onDelete: Cascade)
+  appliedAt         DateTime          @default(now())
+  courseBreakdown   String?
+  objective         String?
+  classActivities   String?
+  budgetPerDelegate Decimal           @db.Decimal(14, 2)
+  status            ApplicationStatus @default(PENDING)
+  isSelected        Boolean           @default(false)
+  slug              String            @unique
+
+  @@unique([trainerId, trainingEventId])
+}
+
+model Notification {
+  id               String           @id @default(cuid())
+  userId           String
+  user             User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  message          String
+  notificationType NotificationType
+  isRead           Boolean          @default(false)
+  link             String?
+  slug             String           @unique
+  createdAt        DateTime         @default(now())
+
+  @@index([userId, isRead, createdAt])
+}
+
+model Review {
+  id              String        @id @default(cuid())
+  reviewerId      String
+  reviewer        User          @relation("ReviewsGiven", fields: [reviewerId], references: [id], onDelete: Cascade)
+  revieweeId      String
+  reviewee        User          @relation("ReviewsReceived", fields: [revieweeId], references: [id], onDelete: Cascade)
+  trainingEventId String
+  trainingEvent   TrainingEvent @relation(fields: [trainingEventId], references: [id], onDelete: Cascade)
+  rating          Int
+  feedback        String?
+  createdAt       DateTime      @default(now())
+  // NOTE: rating 1-5 range needs a raw-SQL CHECK constraint added via migration (Prisma has no schema-level CHECK).
+
+  @@unique([reviewerId, trainingEventId])
+}
+
+// Replaces Django's generic-FK polymorphism (ContentType) with an explicit discriminator
+// + nullable FKs. A raw-SQL CHECK enforcing "exactly one of trainingEventId/mergedTrainingEventId
+// is set, matching targetType" must be added in the migration.
+model TrainingPayment {
+  id                    String                    @id @default(cuid())
+  targetType            TrainingPaymentTargetType
+  trainingEventId       String?
+  trainingEvent         TrainingEvent?            @relation("TrainingEventPayments", fields: [trainingEventId], references: [id])
+  mergedTrainingEventId String?
+  mergedTrainingEvent   MergedTrainingEvent?      @relation("MergedTrainingEventPayments", fields: [mergedTrainingEventId], references: [id])
+  facilitatorId         String
+  facilitator           User                      @relation("FacilitatorPayments", fields: [facilitatorId], references: [id])
+  grossAmount           Decimal                   @db.Decimal(14, 2)
+  feeAmount             Decimal                   @db.Decimal(14, 2)
+  netAmount             Decimal                   @db.Decimal(14, 2)
+  reference             String                    @unique
+  rawResponse           Json?
+  status                TrainingPaymentStatus     @default(PENDING)
+  createdAt             DateTime                  @default(now())
+
+  @@index([targetType, trainingEventId])
+  @@index([targetType, mergedTrainingEventId])
+}
+
+// ---------- Chat ----------
+
+// isActive + service-layer deactivate-then-create pattern (plus a recommended Postgres
+// partial unique index on isActive=true) fixes Django's "latest row wins" ChatPricing.
+model ChatPricing {
+  id           String   @id @default(cuid())
+  amount       Decimal  @db.Decimal(14, 2)
+  durationDays Int
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+
+  chatPayments ChatPayment[]
+}
+
+model Conversation {
+  id               String    @id @default(cuid())
+  eventManagerId   String
+  eventManager     User      @relation("ManagerConversations", fields: [eventManagerId], references: [id], onDelete: Cascade)
+  facilitatorId    String
+  facilitator      User      @relation("FacilitatorConversations", fields: [facilitatorId], references: [id], onDelete: Cascade)
+  slug             String    @unique
+  paymentConfirmed Boolean   @default(false)
+  accessGranted    Boolean   @default(false)
+  accessExpiresAt  DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  messages    Message[]
+  chatPayment ChatPayment?
+
+  @@unique([eventManagerId, facilitatorId])
+}
+
+model Message {
+  id             String       @id @default(cuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  senderId       String
+  sender         User         @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  content        String
+  isRead         Boolean      @default(false)
+  createdAt      DateTime     @default(now())
+
+  @@index([conversationId, createdAt])
+}
+
+// "Ever paid this pairing" flag, distinct from Conversation's time-limited access.
+model FacilitatorAccess {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation("AccessAsUser", fields: [userId], references: [id], onDelete: Cascade)
+  facilitatorId String
+  facilitator   User     @relation("AccessAsFacilitator", fields: [facilitatorId], references: [id], onDelete: Cascade)
+  createdAt     DateTime @default(now())
+
+  @@unique([userId, facilitatorId])
+}
+
+model ChatPayment {
+  id             String       @id @default(cuid())
+  conversationId String       @unique
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  pricingId      String?
+  pricing        ChatPricing? @relation(fields: [pricingId], references: [id])
+  expiresAt      DateTime
+  paidAt         DateTime?
+  createdAt      DateTime     @default(now())
+}
+
+// ---------- Payments / Anchor ----------
+
+// Idempotency + audit log for inbound Anchor webhooks.
+model AnchorWebhookEvent {
+  id              String   @id @default(cuid())
+  eventId         String   @unique
+  eventType       String
+  payload         Json
+  receivedAt      DateTime @default(now())
+  processed       Boolean  @default(false)
+  processingError String?
+
+  @@index([eventType])
+}
+
+// ---------- Merged (pooled/crowdfunded) training ----------
+
+model MergedTrainingEvent {
+  id                String              @id @default(cuid())
+  initiatorId       String
+  initiator         User                @relation("Initiator", fields: [initiatorId], references: [id], onDelete: Cascade)
+  title             String
+  description       String?
+  startDate         DateTime
+  endDate           DateTime
+  location          String
+  delegatesLevel    String
+  eventCategory     String
+  venueType         String
+  totalSlots        Int
+  pricePerDelegate  Decimal             @db.Decimal(14, 2)
+  deadline          DateTime
+  isInviteOnly      Boolean             @default(false)
+  isFullyFunded     Boolean             @default(false)
+  isPostedToBoard   Boolean             @default(false)
+  cancelled         Boolean             @default(false)
+  selectedTrainerId String?
+  selectedTrainer   User?               @relation("SelectedTrainerMerged", fields: [selectedTrainerId], references: [id])
+  approval          EventApprovalStatus @default(PENDING)
+  paymentConfirmed  Boolean             @default(false)
+  votingNotified    Boolean             @default(false)
+  slug              String              @unique
+  isCompleted       Boolean             @default(false)
+  isPaid            Boolean             @default(false)
+  completedAt       DateTime?
+  reminderSentAt    DateTime?
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+
+  invites      MergedTrainingInvite[]
+  participants MergedTrainingParticipant[]
+  applications MergerApplication[]
+  payments     TrainingPayment[]           @relation("MergedTrainingEventPayments")
+
+  @@index([initiatorId])
+  @@index([isPostedToBoard, isFullyFunded])
+}
+
+// Explicit join table, replacing Django's M2M `invited_companies`.
+model MergedTrainingInvite {
+  id                    String              @id @default(cuid())
+  mergedTrainingEventId String
+  mergedTrainingEvent   MergedTrainingEvent @relation(fields: [mergedTrainingEventId], references: [id], onDelete: Cascade)
+  companyId             String
+  company               User                @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  invitedAt             DateTime            @default(now())
+
+  @@unique([mergedTrainingEventId, companyId])
+}
+
+model MergedTrainingParticipant {
+  id                    String              @id @default(cuid())
+  mergedTrainingEventId String
+  mergedTrainingEvent   MergedTrainingEvent @relation(fields: [mergedTrainingEventId], references: [id], onDelete: Cascade)
+  companyId             String
+  company               User                @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  numDelegates          Int
+  amountPaid            Decimal             @default(0) @db.Decimal(14, 2)
+  hasPaid               Boolean             @default(false)
+  paidAt                DateTime?
+  createdAt             DateTime            @default(now())
+
+  @@unique([mergedTrainingEventId, companyId])
+}
+
+// Same bid shape as Application, scoped to merged events. Kept as a separate model
+// (not unified into a polymorphic Bid) since that wasn't in the original bug list —
+// flagged in the plan as an optional future refactor, not done unilaterally.
+model MergerApplication {
+  id                    String              @id @default(cuid())
+  trainerId             String
+  trainer               User                @relation(fields: [trainerId], references: [id], onDelete: Cascade)
+  mergedTrainingEventId String
+  mergedTrainingEvent   MergedTrainingEvent @relation(fields: [mergedTrainingEventId], references: [id], onDelete: Cascade)
+  appliedAt             DateTime            @default(now())
+  courseBreakdown       String?
+  objective             String?
+  classActivities       String?
+  budgetPerDelegate     Decimal             @db.Decimal(14, 2)
+  status                ApplicationStatus   @default(PENDING)
+  isSelected            Boolean             @default(false)
+  slug                  String              @unique
+
+  votes BidVote[]
+
+  @@unique([trainerId, mergedTrainingEventId])
+}
+
+model BidVote {
+  id                  String            @id @default(cuid())
+  voterId             String
+  voter               User              @relation(fields: [voterId], references: [id], onDelete: Cascade)
+  mergerApplicationId String
+  mergerApplication   MergerApplication @relation(fields: [mergerApplicationId], references: [id], onDelete: Cascade)
+  createdAt           DateTime          @default(now())
+
+  @@unique([voterId, mergerApplicationId])
+}
+
+// ---------- Landing page / Admin CMS ----------
+
+model Contact {
+  id        String   @id @default(cuid())
+  name      String
+  email     String
+  phone     String?
+  message   String
+  createdAt DateTime @default(now())
+}
+
+model Service {
+  id        String   @id @default(cuid())
+  icon      String?
+  title     String
+  info      String?
+  summary   String?
+  imageUrl  String?
+  slug      String   @unique
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  countUps CountUp[]
+}
+
+model TeamMember {
+  id           String   @id @default(cuid())
+  name         String
+  position     String
+  linkedinUrl  String?
+  twitterUrl   String?
+  facebookUrl  String?
+  instagramUrl String?
+  imageUrl     String?
+  bio          String?
+  order        Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  countUps CountUp[]
+}
+
+model CountUp {
+  id           String      @id @default(cuid())
+  trait        String
+  level        Int
+  summary      String?
+  serviceId    String?
+  service      Service?    @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  teamMemberId String?
+  teamMember   TeamMember? @relation(fields: [teamMemberId], references: [id], onDelete: Cascade)
+}
+
+// Singleton via fixed id + upsert.
+model AboutUs {
+  id                   Int      @id @default(1)
+  title                String
+  description          String
+  videoUrl             String?
+  mission              String?
+  vision               String?
+  testimonialImageUrls String[]
+  updatedAt            DateTime @updatedAt
+}
+
+model Newsletter {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  createdAt DateTime @default(now())
+}
+
+model FAQ {
+  id       String @id @default(cuid())
+  question String
+  answer   String
+  order    Int    @default(0)
+}
+
+// Privacy / Terms static legal pages.
+model LegalPage {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  title       String
+  contentHtml String
+  updatedAt   DateTime @updatedAt
+}
+
+// Replaces Django's ~55-field Homepage model with a block/JSON structure — this page
+// gets redesigned in a later phase anyway, so a flat 55-column table isn't worth porting.
+model HomepageContent {
+  id        Int      @id @default(1)
+  blocks    Json
+  updatedAt DateTime @updatedAt
+}
+
+// Replaces Django's ~40-field Pricing model, same rationale as HomepageContent.
+model PricingContent {
+  id        Int      @id @default(1)
+  tiers     Json
+  updatedAt DateTime @updatedAt
+}
+
+// ---------- Organizations (formalizes the free-text "organization" field so Professional
+// users have real entities to affiliate with) ----------
+
+model Organization {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  slug        String   @unique
+  logoUrl     String?
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Business (CAC) verification — Professionals may only affiliate with a VERIFIED org.
+  cacNumber                String?
+  businessBvn              String?
+  industry                 String?
+  registrationType         BusinessRegistrationType?
+  dateOfRegistration       DateTime?
+  addressLine1             String?
+  addressCity              String?
+  addressState             String?
+  anchorBusinessCustomerId String?                   @unique
+  verificationStatus       OrgVerificationStatus     @default(UNVERIFIED)
+  verificationFailedReason String?
+
+  memberships OrganizationMembership[]
+  documents   OrganizationDocument[]
+}
+
+enum BusinessRegistrationType {
+  PRIVATE_INCORPORATED
+  INCORPORATED_TRUSTEES
+  BUSINESS_NAME
+  FREE_ZONE
+  GOV
+  PRIVATE_INCORPORATED_GOV
+  COOPERATIVE_SOCIETY
+  PUBLIC_INCORPORATED
+}
+
+enum OrgVerificationStatus {
+  UNVERIFIED
+  PENDING
+  AWAITING_DOCUMENTS
+  VERIFIED
+  REJECTED
+}
+
+enum OrgDocumentStatus {
+  REQUIRED
+  UPLOADED
+  APPROVED
+  REJECTED
+}
+
+// Mirrors Anchor's per-document KYB lifecycle: each row is a document Anchor told us is
+// required (via the customer.identification.awaitingDocument webhook), which we then
+// upload and track through to approval/rejection via document.approved/document.rejected.
+model OrganizationDocument {
+  id               String            @id @default(cuid())
+  organizationId   String
+  organization     Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  anchorDocumentId String            @unique
+  documentType     String
+  status           OrgDocumentStatus @default(REQUIRED)
+  rejectionReason  String?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  @@index([organizationId])
+}
+
+// A user's link to an Organization. The Event Manager who registers an org's name first
+// becomes its OWNER (auto-approved); everyone else who selects that org at signup gets a
+// PENDING membership the owner must approve from their dashboard.
+model OrganizationMembership {
+  id             String              @id @default(cuid())
+  organizationId String
+  organization   Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role           OrgMemberRole       @default(MEMBER)
+  status         OrgMembershipStatus @default(PENDING)
+  requestedAt    DateTime            @default(now())
+  respondedAt    DateTime?
+
+  @@unique([organizationId, userId])
+  @@index([organizationId, status])
+  @@index([userId])
+}
+
+// ---------- Skills (admin-managed taxonomy for Facilitator profiles) ----------
+
+model Skill {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  slug      String   @unique
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  facilitators FacilitatorSkill[]
+}
+
+model FacilitatorSkill {
+  id      String @id @default(cuid())
+  userId  String
+  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  skillId String
+  skill   Skill  @relation(fields: [skillId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, skillId])
+  @@index([skillId])
+}
