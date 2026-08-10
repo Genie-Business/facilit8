@@ -59,6 +59,8 @@ enum NotificationType {
   WEBHOOK_ALERT
   MERGED_TRAINING_FUNDED
   SYSTEM
+  AWE_SUBSCRIPTION_RENEWED
+  AWE_SUBSCRIPTION_PAYMENT_FAILED
 }
 
 enum TrainingPaymentTargetType {
@@ -79,6 +81,7 @@ enum TransactionType {
   CHAT_PAYMENT
   INTERNAL_TRANSFER
   FEE
+  AWE_SUBSCRIPTION
 }
 
 enum TransactionStatus {
@@ -93,6 +96,18 @@ enum PlatformFeeScope {
   CHAT_ACCESS
   WITHDRAWAL
   MERGED_TRAINING_PAYOUT
+}
+
+enum AweSubscriptionStatus {
+  ACTIVE
+  PAST_DUE
+  CANCELED
+}
+
+enum AweMessageRole {
+  USER
+  ASSISTANT
+  SYSTEM
 }
 
 // ---------- Auth / Wallet ----------
@@ -179,6 +194,10 @@ model User {
   organizationMemberships OrganizationMembership[]
   facilitatorSkills       FacilitatorSkill[]
 
+  aweSubscription  AweSubscription?
+  aweConversations AweConversation[]
+  aweCareerProfile AweCareerProfile?
+
   @@index([role])
 }
 
@@ -229,6 +248,7 @@ model Transaction {
   relatedTrainingEventId       String?
   relatedMergedTrainingEventId String?
   relatedConversationId        String?
+  relatedAweSubscriptionId     String?
   metadata                     Json?
   createdAt                    DateTime          @default(now())
   updatedAt                    DateTime          @updatedAt
@@ -757,7 +777,8 @@ model Skill {
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
 
-  facilitators FacilitatorSkill[]
+  facilitators      FacilitatorSkill[]
+  aweCareerProfiles AweCareerProfileSkill[]
 }
 
 model FacilitatorSkill {
@@ -769,4 +790,107 @@ model FacilitatorSkill {
 
   @@unique([userId, skillId])
   @@index([skillId])
+}
+
+// ---------- Awe (AI Career & Professional Growth Partner) ----------
+
+// Single configurable-row pricing, same "isActive latest-row-wins" convention as
+// ChatPricing/PlatformFee. isFree lets an admin make Awe free for everyone without
+// deleting the price history.
+model AwePricing {
+  id           String   @id @default(cuid())
+  monthlyPrice Decimal  @db.Decimal(14, 2)
+  durationDays Int      @default(30)
+  isFree       Boolean  @default(false)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+
+  subscriptions AweSubscription[]
+}
+
+// Per-user current subscription state. Transaction rows (via relatedAweSubscriptionId)
+// are the billing history; this is just "where things stand right now."
+model AweSubscription {
+  id                  String                @id @default(cuid())
+  userId              String                @unique
+  user                User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status              AweSubscriptionStatus @default(ACTIVE)
+  pricingId           String?
+  pricing             AwePricing?           @relation(fields: [pricingId], references: [id])
+  currentPeriodStart  DateTime              @default(now())
+  currentPeriodEnd    DateTime
+  nextBillingAt       DateTime?
+  cancelAtPeriodEnd   Boolean               @default(false)
+  canceledAt          DateTime?
+  failedPaymentCount  Int                   @default(0)
+  lastPaymentFailedAt DateTime?
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
+
+  @@index([status, nextBillingAt])
+}
+
+// Private, single-user conversation thread — distinct from the human-to-human
+// Conversation model above. No slug: always accessed by id, behind auth.
+model AweConversation {
+  id         String    @id @default(cuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title      String?
+  archivedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  messages AweMessage[]
+
+  @@index([userId, updatedAt])
+}
+
+model AweMessage {
+  id             String          @id @default(cuid())
+  conversationId String
+  conversation   AweConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  role           AweMessageRole
+  content        String
+  toolCalls      Json?
+  createdAt      DateTime        @default(now())
+
+  @@index([conversationId, createdAt])
+}
+
+// Structured (not Json-blob) career memory so fields stay individually queryable and
+// incrementally updatable across conversations, per the product brief's "Awe should
+// remember professional context" requirement.
+model AweCareerProfile {
+  id                     String   @id @default(cuid())
+  userId                 String   @unique
+  user                   User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  currentRole            String?
+  industry               String?
+  yearsExperience        Int?
+  currentEmployer        String?
+  targetRole             String?
+  targetIndustry         String?
+  careerGoals            String?
+  strengths              String?
+  developmentAreas       String?
+  preferredLearningStyle String?
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+
+  skills AweCareerProfileSkill[]
+}
+
+// Joins the career profile into the existing admin-curated Skill taxonomy rather than
+// storing free-text skill names, so Awe's view of a user's skills stays consistent with
+// the rest of the app (facilitator skills, signup, etc).
+model AweCareerProfileSkill {
+  id          String           @id @default(cuid())
+  profileId   String
+  profile     AweCareerProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  skillId     String
+  skill       Skill            @relation(fields: [skillId], references: [id], onDelete: Cascade)
+  proficiency String?
+
+  @@unique([profileId, skillId])
 }

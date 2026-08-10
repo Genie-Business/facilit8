@@ -34,5 +34,13 @@ export async function POST(request: Request) {
     }
   }
 
+  const aweConversationMatch = channelName.match(/^private-awe-conversation-(.+)$/);
+  if (aweConversationMatch) {
+    const conversation = await prisma.aweConversation.findUnique({ where: { id: aweConversationMatch[1] } });
+    if (conversation && conversation.userId === session.user.id) {
+      return NextResponse.json(pusher.authorizeChannel(socketId, channelName));
+    }
+  }
+
   return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 }

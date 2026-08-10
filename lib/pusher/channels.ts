@@ -11,7 +11,12 @@ export function conversationChannel(conversationId: string): string {
   return `private-conversation-${conversationId}`;
 }
 
+export function aweConversationChannel(conversationId: string): string {
+  return `private-awe-conversation-${conversationId}`;
+}
+
 export const EVENTS = {
   NOTIFICATION_NEW: "notification:new",
   MESSAGE_NEW: "message:new",
+  AWE_MESSAGE_NEW: "awe-message:new",
 } as const;
