@@ -8,6 +8,11 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
+// Every admin page is auth-gated and reads live data — never worth attempting to
+// prerender, and prerendering it means a build-time DB hiccup fails the whole deploy
+// instead of just that request.
+export const dynamic = "force-dynamic";
+
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const session = await auth();
 

@@ -11,6 +11,11 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
+// Every (app) page is auth-gated and reads live, per-user data — never worth attempting
+// to prerender, and prerendering it means a build-time DB hiccup fails the whole deploy
+// instead of just that request.
+export const dynamic = "force-dynamic";
+
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const session = await auth();
   if (!session) return <div className="min-h-screen bg-muted/30">{children}</div>;
