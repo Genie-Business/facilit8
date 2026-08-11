@@ -5,6 +5,7 @@ import { HoverRollButton } from "./hover-roll-button";
 const BULLETS = [
   "Grounded in real Facilit8 data — training events, facilitators, and merged trainings, never invented answers.",
   "Builds a career profile over time, so every conversation picks up where the last one left off.",
+  "Closing a skills gap is how pay and opportunity catch up — Awe helps you find the shortest real path there.",
   "For Professionals, Facilitators, and Event Managers — whichever side of the marketplace you're on.",
 ];
 

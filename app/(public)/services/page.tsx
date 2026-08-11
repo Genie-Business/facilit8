@@ -6,7 +6,7 @@ import { HoverRollButton } from "@/components/marketing/hover-roll-button";
 export const metadata: Metadata = {
   title: "How It Works",
   description:
-    "See how Event Managers post and fund training needs, how Facilitators bid and get paid, and how Awe helps you grow professionally on Facilit8.",
+    "See how Event Managers post and fund training needs, how Facilitators bid and get paid, and how Professionals grow with Awe on Facilit8.",
   alternates: { canonical: "/services" },
 };
 
@@ -24,10 +24,10 @@ const FACILITATOR_STEPS = [
   { title: "Get paid on completion", body: "Funds move to your wallet automatically once the training is marked complete." },
 ];
 
-const AWE_STEPS = [
-  { title: "Chat with Awe", body: "Tell it your current role, goals, and what's getting in the way — it remembers." },
-  { title: "Get a grounded plan", body: "Recommendations pull from real training events, facilitators, and merged trainings on Facilit8." },
-  { title: "Take the next real step", body: "Sometimes that's a course. Sometimes it's telling you a course isn't what you need yet." },
+const PROFESSIONAL_STEPS = [
+  { title: "Build your profile", body: "Sign up independent, or affiliate with a verified organization — either way, Awe starts learning your goals." },
+  { title: "Browse the ecosystem", body: "See the open training events and the facilitator directory shaping your industry." },
+  { title: "Grow with Awe", body: "Get a career partner grounded in real Facilit8 data — not generic advice — that turns your profile into a concrete next step." },
 ];
 
 function StepList({ steps }: { steps: { title: string; body: string }[] }) {
@@ -53,7 +53,7 @@ export default function ServicesPage() {
     <>
       <MarketingPageHeader
         eyebrow="How it works"
-        title="One marketplace, two sides of the same problem — plus a growth partner for both."
+        title="Three roles, one platform built around each of them."
         description="Whether you're staffing a training, facilitating one, or figuring out your next career move, Facilit8 handles it end to end."
       />
 
@@ -68,18 +68,28 @@ export default function ServicesPage() {
             <StepList steps={FACILITATOR_STEPS} />
           </div>
           <div>
-            <h2 className="mb-8 text-2xl font-medium tracking-tight text-foreground">Grow with Awe</h2>
-            <StepList steps={AWE_STEPS} />
+            <h2 className="mb-8 text-2xl font-medium tracking-tight text-foreground">For Professionals</h2>
+            <StepList steps={PROFESSIONAL_STEPS} />
           </div>
         </div>
 
-        <div className="mt-16 rounded-2xl bg-[#F5F5F5] p-8 sm:p-10">
-          <h2 className="text-2xl font-medium tracking-tight text-foreground">Merged training</h2>
-          <p className="mt-3 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-            Some training programs are too expensive for one company to justify alone. Merged
-            training lets multiple Event Managers pool their budgets into a single session, split
-            by delegate count, then vote together on which facilitator runs it.
-          </p>
+        <div className="mt-16 grid gap-6 sm:grid-cols-2">
+          <div className="rounded-2xl bg-[#F5F5F5] p-8 sm:p-10">
+            <h2 className="text-2xl font-medium tracking-tight text-foreground">Merged training</h2>
+            <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+              Some training programs are too expensive for one company to justify alone. Merged
+              training lets multiple Event Managers pool their budgets into a single session, split
+              by delegate count, then vote together on which facilitator runs it.
+            </p>
+          </div>
+          <div className="rounded-2xl bg-[#F5F5F5] p-8 sm:p-10">
+            <h2 className="text-2xl font-medium tracking-tight text-foreground">Awe, for everyone</h2>
+            <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+              Awe isn&apos;t just for Professionals — Facilitators use it to grow their
+              specialization between engagements, and Event Managers use it for their own career
+              progression too.
+            </p>
+          </div>
         </div>
 
         <div className="mt-16 flex flex-col items-start gap-3 sm:flex-row sm:items-center">
