@@ -27,14 +27,19 @@ export default async function MergedTrainingDetailPage({ params }: { params: Pro
   const mergedEvent = await prisma.mergedTrainingEvent.findUnique({
     where: { slug },
     include: {
-      initiator: { select: { firstName: true, lastName: true, organization: true } },
+      initiator: { select: { firstName: true, lastName: true, organization: true, role: true } },
       selectedTrainer: { select: { firstName: true, lastName: true, slug: true } },
       participants: { include: { company: { select: { firstName: true, lastName: true, organization: true } } } },
-      invites: true,
+      invites: { include: { company: { select: { id: true, firstName: true, lastName: true, role: true } } } },
       _count: { select: { applications: true } },
     },
   });
   if (!mergedEvent) notFound();
+
+  const coFacilitators =
+    mergedEvent.initiator.role === "FACILITATOR"
+      ? mergedEvent.invites.map((i) => i.company).filter((u) => u.role === "FACILITATOR")
+      : [];
 
   const isInitiator = mergedEvent.initiatorId === session.user.id;
   const myParticipant = mergedEvent.participants.find((p) => p.companyId === session.user.id);
@@ -44,7 +49,7 @@ export default async function MergedTrainingDetailPage({ params }: { params: Pro
   const pct = Math.min(100, Math.round((fundedSlots / mergedEvent.totalSlots) * 100));
 
   const canJoin =
-    session.user.role === "EVENT_MANAGER" &&
+    ["EVENT_MANAGER", "PROFESSIONAL"].includes(session.user.role) &&
     !isInitiator &&
     !myParticipant &&
     !mergedEvent.cancelled &&
@@ -115,6 +120,14 @@ export default async function MergedTrainingDetailPage({ params }: { params: Pro
               />
             )}
           </div>
+
+          {coFacilitators.length > 0 && (
+            <div style={{ marginTop: 12, fontSize: 13 }}>
+              <span style={{ color: "var(--t-muted)" }}>Co-facilitators invited: </span>
+              {coFacilitators.map((f) => `${f.firstName} ${f.lastName}`).join(", ")}
+            </div>
+          )}
+
           <div style={{ marginTop: 16 }}>
             <div className="progress">
               <div className="progress-fill" style={{ width: `${pct}%` }} />

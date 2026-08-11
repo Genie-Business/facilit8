@@ -11,13 +11,13 @@ const AUDIENCES = [
     icon: GraduationCap,
     eyebrow: "For Facilitators",
     title: "Get discovered, get paid, get better",
-    body: "Build a profile that shows your real track record, bid on training that matches your specialization, and grow your own capability with Awe between engagements.",
+    body: "Build a profile that shows your real track record, bid on training that matches your specialization, or propose your own merged session and invite organisations to fund it and fellow facilitators to co-deliver it.",
   },
   {
     icon: TrendingUp,
     eyebrow: "For Professionals",
     title: "Close the gap between where you are and where the market's headed",
-    body: "Browse the facilitators and training shaping your industry, and get an AI career partner grounded in real Facilit8 data — so every conversation ends with something you can act on.",
+    body: "Browse the facilitators and training shaping your industry, pool funds with peers in your field to bring in a facilitator together, and get an AI career partner grounded in real Facilit8 data.",
   },
 ];
 

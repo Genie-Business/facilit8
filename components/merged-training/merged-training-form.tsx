@@ -34,16 +34,25 @@ export interface MergedTrainingFormDefaults {
   initiatorNumDelegates?: number;
 }
 
+export interface InviteGroup {
+  heading: string;
+  options: { id: string; label: string }[];
+}
+
 export function MergedTrainingForm({
   action,
   defaults,
   submitLabel,
-  invitableCompanies,
+  inviteGroups,
+  hideInitiatorDelegates,
 }: {
   action: (prevState: ActionState, formData: FormData) => Promise<ActionState>;
   defaults?: MergedTrainingFormDefaults;
   submitLabel: string;
-  invitableCompanies?: { id: string; label: string }[];
+  /** One group for a single-role picker (Event Manager/Professional), two for a Facilitator initiator (organisations to fund + co-facilitators). */
+  inviteGroups?: InviteGroup[];
+  /** True when the current user is a Facilitator — they're proposing/delivering, not funding a delegate share. */
+  hideInitiatorDelegates?: boolean;
 }) {
   const [state, formAction, pending] = useActionState(action, initialState);
   const [isInviteOnly, setIsInviteOnly] = useState(!!defaults?.isInviteOnly);
@@ -139,7 +148,7 @@ export function MergedTrainingForm({
         </div>
       </div>
 
-      {!defaults?.slug && (
+      {!defaults?.slug && !hideInitiatorDelegates && (
         <div className="space-y-2">
           <Label htmlFor="initiatorNumDelegates">Your own delegate count</Label>
           <Input id="initiatorNumDelegates" name="initiatorNumDelegates" type="number" min={1} required />
@@ -186,18 +195,26 @@ export function MergedTrainingForm({
         </Label>
       </div>
 
-      {isInviteOnly && invitableCompanies && invitableCompanies.length > 0 && (
-        <div className="space-y-2">
-          <Label htmlFor="invitedUserIds">Invite companies (hold Ctrl/Cmd to select multiple)</Label>
-          <select id="invitedUserIds" name="invitedUserIds" multiple className="h-32 w-full rounded-lg border border-input bg-transparent p-2 text-sm">
-            {invitableCompanies.map((company) => (
-              <option key={company.id} value={company.id}>
-                {company.label}
-              </option>
-            ))}
-          </select>
-        </div>
-      )}
+      {isInviteOnly &&
+        inviteGroups?.map((group) =>
+          group.options.length > 0 ? (
+            <div key={group.heading} className="space-y-2">
+              <Label htmlFor={`invite-${group.heading}`}>{group.heading} (hold Ctrl/Cmd to select multiple)</Label>
+              <select
+                id={`invite-${group.heading}`}
+                name="invitedUserIds"
+                multiple
+                className="h-32 w-full rounded-lg border border-input bg-transparent p-2 text-sm"
+              >
+                {group.options.map((option) => (
+                  <option key={option.id} value={option.id}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          ) : null
+        )}
 
       <Button type="submit" disabled={pending}>
         {pending ? "Saving..." : submitLabel}

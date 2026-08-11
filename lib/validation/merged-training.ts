@@ -14,7 +14,9 @@ export const mergedTrainingFormSchema = z
     pricePerDelegate: z.coerce.number().positive("Price per delegate must be a positive number."),
     deadline: z.string().min(1, "Funding deadline is required."),
     isInviteOnly: z.coerce.boolean().optional(),
-    initiatorNumDelegates: z.coerce.number().int().positive("Enter how many delegates you're bringing."),
+    // Optional — a Facilitator proposing a session isn't funding a delegate share
+    // themselves, so this only applies to Event Manager / Professional initiators.
+    initiatorNumDelegates: z.coerce.number().int().positive("Enter how many delegates you're bringing.").optional(),
   })
   .refine((data) => new Date(data.endDate) >= new Date(data.startDate), {
     message: "End date must be on or after the start date.",
@@ -24,7 +26,7 @@ export const mergedTrainingFormSchema = z
     message: "The funding deadline must be before the event starts.",
     path: ["deadline"],
   })
-  .refine((data) => data.initiatorNumDelegates <= data.totalSlots, {
+  .refine((data) => data.initiatorNumDelegates === undefined || data.initiatorNumDelegates <= data.totalSlots, {
     message: "Your delegate count can't exceed the total slots.",
     path: ["initiatorNumDelegates"],
   });

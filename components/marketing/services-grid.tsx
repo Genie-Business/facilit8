@@ -4,7 +4,7 @@ const SERVICES = [
   { icon: Gavel, title: "Bidding & matching", body: "Post or browse training needs, compare proposals, and select with real data — not cold outreach." },
   { icon: Wallet, title: "Secure escrow wallet", body: "Budget sits in escrow until training is confirmed complete — funds never move on a handshake." },
   { icon: MessageCircle, title: "In-app chat", body: "Align on scope, dates, and delivery before anyone commits budget or accepts a bid." },
-  { icon: Handshake, title: "Merged training", body: "Pool budget with other organisations to fund sessions no single company could justify alone." },
+  { icon: Handshake, title: "Merged training", body: "Organisations, Professionals, and Facilitators can all propose a session and invite others to co-fund or co-deliver it — not just one company's budget." },
   { icon: Sparkles, title: "Awe, AI growth partner", body: "A career partner for Professionals, Facilitators, and Event Managers — grounded in real Facilit8 data." },
 ];
 

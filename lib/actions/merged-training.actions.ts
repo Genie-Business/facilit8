@@ -23,11 +23,14 @@ function daysBetween(start: Date, end: Date): number {
   return Math.max(1, Math.round(ms / (1000 * 60 * 60 * 24)) + 1);
 }
 
+const CREATOR_ROLES = ["EVENT_MANAGER", "PROFESSIONAL", "FACILITATOR"] as const;
+
 export async function createMergedTrainingAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const session = await auth();
-  if (!session || session.user.role !== "EVENT_MANAGER") {
-    return { error: "Only Event Managers can start a merged training session." };
+  if (!session || !CREATOR_ROLES.includes(session.user.role as (typeof CREATOR_ROLES)[number])) {
+    return { error: "Only Event Managers, Professionals, and Facilitators can start a merged training session." };
   }
+  const isFacilitatorInitiated = session.user.role === "FACILITATOR";
 
   const user = await prisma.user.findUnique({ where: { id: session.user.id } });
   if (!user?.depositAccountId) {
@@ -38,11 +41,17 @@ export async function createMergedTrainingAction(_prev: ActionState, formData: F
   const parsed = mergedTrainingFormSchema.safeParse({
     ...raw,
     isInviteOnly: formData.get("isInviteOnly") === "on",
+    // A Facilitator is proposing the session for others to fund, not funding a share
+    // themselves, so their own delegate count doesn't apply.
+    initiatorNumDelegates: isFacilitatorInitiated ? undefined : raw.initiatorNumDelegates,
   });
   if (!parsed.success) {
     return { fieldErrors: firstFieldErrors(parsed.error.flatten().fieldErrors) };
   }
   const data = parsed.data;
+  if (!isFacilitatorInitiated && data.initiatorNumDelegates === undefined) {
+    return { fieldErrors: { initiatorNumDelegates: "Enter how many delegates you're bringing." } };
+  }
 
   const invitedUserIds = formData.getAll("invitedUserIds").filter((v): v is string => typeof v === "string");
 
@@ -68,7 +77,12 @@ export async function createMergedTrainingAction(_prev: ActionState, formData: F
       isInviteOnly: !!data.isInviteOnly,
       isPostedToBoard: !data.isInviteOnly,
       slug,
-      participants: { create: { companyId: session.user.id, numDelegates: data.initiatorNumDelegates } },
+      // A Facilitator-initiated session has no funding participant for the initiator —
+      // they're proposing and delivering, not paying — and skips the bid/vote process
+      // entirely by naming themselves as the selected trainer immediately.
+      ...(isFacilitatorInitiated
+        ? { selectedTrainerId: session.user.id }
+        : { participants: { create: { companyId: session.user.id, numDelegates: data.initiatorNumDelegates! } } }),
     },
   });
 
@@ -143,10 +157,12 @@ export async function updateMergedTrainingAction(_prev: ActionState, formData: F
   redirect(`/merged-trainings/${slug}`);
 }
 
+const FUNDER_ROLES = ["EVENT_MANAGER", "PROFESSIONAL"] as const;
+
 export async function joinMergedTrainingAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const session = await auth();
-  if (!session || session.user.role !== "EVENT_MANAGER") {
-    return { error: "Only Event Managers can join a merged training session." };
+  if (!session || !FUNDER_ROLES.includes(session.user.role as (typeof FUNDER_ROLES)[number])) {
+    return { error: "Only Event Managers and Professionals can join a merged training session as a funder." };
   }
 
   const slug = formData.get("slug");

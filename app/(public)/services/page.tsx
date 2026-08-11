@@ -22,12 +22,14 @@ const FACILITATOR_STEPS = [
   { title: "Browse open events", body: "Find training needs that match your expertise and submit a bid with your rate." },
   { title: "Get selected", body: "Event Managers review bids and confirm a facilitator once budget is funded." },
   { title: "Get paid on completion", body: "Funds move to your wallet automatically once the training is marked complete." },
+  { title: "Or propose your own session", body: "Skip bidding entirely — invite organisations to fund it and fellow facilitators to co-deliver it." },
 ];
 
 const PROFESSIONAL_STEPS = [
   { title: "Build your profile", body: "Sign up independent, or affiliate with a verified organization — either way, Awe starts learning your goals." },
   { title: "Browse the ecosystem", body: "See the open training events and the facilitator directory shaping your industry." },
   { title: "Grow with Awe", body: "Get a career partner grounded in real Facilit8 data — not generic advice — that turns your profile into a concrete next step." },
+  { title: "Or start your own merged session", body: "Invite other professionals in your field to pool funds and bring in a facilitator together." },
 ];
 
 function StepList({ steps }: { steps: { title: string; body: string }[] }) {
@@ -77,9 +79,11 @@ export default function ServicesPage() {
           <div className="rounded-2xl bg-[#F5F5F5] p-8 sm:p-10">
             <h2 className="text-2xl font-medium tracking-tight text-foreground">Merged training</h2>
             <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-              Some training programs are too expensive for one company to justify alone. Merged
-              training lets multiple Event Managers pool their budgets into a single session, split
-              by delegate count, then vote together on which facilitator runs it.
+              Some training programs are too expensive to justify alone. Event Managers can pool
+              budget across organisations, split by delegate count, then vote on which facilitator
+              runs it. Professionals can do the same with peers in their field. Facilitators can
+              propose their own session, inviting organisations to fund it and fellow facilitators
+              to co-deliver it.
             </p>
           </div>
           <div className="rounded-2xl bg-[#F5F5F5] p-8 sm:p-10">

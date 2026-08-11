@@ -34,7 +34,7 @@ export default async function MergedTrainingBoardPage() {
             {sessions.length} pooled training session{sessions.length === 1 ? "" : "s"} across the marketplace.
           </p>
         </div>
-        {session.user.role === "EVENT_MANAGER" && (
+        {["EVENT_MANAGER", "PROFESSIONAL", "FACILITATOR"].includes(session.user.role) && (
           <div className="hero-actions">
             <Link href="/merged-trainings/new" className="btn btn--primary">
               <Plus />

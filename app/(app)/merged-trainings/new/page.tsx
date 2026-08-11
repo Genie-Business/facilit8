@@ -1,19 +1,20 @@
 import { redirect } from "next/navigation";
 
 import { auth } from "@/lib/auth";
-import { prisma } from "@/lib/db";
 import { createMergedTrainingAction } from "@/lib/actions/merged-training.actions";
+import { getInviteGroupsForInitiator } from "@/lib/services/merged-training-invite-candidates";
 import { MergedTrainingForm } from "@/components/merged-training/merged-training-form";
+
+const CREATOR_ROLES = ["EVENT_MANAGER", "PROFESSIONAL", "FACILITATOR"] as const;
 
 export default async function NewMergedTrainingPage() {
   const session = await auth();
-  if (session?.user.role !== "EVENT_MANAGER") redirect("/merged-trainings");
+  if (!session || !CREATOR_ROLES.includes(session.user.role as (typeof CREATOR_ROLES)[number])) {
+    redirect("/merged-trainings");
+  }
 
-  const companies = await prisma.user.findMany({
-    where: { role: "EVENT_MANAGER", id: { not: session.user.id } },
-    select: { id: true, firstName: true, lastName: true, organization: true },
-    take: 100,
-  });
+  const role = session.user.role as (typeof CREATOR_ROLES)[number];
+  const inviteGroups = await getInviteGroupsForInitiator(role, session.user.id);
 
   return (
     <div className="space-y-6">
@@ -21,10 +22,8 @@ export default async function NewMergedTrainingPage() {
       <MergedTrainingForm
         action={createMergedTrainingAction}
         submitLabel="Create session"
-        invitableCompanies={companies.map((c) => ({
-          id: c.id,
-          label: c.organization || `${c.firstName} ${c.lastName}`,
-        }))}
+        inviteGroups={inviteGroups}
+        hideInitiatorDelegates={role === "FACILITATOR"}
       />
     </div>
   );
