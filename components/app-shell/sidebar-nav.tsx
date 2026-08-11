@@ -20,6 +20,9 @@ import {
   HelpCircle,
   UserCircle,
   Sparkles,
+  FileText,
+  Activity,
+  Repeat,
 } from "lucide-react";
 
 import { useShell } from "./shell-root";
@@ -65,6 +68,9 @@ const ADMIN_LINKS: NavItem[] = [
   { href: `${siteUrl}/admin`, label: "Admin Home", icon: LayoutGrid, crossDomain: true },
   { href: `${siteUrl}/admin/skills`, label: "Skills", icon: Tags, crossDomain: true },
   { href: `${siteUrl}/admin/awe-pricing`, label: "Awe Pricing", icon: Sparkles, crossDomain: true },
+  { href: `${siteUrl}/admin/content`, label: "Content", icon: FileText, crossDomain: true },
+  { href: `${siteUrl}/admin/activity`, label: "Activity", icon: Activity, crossDomain: true },
+  { href: `${siteUrl}/admin/awe-subscriptions`, label: "Awe Subscriptions", icon: Repeat, crossDomain: true },
 ];
 
 function NavLink({ href, label, icon: Icon, external, crossDomain }: NavItem) {

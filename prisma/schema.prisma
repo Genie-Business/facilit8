@@ -640,6 +640,15 @@ model AboutUs {
   updatedAt            DateTime @updatedAt
 }
 
+// Singleton via fixed id + upsert. Admin-editable contact info shown on /contact.
+model SiteSettings {
+  id        Int      @id @default(1)
+  email     String
+  phone     String?
+  address   String?
+  updatedAt DateTime @updatedAt
+}
+
 model Newsletter {
   id        String   @id @default(cuid())
   email     String   @unique

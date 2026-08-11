@@ -135,3 +135,11 @@ export async function cancelAweSubscription(userId: string): Promise<void> {
     data: { cancelAtPeriodEnd: true, canceledAt: new Date() },
   });
 }
+
+/** Undoes a pending cancellation — only meaningful while the current period hasn't ended yet. */
+export async function undoAweSubscriptionCancellation(userId: string): Promise<void> {
+  await prisma.aweSubscription.updateMany({
+    where: { userId, cancelAtPeriodEnd: true },
+    data: { cancelAtPeriodEnd: false, canceledAt: null },
+  });
+}

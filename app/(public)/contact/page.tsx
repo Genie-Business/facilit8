@@ -3,6 +3,7 @@ import { Mail, MapPin, Phone } from "lucide-react";
 
 import { MarketingPageHeader } from "@/components/marketing/page-header";
 import { ContactForm } from "@/components/marketing/contact-form";
+import { getSiteSettings } from "@/lib/services/site-settings.service";
 
 export const metadata: Metadata = {
   title: "Contact",
@@ -10,7 +11,9 @@ export const metadata: Metadata = {
   alternates: { canonical: "/contact" },
 };
 
-export default function ContactPage() {
+export default async function ContactPage() {
+  const settings = await getSiteSettings();
+
   return (
     <>
       <MarketingPageHeader
@@ -25,21 +28,21 @@ export default function ContactPage() {
             <Mail className="mt-0.5 size-5 text-brand" />
             <div>
               <p className="text-sm font-semibold text-foreground">Email</p>
-              <p className="text-sm text-muted-foreground">partners@usefacilit8.training</p>
+              <p className="text-sm text-muted-foreground">{settings.email}</p>
             </div>
           </div>
           <div className="flex items-start gap-3">
             <Phone className="mt-0.5 size-5 text-brand" />
             <div>
               <p className="text-sm font-semibold text-foreground">Phone</p>
-              <p className="text-sm text-muted-foreground">Available on request</p>
+              <p className="text-sm text-muted-foreground">{settings.phone ?? "Available on request"}</p>
             </div>
           </div>
           <div className="flex items-start gap-3">
             <MapPin className="mt-0.5 size-5 text-brand" />
             <div>
               <p className="text-sm font-semibold text-foreground">Based in</p>
-              <p className="text-sm text-muted-foreground">Nigeria</p>
+              <p className="text-sm text-muted-foreground">{settings.address ?? "Nigeria"}</p>
             </div>
           </div>
         </div>

@@ -29,6 +29,9 @@ const PAGE_META: Record<string, { group: string; label: string }> = {
   "/admin": { group: "Admin", label: "Admin Home" },
   "/admin/skills": { group: "Admin", label: "Skills" },
   "/admin/awe-pricing": { group: "Admin", label: "Awe Pricing" },
+  "/admin/content": { group: "Admin", label: "Content" },
+  "/admin/activity": { group: "Admin", label: "Activity" },
+  "/admin/awe-subscriptions": { group: "Admin", label: "Awe Subscriptions" },
 };
 
 function metaFor(pathname: string): { group: string; label: string } {
