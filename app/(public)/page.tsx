@@ -2,9 +2,10 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRight, ShieldCheck, Users2 } from "lucide-react";
 
-import { HeroBackground } from "@/components/marketing/hero-background";
-import { HeroContent } from "@/components/marketing/hero-content";
-import { HoverRollButton } from "@/components/marketing/hover-roll-button";
+import { Hero } from "@/components/marketing/hero";
+import { VideoShowcase } from "@/components/marketing/video-showcase";
+import { AweSection } from "@/components/marketing/awe-section";
+import { CategoryTicker } from "@/components/marketing/category-ticker";
 
 export const metadata: Metadata = {
   alternates: { canonical: "/" },
@@ -13,51 +14,16 @@ export const metadata: Metadata = {
 export default function HomePage() {
   return (
     <>
-      {/* Hero */}
-      <section className="relative">
-        <HeroBackground />
-        <HeroContent />
-      </section>
+      <Hero />
 
-      {/* About */}
-      <section className="mx-auto max-w-[1200px] px-5 py-20 sm:px-8 sm:py-28">
-        <div className="mb-8 flex items-center gap-3">
-          <span className="flex size-7 items-center justify-center rounded-full bg-foreground text-xs font-semibold text-background">
-            1
-          </span>
-          <span className="rounded-full border px-4 py-1.5 text-sm font-medium text-muted-foreground">
-            Introducing Facilit8
-          </span>
-        </div>
-
-        <div className="grid items-center gap-10 lg:grid-cols-2 lg:gap-16">
-          <div>
-            <h2 className="text-3xl leading-tight font-medium tracking-tight text-foreground sm:text-4xl">
-              Corporate training, run without the back-and-forth.
-            </h2>
-            <p className="mt-5 text-base leading-relaxed text-muted-foreground">
-              Sourcing a facilitator used to mean spreadsheets, cold emails, and manual invoicing.
-              Facilit8 puts the whole process — sourcing, bidding, messaging, and payment — in one
-              place, so Event Managers can staff a training in days, not weeks.
-            </p>
-            <div className="mt-8">
-              <HoverRollButton href="/about">About us</HoverRollButton>
-            </div>
-          </div>
-          <div className="relative aspect-[4/3] overflow-hidden rounded-2xl bg-gradient-to-br from-brand-light via-brand to-brand-dark">
-            <div className="absolute inset-0 flex items-center justify-center">
-              <Users2 className="size-24 text-white/25" strokeWidth={1} />
-            </div>
-          </div>
-        </div>
-      </section>
+      <VideoShowcase />
 
       {/* Why Facilit8 */}
       <section className="bg-[#F5F5F5] py-20 sm:py-28">
         <div className="mx-auto max-w-[1200px] px-5 sm:px-8">
           <div className="mb-8 flex items-center gap-3">
             <span className="flex size-7 items-center justify-center rounded-full bg-foreground text-xs font-semibold text-background">
-              2
+              1
             </span>
             <span className="rounded-full border border-gray-300 px-4 py-1.5 text-sm font-medium text-muted-foreground">
               Why Facilit8
@@ -112,6 +78,10 @@ export default function HomePage() {
           </p>
         </div>
       </section>
+
+      <AweSection />
+
+      <CategoryTicker />
     </>
   );
 }

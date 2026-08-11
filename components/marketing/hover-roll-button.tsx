@@ -7,12 +7,14 @@ const VARIANTS = {
   primary: "bg-brand text-white hover:bg-brand-dark",
   dark: "bg-foreground text-background hover:bg-foreground/85",
   outline: "border border-border bg-white text-foreground hover:border-brand",
+  "outline-dark": "border border-white/20 bg-transparent text-white hover:border-brand",
 } as const;
 
 const ARROW_VARIANTS = {
   primary: "text-brand",
   dark: "text-foreground",
   outline: "text-foreground",
+  "outline-dark": "text-foreground",
 } as const;
 
 export function HoverRollButton({

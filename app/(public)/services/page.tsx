@@ -6,7 +6,7 @@ import { HoverRollButton } from "@/components/marketing/hover-roll-button";
 export const metadata: Metadata = {
   title: "How It Works",
   description:
-    "See how Event Managers post and fund training needs, and how Facilitators bid, get selected, and get paid on Facilit8.",
+    "See how Event Managers post and fund training needs, how Facilitators bid and get paid, and how Awe helps you grow professionally on Facilit8.",
   alternates: { canonical: "/services" },
 };
 
@@ -22,6 +22,12 @@ const FACILITATOR_STEPS = [
   { title: "Browse open events", body: "Find training needs that match your expertise and submit a bid with your rate." },
   { title: "Get selected", body: "Event Managers review bids and confirm a facilitator once budget is funded." },
   { title: "Get paid on completion", body: "Funds move to your wallet automatically once the training is marked complete." },
+];
+
+const AWE_STEPS = [
+  { title: "Chat with Awe", body: "Tell it your current role, goals, and what's getting in the way — it remembers." },
+  { title: "Get a grounded plan", body: "Recommendations pull from real training events, facilitators, and merged trainings on Facilit8." },
+  { title: "Take the next real step", body: "Sometimes that's a course. Sometimes it's telling you a course isn't what you need yet." },
 ];
 
 function StepList({ steps }: { steps: { title: string; body: string }[] }) {
@@ -47,12 +53,12 @@ export default function ServicesPage() {
     <>
       <MarketingPageHeader
         eyebrow="How it works"
-        title="One marketplace, two sides of the same problem."
-        description="Whether you're staffing a training or facilitating one, Facilit8 handles sourcing, bidding, messaging, and payment."
+        title="One marketplace, two sides of the same problem — plus a growth partner for both."
+        description="Whether you're staffing a training, facilitating one, or figuring out your next career move, Facilit8 handles it end to end."
       />
 
       <section className="mx-auto max-w-[1200px] px-5 py-16 sm:px-8 sm:py-20">
-        <div className="grid gap-16 lg:grid-cols-2">
+        <div className="grid gap-16 lg:grid-cols-3">
           <div>
             <h2 className="mb-8 text-2xl font-medium tracking-tight text-foreground">For Event Managers</h2>
             <StepList steps={EVENT_MANAGER_STEPS} />
@@ -60,6 +66,10 @@ export default function ServicesPage() {
           <div>
             <h2 className="mb-8 text-2xl font-medium tracking-tight text-foreground">For Facilitators</h2>
             <StepList steps={FACILITATOR_STEPS} />
+          </div>
+          <div>
+            <h2 className="mb-8 text-2xl font-medium tracking-tight text-foreground">Grow with Awe</h2>
+            <StepList steps={AWE_STEPS} />
           </div>
         </div>
 
