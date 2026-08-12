@@ -33,7 +33,7 @@ export function Hero() {
     <section className="relative overflow-hidden px-5 pt-32 pb-20 sm:px-8 sm:pt-40 sm:pb-28">
       <div className="hero-dark-bg" />
 
-      <div className="mx-auto flex max-w-[1280px] flex-col items-center gap-16 lg:flex-row lg:items-center lg:justify-between">
+      <div className="relative z-10 mx-auto flex max-w-[1280px] flex-col items-center gap-16 lg:flex-row lg:items-center lg:justify-between">
         <motion.div
           initial={{ opacity: 0, y: 40 }}
           animate={{ opacity: 1, y: 0 }}
