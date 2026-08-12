@@ -2,6 +2,7 @@ import { prisma } from "@/lib/db";
 import { bookTransfer, verifyTransfer } from "@/lib/anchor/transfers";
 import { calculateFee } from "./fee.service";
 import { createNotification } from "./notification.service";
+import { getConfirmedCoFacilitators } from "./merged-training-co-facilitator.service";
 
 interface PayoutResult {
   success: boolean;
@@ -105,8 +106,17 @@ export async function payFacilitatorForEvent(eventId: string, requesterId: strin
   }
 }
 
+interface Payee {
+  id: string;
+  depositAccountId: string | null;
+  label: string;
+}
+
 /** Same shape as payFacilitatorForEvent, but for a MergedTrainingEvent — gross is the sum
- * of what participants actually paid in, not a fixed budget field. */
+ * of what participants actually paid in, not a fixed budget field. When the initiator has
+ * confirmed co-facilitators (Facilitator-initiated sessions only — see
+ * merged-training-co-facilitator.service.ts), the net amount splits evenly across the
+ * initiator + every confirmed co-facilitator instead of going 100% to selectedTrainer. */
 export async function payFacilitatorForMergedTrainingEvent(
   mergedTrainingEventId: string,
   requesterId: string
@@ -114,7 +124,7 @@ export async function payFacilitatorForMergedTrainingEvent(
   const session = await prisma.mergedTrainingEvent.findUnique({
     where: { id: mergedTrainingEventId },
     include: {
-      selectedTrainer: { select: { id: true, depositAccountId: true } },
+      selectedTrainer: { select: { id: true, depositAccountId: true, firstName: true, lastName: true } },
       participants: true,
     },
   });
@@ -127,9 +137,23 @@ export async function payFacilitatorForMergedTrainingEvent(
   if (session.approval !== "APPROVED") {
     return { success: false, error: "This session hasn't been fully funded yet." };
   }
-  if (!session.selectedTrainer.depositAccountId) {
-    return { success: false, error: "The facilitator's wallet isn't set up yet." };
-  }
+
+  const confirmedCoFacilitators = await getConfirmedCoFacilitators(session.id);
+  const payees: Payee[] = [
+    {
+      id: session.selectedTrainer.id,
+      depositAccountId: session.selectedTrainer.depositAccountId,
+      label: `${session.selectedTrainer.firstName} ${session.selectedTrainer.lastName}`,
+    },
+    ...confirmedCoFacilitators.map((c) => ({
+      id: c.facilitator.id,
+      depositAccountId: c.facilitator.depositAccountId,
+      label: `${c.facilitator.firstName} ${c.facilitator.lastName}`,
+    })),
+  ];
+
+  const missingWallet = payees.find((p) => !p.depositAccountId);
+  if (missingWallet) return { success: false, error: `${missingWallet.label}'s wallet isn't set up yet.` };
 
   const settlementAccountId = process.env.ANCHOR_SETTLEMENT_ACCOUNT_ID;
   if (!settlementAccountId) return { success: false, error: "Payments are not configured yet." };
@@ -139,67 +163,88 @@ export async function payFacilitatorForMergedTrainingEvent(
   const netAmount = grossAmount - feeAmount;
   if (netAmount <= 0) return { success: false, error: "Net payout is zero or negative — check the fee configuration." };
 
-  const reference = `mtfacpay_${session.id.slice(0, 12)}`;
+  // Equal split, remainder (from rounding to the kobo) goes to the first payee — the
+  // initiator/selectedTrainer — so shares always sum exactly to netAmount.
+  const baseShare = Math.floor((netAmount / payees.length) * 100) / 100;
+  const remainder = Math.round((netAmount - baseShare * payees.length) * 100) / 100;
 
-  try {
-    const { transferId, raw } = await bookTransfer({
-      sourceAccountId: settlementAccountId,
-      destinationAccountId: session.selectedTrainer.depositAccountId,
-      amountNaira: netAmount,
-      reason: `Facilitator payment for "${session.title}"`,
-      reference,
-    });
+  const results: { payee: Payee; amount: number; success: boolean; error?: string }[] = [];
 
-    const status = await verifyTransfer(transferId);
-    if (!["successful", "completed"].includes(status)) {
-      throw new Error(`Transfer not successful — status: ${status}`);
-    }
+  for (let i = 0; i < payees.length; i++) {
+    const payee = payees[i];
+    const amount = i === 0 ? baseShare + remainder : baseShare;
+    const reference = `mtfacpay_${session.id.slice(0, 10)}_${payee.id.slice(0, 8)}`;
 
-    await prisma.$transaction([
-      prisma.trainingPayment.create({
+    try {
+      const { transferId, raw } = await bookTransfer({
+        sourceAccountId: settlementAccountId,
+        destinationAccountId: payee.depositAccountId!,
+        amountNaira: amount,
+        reason: `Facilitator payment for "${session.title}"`,
+        reference,
+      });
+
+      const status = await verifyTransfer(transferId);
+      if (!["successful", "completed"].includes(status)) {
+        throw new Error(`Transfer not successful — status: ${status}`);
+      }
+
+      await prisma.trainingPayment.create({
         data: {
           targetType: "MERGED_TRAINING_EVENT",
           mergedTrainingEventId: session.id,
-          facilitatorId: session.selectedTrainerId,
-          grossAmount,
-          feeAmount,
-          netAmount,
+          facilitatorId: payee.id,
+          grossAmount: i === 0 ? grossAmount : 0,
+          feeAmount: i === 0 ? feeAmount : 0,
+          netAmount: amount,
           reference,
           rawResponse: raw as never,
           status: "SUCCESS",
         },
-      }),
-      prisma.mergedTrainingEvent.update({
-        where: { id: session.id },
-        data: { isPaid: true, isCompleted: true, completedAt: new Date() },
-      }),
-    ]);
-
-    await createNotification({
-      userId: session.selectedTrainerId,
-      notificationType: "PAYMENT_CONFIRMED",
-      message: `You've been paid ₦${netAmount.toLocaleString()} (after ₦${feeAmount.toLocaleString()} platform fee) for facilitating "${session.title}".`,
-    });
-
-    return { success: true };
-  } catch (err) {
-    await prisma.trainingPayment.create({
-      data: {
-        targetType: "MERGED_TRAINING_EVENT",
-        mergedTrainingEventId: session.id,
-        facilitatorId: session.selectedTrainerId,
-        grossAmount,
-        feeAmount,
-        netAmount,
-        reference,
-        status: "FAILED",
-      },
-    });
-    await createNotification({
-      userId: session.selectedTrainerId,
-      notificationType: "PAYMENT_CONFIRMED",
-      message: `Payment attempt for "${session.title}" failed. Please contact support.`,
-    });
-    return { success: false, error: err instanceof Error ? err.message : "Payout failed." };
+      });
+      await createNotification({
+        userId: payee.id,
+        notificationType: "PAYMENT_CONFIRMED",
+        message:
+          payees.length > 1
+            ? `You've been paid ₦${amount.toLocaleString()} as your split of the facilitator payment for "${session.title}".`
+            : `You've been paid ₦${amount.toLocaleString()} (after ₦${feeAmount.toLocaleString()} platform fee) for facilitating "${session.title}".`,
+      });
+      results.push({ payee, amount, success: true });
+    } catch (err) {
+      await prisma.trainingPayment.create({
+        data: {
+          targetType: "MERGED_TRAINING_EVENT",
+          mergedTrainingEventId: session.id,
+          facilitatorId: payee.id,
+          grossAmount: i === 0 ? grossAmount : 0,
+          feeAmount: i === 0 ? feeAmount : 0,
+          netAmount: amount,
+          reference,
+          status: "FAILED",
+        },
+      });
+      await createNotification({
+        userId: payee.id,
+        notificationType: "PAYMENT_CONFIRMED",
+        message: `Your payment for "${session.title}" failed. Please contact support.`,
+      });
+      results.push({ payee, amount, success: false, error: err instanceof Error ? err.message : "Payout failed." });
+    }
   }
+
+  const failed = results.filter((r) => !r.success);
+  if (failed.length > 0) {
+    return {
+      success: false,
+      error: `${results.length - failed.length} of ${results.length} payouts succeeded — ${failed.map((f) => f.payee.label).join(", ")} failed. Contact support before retrying.`,
+    };
+  }
+
+  await prisma.mergedTrainingEvent.update({
+    where: { id: session.id },
+    data: { isPaid: true, isCompleted: true, completedAt: new Date() },
+  });
+
+  return { success: true };
 }

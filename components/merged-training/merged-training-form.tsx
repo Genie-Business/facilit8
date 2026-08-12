@@ -36,6 +36,8 @@ export interface MergedTrainingFormDefaults {
 
 export interface InviteGroup {
   heading: string;
+  /** The <select>'s form field name — lets the action distinguish which group a selection came from. */
+  name: string;
   options: { id: string; label: string }[];
 }
 
@@ -202,7 +204,7 @@ export function MergedTrainingForm({
               <Label htmlFor={`invite-${group.heading}`}>{group.heading} (hold Ctrl/Cmd to select multiple)</Label>
               <select
                 id={`invite-${group.heading}`}
-                name="invitedUserIds"
+                name={group.name}
                 multiple
                 className="h-32 w-full rounded-lg border border-input bg-transparent p-2 text-sm"
               >

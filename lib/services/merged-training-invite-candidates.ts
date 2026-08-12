@@ -18,8 +18,16 @@ export async function getInviteGroupsForInitiator(
       prisma.user.findMany({ where: { role: "FACILITATOR", id: { not: excludeUserId } }, select, take: 100 }),
     ]);
     return [
-      { heading: "Invite organisations to fund", options: organisations.map((u) => ({ id: u.id, label: label(u) })) },
-      { heading: "Invite co-facilitators", options: facilitators.map((u) => ({ id: u.id, label: label(u) })) },
+      {
+        heading: "Invite organisations to fund",
+        name: "invitedOrgIds",
+        options: organisations.map((u) => ({ id: u.id, label: label(u) })),
+      },
+      {
+        heading: "Invite co-facilitators",
+        name: "invitedCoFacilitatorIds",
+        options: facilitators.map((u) => ({ id: u.id, label: label(u) })),
+      },
     ];
   }
 
@@ -27,6 +35,7 @@ export async function getInviteGroupsForInitiator(
   return [
     {
       heading: initiatorRole === "PROFESSIONAL" ? "Invite fellow professionals" : "Invite companies",
+      name: "invitedUserIds",
       options: peers.map((u) => ({ id: u.id, label: label(u) })),
     },
   ];

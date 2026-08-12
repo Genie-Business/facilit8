@@ -4,7 +4,11 @@ import { Send } from "lucide-react";
 
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { cancelMergedTrainingAction, completeMergedTrainingAction } from "@/lib/actions/merged-training.actions";
+import {
+  cancelMergedTrainingAction,
+  completeMergedTrainingAction,
+  respondToCoFacilitatorInviteAction,
+} from "@/lib/actions/merged-training.actions";
 import { JoinForm } from "@/components/merged-training/join-form";
 import { PayShareForm } from "@/components/merged-training/pay-share-form";
 import { StageTracker } from "@/components/merged-training/stage-tracker";
@@ -31,15 +35,15 @@ export default async function MergedTrainingDetailPage({ params }: { params: Pro
       selectedTrainer: { select: { firstName: true, lastName: true, slug: true } },
       participants: { include: { company: { select: { firstName: true, lastName: true, organization: true } } } },
       invites: { include: { company: { select: { id: true, firstName: true, lastName: true, role: true } } } },
+      coFacilitators: { include: { facilitator: { select: { id: true, firstName: true, lastName: true } } } },
       _count: { select: { applications: true } },
     },
   });
   if (!mergedEvent) notFound();
 
-  const coFacilitators =
-    mergedEvent.initiator.role === "FACILITATOR"
-      ? mergedEvent.invites.map((i) => i.company).filter((u) => u.role === "FACILITATOR")
-      : [];
+  const myCoFacilitatorInvite = mergedEvent.coFacilitators.find(
+    (c) => c.facilitatorId === session.user.id && c.status === "PENDING"
+  );
 
   const isInitiator = mergedEvent.initiatorId === session.user.id;
   const myParticipant = mergedEvent.participants.find((p) => p.companyId === session.user.id);
@@ -121,10 +125,47 @@ export default async function MergedTrainingDetailPage({ params }: { params: Pro
             )}
           </div>
 
-          {coFacilitators.length > 0 && (
+          {mergedEvent.coFacilitators.length > 0 && (
             <div style={{ marginTop: 12, fontSize: 13 }}>
-              <span style={{ color: "var(--t-muted)" }}>Co-facilitators invited: </span>
-              {coFacilitators.map((f) => `${f.firstName} ${f.lastName}`).join(", ")}
+              <span style={{ color: "var(--t-muted)" }}>Co-facilitators: </span>
+              {mergedEvent.coFacilitators.map((c, i) => (
+                <span key={c.id}>
+                  {i > 0 && ", "}
+                  {c.facilitator.firstName} {c.facilitator.lastName}{" "}
+                  <span
+                    className={`tag ${c.status === "CONFIRMED" ? "t-active" : c.status === "DECLINED" ? "t-unavail" : "t-old"}`}
+                    style={{ fontSize: 11 }}
+                  >
+                    {c.status === "CONFIRMED" ? "Confirmed" : c.status === "DECLINED" ? "Declined" : "Pending"}
+                  </span>
+                </span>
+              ))}
+            </div>
+          )}
+
+          {myCoFacilitatorInvite && (
+            <div style={{ marginTop: 12, display: "flex", gap: 8, alignItems: "center" }}>
+              <span style={{ fontSize: 13, color: "var(--t-muted)" }}>You&apos;ve been invited to co-facilitate this session.</span>
+              <form
+                action={async () => {
+                  "use server";
+                  await respondToCoFacilitatorInviteAction(myCoFacilitatorInvite.id, mergedEvent.slug, true);
+                }}
+              >
+                <button type="submit" className="btn btn--primary">
+                  Confirm
+                </button>
+              </form>
+              <form
+                action={async () => {
+                  "use server";
+                  await respondToCoFacilitatorInviteAction(myCoFacilitatorInvite.id, mergedEvent.slug, false);
+                }}
+              >
+                <button type="submit" className="btn btn--secondary">
+                  Decline
+                </button>
+              </form>
             </div>
           )}
 

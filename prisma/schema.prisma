@@ -47,6 +47,12 @@ enum ApplicationStatus {
   REJECTED
 }
 
+enum CoFacilitatorStatus {
+  PENDING
+  CONFIRMED
+  DECLINED
+}
+
 enum NotificationType {
   EVENT_UPDATE
   BID_RECEIVED
@@ -190,6 +196,7 @@ model User {
   mergedTrainingParticipations    MergedTrainingParticipant[]
   mergerApplications              MergerApplication[]
   bidVotes                        BidVote[]
+  mergedTrainingCoFacilitations   MergedTrainingCoFacilitator[]
 
   organizationMemberships OrganizationMembership[]
   facilitatorSkills       FacilitatorSkill[]
@@ -504,13 +511,31 @@ model MergedTrainingEvent {
   createdAt         DateTime            @default(now())
   updatedAt         DateTime            @updatedAt
 
-  invites      MergedTrainingInvite[]
-  participants MergedTrainingParticipant[]
-  applications MergerApplication[]
-  payments     TrainingPayment[]           @relation("MergedTrainingEventPayments")
+  invites        MergedTrainingInvite[]
+  participants   MergedTrainingParticipant[]
+  applications   MergerApplication[]
+  payments       TrainingPayment[]             @relation("MergedTrainingEventPayments")
+  coFacilitators MergedTrainingCoFacilitator[]
 
   @@index([initiatorId])
   @@index([isPostedToBoard, isFullyFunded])
+}
+
+// Facilitator-initiated sessions only — the initiating facilitator can invite fellow
+// facilitators to co-deliver and split the payout. Requires confirmation before counting
+// toward the split (unlike MergedTrainingInvite, which needs no accept step), so this is a
+// separate model rather than a status field bolted onto MergedTrainingInvite.
+model MergedTrainingCoFacilitator {
+  id                    String              @id @default(cuid())
+  mergedTrainingEventId String
+  mergedTrainingEvent   MergedTrainingEvent @relation(fields: [mergedTrainingEventId], references: [id], onDelete: Cascade)
+  facilitatorId         String
+  facilitator           User                @relation(fields: [facilitatorId], references: [id], onDelete: Cascade)
+  status                CoFacilitatorStatus @default(PENDING)
+  invitedAt             DateTime            @default(now())
+  respondedAt           DateTime?
+
+  @@unique([mergedTrainingEventId, facilitatorId])
 }
 
 // Explicit join table, replacing Django's M2M `invited_companies`.

@@ -10,6 +10,7 @@ import { createNotification } from "@/lib/services/notification.service";
 import { payMergedTrainingShare } from "@/lib/services/merged-training-payment.service";
 import { payFacilitatorForMergedTrainingEvent } from "@/lib/services/payout.service";
 import { castVote } from "@/lib/services/merged-training-voting.service";
+import { inviteCoFacilitators, respondToCoFacilitatorInvite } from "@/lib/services/merged-training-co-facilitator.service";
 import {
   joinMergedTrainingFormSchema,
   mergedTrainingFormSchema,
@@ -53,7 +54,14 @@ export async function createMergedTrainingAction(_prev: ActionState, formData: F
     return { fieldErrors: { initiatorNumDelegates: "Enter how many delegates you're bringing." } };
   }
 
-  const invitedUserIds = formData.getAll("invitedUserIds").filter((v): v is string => typeof v === "string");
+  // A Facilitator initiator has two separate invite pickers (organisations to fund,
+  // co-facilitators to invite); Event Manager/Professional initiators have one.
+  const invitedOrgIds = isFacilitatorInitiated
+    ? formData.getAll("invitedOrgIds").filter((v): v is string => typeof v === "string")
+    : formData.getAll("invitedUserIds").filter((v): v is string => typeof v === "string");
+  const invitedCoFacilitatorIds = formData
+    .getAll("invitedCoFacilitatorIds")
+    .filter((v): v is string => typeof v === "string");
 
   const slug = await generateUniqueSlug(
     data.title,
@@ -86,12 +94,12 @@ export async function createMergedTrainingAction(_prev: ActionState, formData: F
     },
   });
 
-  if (data.isInviteOnly && invitedUserIds.length > 0) {
+  if (data.isInviteOnly && invitedOrgIds.length > 0) {
     await prisma.mergedTrainingInvite.createMany({
-      data: invitedUserIds.map((companyId) => ({ mergedTrainingEventId: mergedEvent.id, companyId })),
+      data: invitedOrgIds.map((companyId) => ({ mergedTrainingEventId: mergedEvent.id, companyId })),
       skipDuplicates: true,
     });
-    for (const companyId of invitedUserIds) {
+    for (const companyId of invitedOrgIds) {
       await createNotification({
         userId: companyId,
         notificationType: "EVENT_UPDATE",
@@ -99,6 +107,10 @@ export async function createMergedTrainingAction(_prev: ActionState, formData: F
         link: `/merged-trainings/${mergedEvent.slug}`,
       });
     }
+  }
+
+  if (isFacilitatorInitiated && invitedCoFacilitatorIds.length > 0) {
+    await inviteCoFacilitators(mergedEvent.id, invitedCoFacilitatorIds);
   }
 
   revalidatePath("/merged-trainings");
@@ -337,6 +349,16 @@ export async function cancelMergedTrainingAction(formData: FormData): Promise<vo
       message: `"${mergedEvent.title}" was cancelled by the initiator.`,
     });
   }
+
+  revalidatePath(`/merged-trainings/${slug}`);
+  redirect(`/merged-trainings/${slug}`);
+}
+
+export async function respondToCoFacilitatorInviteAction(id: string, slug: string, accept: boolean): Promise<void> {
+  const session = await auth();
+  if (!session) redirect(`${siteUrl}/login`);
+
+  await respondToCoFacilitatorInvite(id, session.user.id, accept);
 
   revalidatePath(`/merged-trainings/${slug}`);
   redirect(`/merged-trainings/${slug}`);
