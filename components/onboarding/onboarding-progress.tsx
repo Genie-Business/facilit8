@@ -3,16 +3,25 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-const STEPS = [
+import type { Role } from "@/lib/generated/prisma/client";
+
+const COMMON_STEPS = [
   { href: "/onboarding/professional-profile", label: "Professional Profile" },
   { href: "/onboarding/background", label: "Your Background" },
   { href: "/onboarding/career-direction", label: "Career Direction" },
   { href: "/onboarding/learning-preferences", label: "Learning Preferences" },
-  { href: "/onboarding/meet-awe", label: "Meet Awe" },
 ];
 
-export function OnboardingProgress() {
+const ROLE_STEP: Record<string, { href: string; label: string } | null> = {
+  FACILITATOR: { href: "/onboarding/facilitator-profile", label: "Facilitator Profile" },
+  EVENT_MANAGER: { href: "/onboarding/organization-profile", label: "Organization Profile" },
+  PROFESSIONAL: null,
+};
+
+export function OnboardingProgress({ role }: { role: Role }) {
   const pathname = usePathname();
+  const roleStep = ROLE_STEP[role];
+  const STEPS = [...COMMON_STEPS, ...(roleStep ? [roleStep] : []), { href: "/onboarding/meet-awe", label: "Meet Awe" }];
   const currentIndex = STEPS.findIndex((s) => s.href === pathname);
 
   return (

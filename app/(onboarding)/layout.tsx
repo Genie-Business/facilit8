@@ -35,7 +35,7 @@ export default async function OnboardingLayout({ children }: { children: React.R
         </div>
       </header>
       <div className="mx-auto max-w-3xl px-4 py-8">
-        <OnboardingProgress />
+        <OnboardingProgress role={session.user.role} />
         <div className="mt-6">{children}</div>
       </div>
     </div>

@@ -129,6 +129,68 @@ export const learningPreferencesSchema = z.object({
 });
 export type LearningPreferencesInput = z.infer<typeof learningPreferencesSchema>;
 
+export const facilitatorProfileSchema = z.object({
+  yearsFacilitating: optionalInt,
+  sessionsDelivered: optionalInt,
+  delegatesTrained: optionalInt,
+  typicalAudienceSize: optionalTrimmed,
+  typicalAudienceSeniority: optionalTrimmed,
+  trainingFormats: z.array(z.string()).optional(),
+  industriesServed: tagList,
+  canTrainNow: tagList,
+  wantToTrain: tagList,
+  facilitatorGoals: optionalTrimmed,
+  skillRatings: z
+    .array(
+      z.object({
+        skill: z.enum([
+          "PUBLIC_SPEAKING",
+          "FACILITATION",
+          "ADULT_LEARNING",
+          "INSTRUCTIONAL_DESIGN",
+          "WORKSHOP_DESIGN",
+          "STORYTELLING",
+          "EXECUTIVE_FACILITATION",
+          "VIRTUAL_FACILITATION",
+          "TRAINING_EVALUATION",
+          "PRESENTATION",
+          "COACHING",
+          "CONSULTING",
+        ]),
+        proficiency: z.enum(["BEGINNER", "INTERMEDIATE", "ADVANCED", "EXPERT"]),
+      })
+    )
+    .optional(),
+});
+export type FacilitatorProfileInput = z.infer<typeof facilitatorProfileSchema>;
+
+export const organizationProfileSchema = z.object({
+  organizationType: optionalTrimmed,
+  website: optionalTrimmed,
+  employeeCountBand: optionalTrimmed,
+  locations: tagList,
+  yearEstablished: optionalInt,
+  departments: tagList,
+  workforceLevels: z.array(z.string()).optional(),
+  trainingNeeds: z.array(z.string()).optional(),
+  workforceChallenges: z.array(z.string()).optional(),
+  preferredFormat: optionalTrimmed,
+  preferredLocation: optionalTrimmed,
+  preferredSchedule: z.array(z.string()).optional(),
+  trainingFrequency: optionalTrimmed,
+  typicalDuration: optionalTrimmed,
+  typicalClassSize: optionalTrimmed,
+  budgetRange: optionalTrimmed,
+  budgetCurrency: z.string().trim().optional().or(z.literal("")).transform((v) => (v ? v : "NGN")),
+  typicalAudience: optionalTrimmed,
+  strategicInitiatives: tagList,
+  skillsNeeded: tagList,
+  biggestChallenge: optionalTrimmed,
+  learningCulture: optionalTrimmed,
+  participationBarriers: z.array(z.string()).optional(),
+});
+export type OrganizationProfileInput = z.infer<typeof organizationProfileSchema>;
+
 export const meetAweSchema = z.object({
   tellAweText: z
     .string()

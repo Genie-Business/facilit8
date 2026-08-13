@@ -14,5 +14,5 @@ export default async function OnboardingIndexPage() {
   });
 
   if (user?.onboardingCompletedAt) redirect("/dashboard");
-  redirect(resolveOnboardingRoute(user?.onboardingStep ?? 0));
+  redirect(resolveOnboardingRoute(user?.onboardingStep ?? 0, session.user.role));
 }

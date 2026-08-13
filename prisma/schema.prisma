@@ -217,6 +217,9 @@ model User {
   educationHistory        EducationHistory[]
   professionalDevelopment ProfessionalDevelopment[]
 
+  facilitatorProfile       FacilitatorProfile?
+  facilitationSkillRatings FacilitationSkillRating[]
+
   @@index([role])
 }
 
@@ -750,6 +753,7 @@ model Organization {
 
   memberships OrganizationMembership[]
   documents   OrganizationDocument[]
+  profile     OrganizationProfile?
 }
 
 enum BusinessRegistrationType {
@@ -1055,4 +1059,111 @@ model ProfessionalDevelopment {
   createdAt                     DateTime                       @default(now())
 
   @@index([userId])
+}
+
+// Onboarding wizard's role-specific step (Facilitator branch) — 1:1 with User, only
+// meaningful for role FACILITATOR. "Areas of expertise" deliberately reuses the existing
+// FacilitatorSkill join rather than duplicating it here.
+model FacilitatorProfile {
+  id                       String   @id @default(cuid())
+  userId                   String   @unique
+  user                     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  yearsFacilitating        Int?
+  sessionsDelivered        Int?
+  delegatesTrained         Int?
+  typicalAudienceSize      String?
+  typicalAudienceSeniority String?
+  trainingFormats          String[]
+  industriesServed         String[]
+  canTrainNow              String[]
+  wantToTrain              String[]
+  facilitatorGoals         String?
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime @updatedAt
+}
+
+enum FacilitationSkillName {
+  PUBLIC_SPEAKING
+  FACILITATION
+  ADULT_LEARNING
+  INSTRUCTIONAL_DESIGN
+  WORKSHOP_DESIGN
+  STORYTELLING
+  EXECUTIVE_FACILITATION
+  VIRTUAL_FACILITATION
+  TRAINING_EVALUATION
+  PRESENTATION
+  COACHING
+  CONSULTING
+}
+
+enum ProficiencyLevel {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+  EXPERT
+}
+
+// A fixed facilitation-craft skill catalog, deliberately separate from the admin-curated
+// Skill taxonomy (which models subject-matter "areas of expertise", not facilitation
+// technique proficiency).
+model FacilitationSkillRating {
+  id          String                @id @default(cuid())
+  userId      String
+  user        User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  skill       FacilitationSkillName
+  proficiency ProficiencyLevel
+  createdAt   DateTime              @default(now())
+  updatedAt   DateTime              @updatedAt
+
+  @@unique([userId, skill])
+}
+
+// Onboarding wizard's role-specific step (Event Manager branch) — 1:1 with Organization
+// (shared by every member of that org), not User. Whoever fills this in during their own
+// onboarding is contributing to the org's shared profile, same as updating org identity
+// fields elsewhere.
+model OrganizationProfile {
+  id             String       @id @default(cuid())
+  organizationId String       @unique
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  // Identity extras
+  organizationType  String?
+  website           String?
+  employeeCountBand String?
+  locations         String[]
+  yearEstablished   Int?
+  departments       String[]
+
+  // Workforce profile
+  workforceLevels String[]
+
+  // Training needs + workforce challenges
+  trainingNeeds       String[]
+  workforceChallenges String[]
+
+  // Training requirements
+  preferredFormat   String?
+  preferredLocation String?
+  preferredSchedule String[]
+  trainingFrequency String?
+  typicalDuration   String?
+  typicalClassSize  String?
+  budgetRange       String?
+  budgetCurrency    String  @default("NGN")
+  typicalAudience   String?
+
+  // Strategic priorities — biggestChallenge is the single most valuable input to Awe's
+  // organizational intelligence per the product brief.
+  strategicInitiatives String[]
+  skillsNeeded         String[]
+  biggestChallenge     String?
+
+  // Learning culture
+  learningCulture       String?
+  participationBarriers String[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

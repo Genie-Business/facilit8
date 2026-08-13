@@ -50,7 +50,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     !user.onboardingCompletedAt &&
     !user.onboardingSkippedAt
   ) {
-    redirect(resolveOnboardingRoute(user.onboardingStep));
+    redirect(resolveOnboardingRoute(user.onboardingStep, session.user.role));
   }
 
   const name = user ? `${user.firstName} ${user.lastName}` : (session.user.name ?? session.user.email ?? "");

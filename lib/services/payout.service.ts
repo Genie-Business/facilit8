@@ -3,6 +3,7 @@ import { bookTransfer, verifyTransfer } from "@/lib/anchor/transfers";
 import { calculateFee } from "./fee.service";
 import { createNotification } from "./notification.service";
 import { getConfirmedCoFacilitators } from "./merged-training-co-facilitator.service";
+import { createAutoProfessionalDevelopment } from "./professional-development.service";
 
 interface PayoutResult {
   success: boolean;
@@ -82,6 +83,15 @@ export async function payFacilitatorForEvent(eventId: string, requesterId: strin
       notificationType: "PAYMENT_CONFIRMED",
       message: `You've been paid ₦${netAmount.toLocaleString()} (after ₦${feeAmount.toLocaleString()} platform fee) for facilitating "${event.title}".`,
     });
+
+    // Auto-populate the facilitator's Professional Development history — never lets a
+    // logging failure undo an already-successful payment.
+    await createAutoProfessionalDevelopment(event.selectedTrainerId, {
+      title: event.title,
+      dateCompleted: new Date(),
+      skillsAcquired: [event.skillType].filter(Boolean),
+      relatedTrainingEventId: event.id,
+    }).catch(() => {});
 
     return { success: true };
   } catch (err) {
@@ -245,6 +255,20 @@ export async function payFacilitatorForMergedTrainingEvent(
     where: { id: session.id },
     data: { isPaid: true, isCompleted: true, completedAt: new Date() },
   });
+
+  // Auto-populate Professional Development history for every paid facilitator (initiator +
+  // confirmed co-facilitators) — never lets a logging failure undo already-successful payments.
+  const completedAt = new Date();
+  await Promise.all(
+    payees.map((payee) =>
+      createAutoProfessionalDevelopment(payee.id, {
+        title: session.title,
+        dateCompleted: completedAt,
+        skillsAcquired: [session.eventCategory].filter(Boolean),
+        relatedMergedTrainingEventId: session.id,
+      }).catch(() => {})
+    )
+  );
 
   return { success: true };
 }

@@ -83,3 +83,89 @@ export const PROFESSIONAL_DEVELOPMENT_TYPE_LABELS: Record<string, string> = {
   WORKSHOP: "Workshop",
   CONFERENCE: "Conference",
 };
+
+// --- Facilitator-specific step ---
+
+export const FACILITATOR_TRAINING_FORMATS = [
+  "In-person workshops",
+  "Virtual / live sessions",
+  "Hybrid",
+  "Self-paced content design",
+  "One-on-one coaching",
+];
+
+export const AUDIENCE_SIZES = ["1-10", "11-30", "31-100", "100+"];
+
+export const AUDIENCE_SENIORITIES = ["Entry-level", "Mid-level", "Senior", "Executive / C-suite", "Mixed levels"];
+
+export const FACILITATION_SKILL_LABELS: Record<string, string> = {
+  PUBLIC_SPEAKING: "Public speaking",
+  FACILITATION: "Facilitation",
+  ADULT_LEARNING: "Adult learning principles",
+  INSTRUCTIONAL_DESIGN: "Instructional design",
+  WORKSHOP_DESIGN: "Workshop design",
+  STORYTELLING: "Storytelling",
+  EXECUTIVE_FACILITATION: "Executive facilitation",
+  VIRTUAL_FACILITATION: "Virtual facilitation",
+  TRAINING_EVALUATION: "Training evaluation",
+  PRESENTATION: "Presentation",
+  COACHING: "Coaching",
+  CONSULTING: "Consulting",
+};
+
+export const PROFICIENCY_LABELS: Record<string, string> = {
+  BEGINNER: "Beginner",
+  INTERMEDIATE: "Intermediate",
+  ADVANCED: "Advanced",
+  EXPERT: "Expert",
+};
+
+// --- Event Manager / Organization-specific step ---
+
+export const ORGANIZATION_TYPES = [
+  "Private company",
+  "Public company",
+  "NGO / Non-profit",
+  "Government agency",
+  "Educational institution",
+  "Startup",
+];
+
+export const EMPLOYEE_COUNT_BANDS = ["1-10", "11-50", "51-200", "201-500", "501-1000", "1000+"];
+
+export const WORKFORCE_LEVELS = ["Entry-level", "Mid-level", "Senior", "Management", "Executive"];
+
+export const TRAINING_NEED_TAGS = [
+  "Leadership development",
+  "Technical / functional skills",
+  "Compliance training",
+  "Onboarding new hires",
+  "Soft skills / communication",
+  "Sales training",
+  "Customer service",
+  "Digital / tech skills",
+];
+
+export const WORKFORCE_CHALLENGE_TAGS = [
+  "Skills gaps",
+  "High turnover",
+  "Low engagement",
+  "Succession planning",
+  "Remote/hybrid team cohesion",
+  "Keeping pace with industry change",
+];
+
+export const TRAINING_FREQUENCIES = ["Monthly", "Quarterly", "Bi-annually", "Annually", "As needed"];
+
+export const TRAINING_DURATIONS = ["Half-day", "Full-day", "2-3 days", "1 week+", "Ongoing/multi-session"];
+
+export const TRAINING_CLASS_SIZES = ["1-10", "11-25", "26-50", "50+"];
+
+export const PARTICIPATION_BARRIER_TAGS = [
+  "Limited budget",
+  "Time away from work",
+  "Lack of management buy-in",
+  "Difficulty measuring ROI",
+  "Low employee interest",
+  "Logistics / scheduling",
+];

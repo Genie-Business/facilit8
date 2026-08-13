@@ -38,6 +38,16 @@ function matchesPrefix(pathname: string, prefixes: string[]): boolean {
 
 const APP_HOSTNAME = new URL(appUrl).hostname; // "app.localhost" | "app.usefacilit8.training"
 
+// "localhost" sits on the Public Suffix List (browsers treat it as its own registrable
+// domain specifically to stop one local dev server's subdomain from sharing cookies with
+// another), so a session cookie set on the apex localhost:3000 is never sent to
+// app.localhost:3000 — sign-in would always bounce back to /login. Real domains
+// (*.usefacilit8.training) aren't on the PSL and don't have this problem. When
+// NEXT_PUBLIC_SITE_URL and NEXT_PUBLIC_APP_URL are configured to the same host (the
+// recommended local-dev setup), skip the cross-host dance entirely and gate access on
+// this one host instead.
+const SINGLE_HOST_MODE = APP_HOSTNAME === new URL(siteUrl).hostname;
+
 // Next's edge middleware adapter rebuilds a redirect's NextURL using the *current request's*
 // Host header (next/dist/server/web/adapter.js), then collapses the Location header to a
 // relative path whenever it thinks the target host matches the request host — which, after
@@ -59,6 +69,26 @@ function crossHostRedirect(url: string | URL): NextResponse {
 export default auth((req) => {
   const { pathname, search } = req.nextUrl;
   const session = req.auth;
+
+  if (SINGLE_HOST_MODE) {
+    if (matchesPrefix(pathname, APP_PATH_PREFIXES) && !session) {
+      const loginUrl = new URL("/login", siteUrl);
+      loginUrl.searchParams.set("callbackUrl", pathname + search);
+      return NextResponse.redirect(loginUrl);
+    }
+    if (pathname.startsWith(ADMIN_PREFIX)) {
+      if (!session) {
+        const loginUrl = new URL("/login", siteUrl);
+        loginUrl.searchParams.set("callbackUrl", pathname + search);
+        return NextResponse.redirect(loginUrl);
+      }
+      if (session.user.role !== "ADMIN") {
+        return NextResponse.redirect(new URL("/dashboard", siteUrl));
+      }
+    }
+    return NextResponse.next();
+  }
+
   // Read hostname straight off the Host header — next-auth's auth() wrapper rebuilds req/
   // req.nextUrl from NEXTAUTH_URL (see reqWithEnvURL in next-auth/lib/env.js) before handing
   // the request to this handler, so req.nextUrl.hostname is always the apex, never reliable

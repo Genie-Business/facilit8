@@ -22,6 +22,9 @@ import {
   createProfessionalDevelopment,
   deleteProfessionalDevelopment,
 } from "@/lib/services/professional-development.service";
+import { upsertFacilitatorProfile, setFacilitationSkillRatings } from "@/lib/services/facilitator-profile.service";
+import { upsertOrganizationProfile } from "@/lib/services/organization-profile.service";
+import { getUserOrganizationMembership } from "@/lib/services/organization.service";
 import {
   professionalProfileSchema,
   employmentHistoryFormSchema,
@@ -29,8 +32,13 @@ import {
   professionalDevelopmentFormSchema,
   careerDirectionSchema,
   learningPreferencesSchema,
+  facilitatorProfileSchema,
+  organizationProfileSchema,
   meetAweSchema,
 } from "@/lib/validation/onboarding";
+import { resolveOnboardingRoute, stepAfterLearningPreferences, MEET_AWE_STEP } from "@/lib/onboarding/steps";
+import { FACILITATION_SKILL_LABELS } from "@/lib/data/onboarding-options";
+import type { FacilitationSkillName, ProficiencyLevel } from "@/lib/generated/prisma/client";
 
 async function requireUser() {
   const session = await auth();
@@ -222,7 +230,82 @@ export async function updateLearningPreferencesAction(_prev: ActionState, formDa
     preferredLearningStyle: data.preferredLearningStyle,
   });
 
-  await advanceStep(user.id, 4);
+  const nextStep = stepAfterLearningPreferences(user.role);
+  await advanceStep(user.id, nextStep);
+  revalidatePath("/onboarding");
+  redirect(resolveOnboardingRoute(nextStep, user.role));
+}
+
+export async function updateFacilitatorProfileAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const user = await requireUser();
+
+  const skillRatings = (Object.keys(FACILITATION_SKILL_LABELS) as (keyof typeof FACILITATION_SKILL_LABELS)[])
+    .map((skill) => {
+      const proficiency = formData.get(`skillRating_${skill}`);
+      return typeof proficiency === "string" && proficiency ? { skill, proficiency } : null;
+    })
+    .filter((r): r is { skill: string; proficiency: string } => r !== null);
+
+  const raw = {
+    ...Object.fromEntries(formData),
+    trainingFormats: formData.getAll("trainingFormats"),
+    skillRatings,
+  };
+  const parsed = facilitatorProfileSchema.safeParse(raw);
+  if (!parsed.success) return { fieldErrors: firstFieldErrors(parsed.error.flatten().fieldErrors) };
+  const data = parsed.data;
+
+  await upsertFacilitatorProfile(user.id, {
+    yearsFacilitating: data.yearsFacilitating,
+    sessionsDelivered: data.sessionsDelivered,
+    delegatesTrained: data.delegatesTrained,
+    typicalAudienceSize: data.typicalAudienceSize,
+    typicalAudienceSeniority: data.typicalAudienceSeniority,
+    trainingFormats: data.trainingFormats,
+    industriesServed: data.industriesServed,
+    canTrainNow: data.canTrainNow,
+    wantToTrain: data.wantToTrain,
+    facilitatorGoals: data.facilitatorGoals,
+  });
+
+  if (data.skillRatings) {
+    await setFacilitationSkillRatings(
+      user.id,
+      data.skillRatings.map((r) => ({
+        skill: r.skill as FacilitationSkillName,
+        proficiency: r.proficiency as ProficiencyLevel,
+      }))
+    );
+  }
+
+  await advanceStep(user.id, MEET_AWE_STEP);
+  revalidatePath("/onboarding");
+  redirect("/onboarding/meet-awe");
+}
+
+export async function updateOrganizationProfileAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const user = await requireUser();
+
+  const membership = await getUserOrganizationMembership(user.id);
+  if (!membership) {
+    return { error: "You're not affiliated with an organization yet — add one from your profile first." };
+  }
+
+  const raw = {
+    ...Object.fromEntries(formData),
+    workforceLevels: formData.getAll("workforceLevels"),
+    trainingNeeds: formData.getAll("trainingNeeds"),
+    workforceChallenges: formData.getAll("workforceChallenges"),
+    preferredSchedule: formData.getAll("preferredSchedule"),
+    participationBarriers: formData.getAll("participationBarriers"),
+  };
+  const parsed = organizationProfileSchema.safeParse(raw);
+  if (!parsed.success) return { fieldErrors: firstFieldErrors(parsed.error.flatten().fieldErrors) };
+  const data = parsed.data;
+
+  await upsertOrganizationProfile(membership.organizationId, data);
+
+  await advanceStep(user.id, MEET_AWE_STEP);
   revalidatePath("/onboarding");
   redirect("/onboarding/meet-awe");
 }
@@ -238,7 +321,7 @@ export async function completeOnboardingAction(_prev: ActionState, formData: For
 
   await prisma.user.update({
     where: { id: user.id },
-    data: { onboardingStep: 5, onboardingCompletedAt: new Date() },
+    data: { onboardingStep: MEET_AWE_STEP, onboardingCompletedAt: new Date() },
   });
 
   revalidatePath("/onboarding");

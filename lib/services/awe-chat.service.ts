@@ -7,6 +7,13 @@ import { buildAweSystemPrompt } from "@/lib/ai/system-prompt";
 import { getCareerProfile, summarizeCareerProfile } from "@/lib/services/awe-career-profile.service";
 import { listEmploymentHistory } from "@/lib/services/employment-history.service";
 import { listEducationHistory } from "@/lib/services/education-history.service";
+import {
+  getFacilitatorProfile,
+  getFacilitationSkillRatings,
+  summarizeFacilitatorProfile,
+} from "@/lib/services/facilitator-profile.service";
+import { getUserOrganizationMembership } from "@/lib/services/organization.service";
+import { getOrganizationProfile, summarizeOrganizationProfile } from "@/lib/services/organization-profile.service";
 import { hasAweAccess } from "@/lib/services/awe-subscription.service";
 import type { ChatContentBlock, ChatModelMessage } from "@/lib/ai/provider";
 import type { AweConversation, Role } from "@/lib/generated/prisma/client";
@@ -53,6 +60,23 @@ function conversationTitleFromContent(content: string): string {
   return trimmed.length > 50 ? `${trimmed.slice(0, 50)}…` : trimmed;
 }
 
+async function getRoleProfileSummary(userId: string, role: Role): Promise<string | null> {
+  if (role === "FACILITATOR") {
+    const [profile, skillRatings] = await Promise.all([
+      getFacilitatorProfile(userId),
+      getFacilitationSkillRatings(userId),
+    ]);
+    return summarizeFacilitatorProfile(profile, skillRatings);
+  }
+  if (role === "EVENT_MANAGER") {
+    const membership = await getUserOrganizationMembership(userId);
+    if (!membership) return null;
+    const profile = await getOrganizationProfile(membership.organizationId);
+    return summarizeOrganizationProfile(membership.organization.name, profile);
+  }
+  return null;
+}
+
 function textBlocksFrom(content: ChatContentBlock[]): string {
   return content
     .filter((block): block is Extract<ChatContentBlock, { type: "text" }> => block.type === "text")
@@ -92,7 +116,7 @@ export async function sendAweMessage(
     data: { conversationId: conversation.id, role: "USER", content },
   });
 
-  const [history, careerProfile, employmentHistory, educationHistory] = await Promise.all([
+  const [history, careerProfile, employmentHistory, educationHistory, roleProfileSummary] = await Promise.all([
     prisma.aweMessage.findMany({
       where: { conversationId: conversation.id },
       orderBy: { createdAt: "asc" },
@@ -101,10 +125,12 @@ export async function sendAweMessage(
     getCareerProfile(userId),
     listEmploymentHistory(userId),
     listEducationHistory(userId),
+    getRoleProfileSummary(userId, role),
   ]);
 
   const systemPrompt = buildAweSystemPrompt(
-    summarizeCareerProfile(careerProfile, { employment: employmentHistory, education: educationHistory })
+    summarizeCareerProfile(careerProfile, { employment: employmentHistory, education: educationHistory }),
+    roleProfileSummary
   );
   const chatModel = getChatModel();
   const tools = getToolDefinitions();

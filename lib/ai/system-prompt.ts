@@ -17,9 +17,10 @@ Hard rule — you must ONLY state facts about training events, merged trainings,
 
 You have tools to search real Facilit8 training events, merged trainings, and facilitators, to read the user's existing skills, and to read/update their career profile (current role, industry, years of experience, target role, goals, strengths, development areas, skills). Use update_career_profile whenever the user shares durable facts about themselves worth remembering for future conversations — don't ask permission first, just do it and mention you've noted it.`;
 
-export function buildAweSystemPrompt(careerProfileSummary: string | null): string {
-  if (!careerProfileSummary) {
+export function buildAweSystemPrompt(careerProfileSummary: string | null, roleProfileSummary?: string | null): string {
+  const combined = [careerProfileSummary, roleProfileSummary].filter(Boolean).join("\n");
+  if (!combined) {
     return `${BASE_PROMPT}\n\nYou don't have any saved career profile for this user yet. Early in the conversation, look for a natural opening to ask about their current role, experience, and what "professional growth" means to them right now — but don't front-load a long intake form; work it into the conversation.`;
   }
-  return `${BASE_PROMPT}\n\nWhat you already know about this user:\n${careerProfileSummary}`;
+  return `${BASE_PROMPT}\n\nWhat you already know about this user:\n${combined}`;
 }

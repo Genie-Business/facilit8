@@ -19,6 +19,21 @@ export async function createProfessionalDevelopment(userId: string, input: Profe
   return prisma.professionalDevelopment.create({ data: { userId, source: "MANUAL", ...input } });
 }
 
+export interface AutoProfessionalDevelopmentInput {
+  title: string;
+  dateCompleted: Date;
+  skillsAcquired?: string[];
+  relatedTrainingEventId?: string;
+  relatedMergedTrainingEventId?: string;
+}
+
+/** Called by the payout services once a delivery is marked isCompleted — never by user input. */
+export async function createAutoProfessionalDevelopment(userId: string, input: AutoProfessionalDevelopmentInput) {
+  return prisma.professionalDevelopment.create({
+    data: { userId, source: "FACILIT8_AUTO", type: "TRAINING", ...input },
+  });
+}
+
 export async function deleteProfessionalDevelopment(id: string, userId: string) {
   const existing = await prisma.professionalDevelopment.findUnique({ where: { id } });
   if (!existing || existing.userId !== userId) throw new Error("Not authorized to delete this record.");
