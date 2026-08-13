@@ -7,7 +7,7 @@ import { HoverRollButton } from "@/components/marketing/hover-roll-button";
 export const metadata: Metadata = {
   title: "About Us",
   description:
-    "Facilit8 connects corporate event managers with vetted training facilitators across Nigeria, with funds held securely until training is confirmed complete.",
+    "Facilit8 is Nigeria's professional development ecosystem, where organizations staff vetted training, facilitators get discovered and paid, and every professional grows with Awe.",
   alternates: { canonical: "/about" },
 };
 
@@ -15,7 +15,7 @@ const VALUES = [
   {
     icon: Users,
     title: "Vetted, not anonymous",
-    body: "Every facilitator on Facilit8 builds a real profile — specialization, experience, and reviews from past engagements.",
+    body: "Every facilitator on Facilit8 builds a real profile: specialization, experience, and reviews from past engagements.",
   },
   {
     icon: ShieldCheck,
@@ -34,18 +34,24 @@ export default function AboutPage() {
     <>
       <MarketingPageHeader
         eyebrow="About Facilit8"
-        title="We built the marketplace we wished existed."
-        description="Facilit8 exists because sourcing corporate training shouldn't take longer than the training itself."
+        title="We built the ecosystem we wished existed."
+        description="Facilit8 exists because growing a career, or a team, shouldn't take longer than the training itself."
       />
 
       <section className="mx-auto max-w-[1200px] px-5 py-16 sm:px-8 sm:py-20">
         <div className="max-w-2xl">
           <h2 className="text-2xl font-medium tracking-tight text-foreground sm:text-3xl">Our mission</h2>
+          <p className="mt-4 text-xl leading-snug font-medium text-foreground sm:text-2xl">
+            We&apos;re building the infrastructure for how Nigeria&apos;s professionals actually grow.
+          </p>
           <p className="mt-4 text-base leading-relaxed text-muted-foreground">
-            Event Managers spend weeks chasing down trainers over email, and skilled facilitators
-            spend just as long chasing down clients. Facilit8 puts both sides in one marketplace —
-            with bidding, messaging, and payment built in — so a training program goes from idea to
-            funded in days.
+            Nigeria&apos;s workforce is being asked to level up faster than ever, and there was
+            nowhere built for all three people who make that happen: Event Managers sourcing real
+            training, Facilitators proving real expertise, and Professionals building a real
+            career. Facilit8 is that place. A vetted marketplace so training gets funded in days,
+            not weeks, and Awe, an AI partner so every person on the platform always knows their
+            next step. We&apos;re not a bidding tool. We&apos;re the ecosystem Nigeria&apos;s
+            workforce needs to grow.
           </p>
         </div>
 

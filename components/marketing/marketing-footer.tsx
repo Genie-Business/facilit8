@@ -35,7 +35,8 @@ export function MarketingFooter() {
           <div>
             <Image src="/brand/logo.png" alt="Facilit8" width={100} height={50} />
             <p className="mt-4 max-w-xs text-sm text-muted-foreground">
-              Connecting Event Managers with vetted training Facilitators.
+              The professional development ecosystem: training, talent, and Awe, your AI growth
+              partner, in one place.
             </p>
           </div>
           {COLUMNS.map((col) => (

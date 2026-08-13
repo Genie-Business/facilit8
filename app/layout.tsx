@@ -24,11 +24,11 @@ const urbanist = Urbanist({ variable: "--font-urbanist", subsets: ["latin"], wei
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: `${siteName} — Connecting Event Managers with Training Facilitators`,
+    default: `${siteName}: The Professional Development Ecosystem`,
     template: `%s | ${siteName}`,
   },
   description:
-    "Facilit8 is a B2B marketplace connecting corporate event managers with vetted training facilitators across Nigeria, with secure in-platform payments.",
+    "Facilit8 is Nigeria's professional development ecosystem, where Event Managers staff vetted training, Facilitators get discovered and paid, and every professional grows with Awe, an AI partner grounded in real platform data.",
   openGraph: {
     siteName,
     type: "website",

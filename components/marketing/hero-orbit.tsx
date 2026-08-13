@@ -85,8 +85,8 @@ export function HeroOrbit() {
   return (
     <div className="hero-orbit-container">
       <div className="hero-orbit-center">
-        <span className="hero-orbit-center-label">Vetted</span>
-        <span className="hero-orbit-center-sub">Facilitators</span>
+        <span className="hero-orbit-center-label">Growing</span>
+        <span className="hero-orbit-center-sub">Together</span>
       </div>
 
       <div className="hero-orbit-ring-layer">

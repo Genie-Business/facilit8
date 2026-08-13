@@ -5,7 +5,7 @@ const AUDIENCES = [
     icon: Building2,
     eyebrow: "For Organisations",
     title: "Staff training that actually moves your team forward",
-    body: "Post a need, compare vetted bids, and fund it securely from your wallet — or pool budget with other teams through merged training when one company can't justify it alone.",
+    body: "Post a need, compare vetted bids, and fund it securely from your wallet, or pool budget with other teams through merged training when one company can't justify it alone.",
   },
   {
     icon: GraduationCap,

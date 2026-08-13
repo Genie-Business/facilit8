@@ -5,7 +5,7 @@ import { HoverRollButton } from "@/components/marketing/hover-roll-button";
 
 export const metadata: Metadata = {
   title: "Careers",
-  description: "Facilit8 is a small, early-stage team building the marketplace for corporate training in Nigeria.",
+  description: "Facilit8 is a small, early-stage team building the professional development ecosystem for Nigeria's workforce.",
   alternates: { canonical: "/careers" },
 };
 
@@ -21,7 +21,7 @@ export default function CareersPage() {
       <section className="mx-auto max-w-[800px] px-5 py-16 sm:px-8 sm:py-20">
         <p className="text-base leading-relaxed text-muted-foreground">
           Facilit8 is a small, early-stage team. We don&apos;t have open roles listed at the
-          moment, but if you&apos;re interested in what we&apos;re building, send us a note — we
+          moment, but if you&apos;re interested in what we&apos;re building, send us a note. We
           keep good conversations on file for when that changes.
         </p>
         <div className="mt-8">

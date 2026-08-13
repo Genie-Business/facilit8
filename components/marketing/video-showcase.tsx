@@ -17,8 +17,8 @@ const VIDEOS = [
   },
   {
     src: `${BLOB_BASE}/team-collaboration.mp4`,
-    title: "Teams pooling budget together",
-    description: "Merged training lets multiple companies co-fund a session none could justify alone.",
+    title: "Professionals pooling resources",
+    description: "Merged training lets peers split the cost of bringing in a facilitator none could afford alone.",
   },
 ];
 
@@ -61,10 +61,10 @@ export function VideoShowcase() {
     <section className="mx-auto max-w-[1200px] px-5 py-16 sm:px-8 sm:py-20">
       <div className="mb-10 max-w-2xl">
         <h2 className="text-2xl font-medium tracking-tight text-foreground sm:text-3xl">
-          What happens once budget is funded
+          The ecosystem, in motion
         </h2>
         <p className="mt-3 text-sm text-muted-foreground sm:text-base">
-          Real moments from how corporate training gets sourced and delivered on Facilit8.
+          Real moments from how training gets sourced, delivered, and funded on Facilit8.
         </p>
       </div>
       <div className="grid gap-6 md:grid-cols-3">

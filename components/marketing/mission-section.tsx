@@ -10,11 +10,11 @@ export function MissionSection() {
         </h2>
         <p className="mt-6 text-base leading-relaxed text-muted-foreground sm:text-lg">
           This isn't just about posting a training need and getting a bid back. Across the
-          continent, businesses are raising the bar on what &ldquo;qualified&rdquo; looks like —
+          continent, businesses are raising the bar on what &ldquo;qualified&rdquo; looks like,
           and the professionals, facilitators, and organisations who close that gap first are the
           ones who benefit most. Facilit8 exists to make that development possible: real training,
           delivered by vetted facilitators, backed by an AI partner that helps every professional
-          turn skill-building into career progress — and, over time, into the pay and opportunities
+          turn skill-building into career progress, and over time, into the pay and opportunities
           that progress should come with.
         </p>
       </div>

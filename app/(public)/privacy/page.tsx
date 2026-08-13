@@ -23,7 +23,7 @@ export default async function PrivacyPage() {
         ) : (
           <p className="text-base leading-relaxed text-muted-foreground">
             We&apos;re finalizing a full privacy policy covering how Facilit8 collects, stores, and
-            uses your data — including identity verification (KYC) details handled through our
+            uses your data, including identity verification (KYC) details handled through our
             payment provider. In the meantime, if you have questions about your data, reach out at{" "}
             <a href="mailto:partners@usefacilit8.training" className="text-brand hover:underline">
               partners@usefacilit8.training

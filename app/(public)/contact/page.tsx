@@ -7,7 +7,7 @@ import { getSiteSettings } from "@/lib/services/site-settings.service";
 
 export const metadata: Metadata = {
   title: "Contact",
-  description: "Questions about the platform, partnerships, or anything else — reach the Facilit8 team.",
+  description: "Questions about the platform, partnerships, or anything else: reach the Facilit8 team.",
   alternates: { canonical: "/contact" },
 };
 
@@ -19,7 +19,7 @@ export default async function ContactPage() {
       <MarketingPageHeader
         eyebrow="Contact"
         title="Talk to us"
-        description="Questions about the platform, partnerships, or anything else — we'd like to hear from you."
+        description="Questions about the platform, partnerships, or anything else. We'd like to hear from you."
       />
 
       <section className="mx-auto grid max-w-[1200px] gap-12 px-5 py-16 sm:px-8 sm:py-20 lg:grid-cols-[1fr_1.3fr]">

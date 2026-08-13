@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { MessageCircle, ShieldCheck, Users, Wallet } from "lucide-react";
 
 import { MarketingPageHeader } from "@/components/marketing/page-header";
 import { HoverRollButton } from "@/components/marketing/hover-roll-button";
@@ -11,24 +12,47 @@ export const metadata: Metadata = {
 };
 
 const EVENT_MANAGER_STEPS = [
-  { title: "Post your training need", body: "Set the dates, delegate count, budget, and category — public or invite-only." },
+  { title: "Post your training need", body: "Set the dates, delegate count, budget, and category: public or invite-only." },
   { title: "Review facilitator bids", body: "Compare proposals, course breakdowns, and per-delegate pricing side by side." },
   { title: "Fund it securely", body: "Move budget into escrow from your Facilit8 wallet before the facilitator is confirmed." },
   { title: "Pay on completion", body: "Mark the training complete and release payment, minus the platform fee, in one step." },
 ];
 
 const FACILITATOR_STEPS = [
-  { title: "Build your profile", body: "Specialization, qualifications, and experience — the things Event Managers actually screen for." },
+  { title: "Build your profile", body: "Specialization, qualifications, and experience: the things Event Managers actually screen for." },
   { title: "Browse open events", body: "Find training needs that match your expertise and submit a bid with your rate." },
   { title: "Get selected", body: "Event Managers review bids and confirm a facilitator once budget is funded." },
   { title: "Get paid on completion", body: "Funds move to your wallet automatically once the training is marked complete." },
-  { title: "Or propose your own session", body: "Skip bidding entirely — invite organisations to fund it and fellow facilitators to co-deliver it." },
+  { title: "Or propose your own session", body: "Skip bidding entirely: invite organisations to fund it and fellow facilitators to co-deliver it." },
+];
+
+const PLATFORM_FEATURES = [
+  {
+    icon: Wallet,
+    title: "Escrow wallet",
+    body: "Every training budget sits in a secure wallet until the engagement is confirmed complete. Funds move on completion, not a handshake.",
+  },
+  {
+    icon: ShieldCheck,
+    title: "Identity verification",
+    body: "Wallets are backed by verified identity through our payment provider, so every transaction on Facilit8 is tied to a real, confirmed person.",
+  },
+  {
+    icon: MessageCircle,
+    title: "Direct messaging",
+    body: "Unlock a direct line to a facilitator to align on scope, dates, and delivery before you commit budget or accept a bid.",
+  },
+  {
+    icon: Users,
+    title: "Facilitator directory",
+    body: "Browse real profiles: specialization, experience, and track record from past engagements, not cold outreach.",
+  },
 ];
 
 const PROFESSIONAL_STEPS = [
-  { title: "Build your profile", body: "Sign up independent, or affiliate with a verified organization — either way, Awe starts learning your goals." },
+  { title: "Build your profile", body: "Sign up independent, or affiliate with a verified organization. Either way, Awe starts learning your goals." },
   { title: "Browse the ecosystem", body: "See the open training events and the facilitator directory shaping your industry." },
-  { title: "Grow with Awe", body: "Get a career partner grounded in real Facilit8 data — not generic advice — that turns your profile into a concrete next step." },
+  { title: "Grow with Awe", body: "Get a career partner grounded in real Facilit8 data, not generic advice, that turns your profile into a concrete next step." },
   { title: "Or start your own merged session", body: "Invite other professionals in your field to pool funds and bring in a facilitator together." },
 ];
 
@@ -75,6 +99,19 @@ export default function ServicesPage() {
           </div>
         </div>
 
+        <div className="mt-20">
+          <h2 className="mb-8 text-2xl font-medium tracking-tight text-foreground">What&apos;s included, for everyone</h2>
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            {PLATFORM_FEATURES.map((feature) => (
+              <div key={feature.title} className="rounded-2xl border p-6">
+                <feature.icon className="size-6 text-brand" strokeWidth={1.5} />
+                <p className="mt-4 font-semibold text-foreground">{feature.title}</p>
+                <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{feature.body}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
         <div className="mt-16 grid gap-6 sm:grid-cols-2">
           <div className="rounded-2xl bg-[#F5F5F5] p-8 sm:p-10">
             <h2 className="text-2xl font-medium tracking-tight text-foreground">Merged training</h2>
@@ -87,11 +124,11 @@ export default function ServicesPage() {
             </p>
           </div>
           <div className="rounded-2xl bg-[#F5F5F5] p-8 sm:p-10">
-            <h2 className="text-2xl font-medium tracking-tight text-foreground">Awe, for everyone</h2>
+            <h2 className="text-2xl font-medium tracking-tight text-foreground">Ask Awe. Whoever you are.</h2>
             <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-              Awe isn&apos;t just for Professionals — Facilitators use it to grow their
+              Awe isn&apos;t just for Professionals. Facilitators use it to grow their
               specialization between engagements, and Event Managers use it for their own career
-              progression too.
+              progression too. Everyone on Facilit8 has a next step, and Awe helps find it.
             </p>
           </div>
         </div>

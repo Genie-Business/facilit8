@@ -3,10 +3,10 @@ import { Sparkles, MessageCircle, TrendingUp } from "lucide-react";
 import { HoverRollButton } from "./hover-roll-button";
 
 const BULLETS = [
-  "Grounded in real Facilit8 data — training events, facilitators, and merged trainings, never invented answers.",
+  "Grounded in real Facilit8 data: training events, facilitators, and merged trainings, never invented answers.",
   "Builds a career profile over time, so every conversation picks up where the last one left off.",
-  "Closing a skills gap is how pay and opportunity catch up — Awe helps you find the shortest real path there.",
-  "For Professionals, Facilitators, and Event Managers — whichever side of the marketplace you're on.",
+  "Closing a skills gap is how pay and opportunity catch up. Awe helps you find the shortest real path there.",
+  "For Professionals, Facilitators, and Event Managers, whichever side of the marketplace you're on.",
 ];
 
 export function AweSection() {
@@ -16,14 +16,14 @@ export function AweSection() {
         <div>
           <span className="inline-flex items-center gap-1.5 rounded-full border bg-white px-4 py-1.5 text-sm text-muted-foreground">
             <Sparkles className="size-3.5 text-brand" />
-            Awe
+            Meet Awe
           </span>
           <h2 className="mt-6 text-3xl leading-tight font-medium tracking-tight text-foreground sm:text-4xl">
-            Your AI Career &amp; Professional Growth Partner
+            Awe understands your professional journey.
           </h2>
           <p className="mt-4 max-w-lg text-base leading-relaxed text-muted-foreground">
-            Awe understands where you are, where you want to go, and what to do next — then helps
-            you actually get there.
+            Ask Awe where you stand, where you&apos;re headed, and what closes the gap between
+            them, grounded in real Facilit8 data, not generic advice.
           </p>
           <ul className="mt-6 space-y-3">
             {BULLETS.map((bullet) => (
@@ -34,7 +34,7 @@ export function AweSection() {
             ))}
           </ul>
           <div className="mt-8">
-            <HoverRollButton href="/signup">Get started</HoverRollButton>
+            <HoverRollButton href="/signup">Talk to Awe</HoverRollButton>
           </div>
         </div>
 
@@ -48,7 +48,7 @@ export function AweSection() {
             </div>
             <div className="mr-auto flex max-w-[80%] items-start gap-2 rounded-2xl rounded-bl-sm bg-white/10 px-4 py-2.5 text-sm text-white">
               <TrendingUp className="mt-0.5 size-4 shrink-0 text-brand-light" />
-              Based on your last 6 engagements, you're ready — here's the gap and what closes it.
+              Based on your last 6 engagements, you're ready: here's the gap and what closes it.
             </div>
           </div>
         </div>

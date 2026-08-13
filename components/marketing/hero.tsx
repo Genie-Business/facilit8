@@ -8,8 +8,8 @@ import { HoverRollButton } from "./hover-roll-button";
 import { RotatingBorderButton } from "./rotating-border-button";
 import { HeroOrbit } from "./hero-orbit";
 
-const HEADLINE = "Post a Training Need. Get Vetted Bids in Days, Not Weeks.";
-const HIGHLIGHT_START = HEADLINE.indexOf("Days, Not Weeks");
+const HEADLINE = "Grow Your Career. Staff Your Team. Meet Awe.";
+const HIGHLIGHT_START = HEADLINE.indexOf("Meet Awe");
 
 function TypewriterHeading() {
   const { displayed, done } = useTypewriter(HEADLINE, 35, 400);
@@ -41,7 +41,7 @@ export function Hero() {
           className="flex-1 lg:max-w-[560px]"
         >
           <span className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/5 px-4 py-1.5 text-sm text-white/70">
-            For Event Managers &amp; Facilitators
+            The Professional Development Ecosystem
           </span>
 
           <div className="mt-6">
@@ -49,8 +49,9 @@ export function Hero() {
           </div>
 
           <p className="mt-5 max-w-[480px] text-base leading-relaxed text-white/60 sm:text-lg">
-            Facilit8 connects corporate Event Managers with vetted training Facilitators — compare
-            bids, message directly, and pay securely through a built-in wallet.
+            Facilit8 is where professionals grow their careers, organizations staff vetted
+            training, and facilitators get discovered and paid, all guided by Awe, your AI
+            partner for what&apos;s next.
           </p>
 
           <motion.div
