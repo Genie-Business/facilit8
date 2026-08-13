@@ -29,6 +29,7 @@ const APP_PATH_PREFIXES = [
   "/awe",
   "/merged-trainings",
   "/organization",
+  "/onboarding",
 ];
 
 function matchesPrefix(pathname: string, prefixes: string[]): boolean {

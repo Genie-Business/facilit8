@@ -3,7 +3,6 @@ import type { Metadata } from "next";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { SignupForm } from "@/components/auth/signup-form";
 import { getBankOptions } from "@/lib/services/bank-list.service";
-import { listActiveSkills } from "@/lib/services/skill.service";
 import { listOrganizationsForPicker } from "@/lib/services/organization.service";
 
 export const metadata: Metadata = {
@@ -13,11 +12,7 @@ export const metadata: Metadata = {
 };
 
 export default async function SignupPage() {
-  const [banks, skills, organizations] = await Promise.all([
-    getBankOptions(),
-    listActiveSkills(),
-    listOrganizationsForPicker(),
-  ]);
+  const [banks, organizations] = await Promise.all([getBankOptions(), listOrganizationsForPicker()]);
 
   return (
     <Card>
@@ -26,7 +21,7 @@ export default async function SignupPage() {
         <CardDescription>Join Facilit8 as an Event Manager, Facilitator, or Professional.</CardDescription>
       </CardHeader>
       <CardContent>
-        <SignupForm banks={banks} skills={skills} organizations={organizations} />
+        <SignupForm banks={banks} organizations={organizations} />
       </CardContent>
     </Card>
   );

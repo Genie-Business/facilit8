@@ -34,9 +34,6 @@ export const signupSchema = z
       .optional()
       .or(z.literal("")),
     accountName: z.string().trim().optional().or(z.literal("")),
-    profileDescription: z.string().trim().max(1000, "Keep it under 1000 characters.").optional().or(z.literal("")),
-    profileImageUrl: z.string().trim().optional().or(z.literal("")),
-    skillIds: z.array(z.string()).optional(),
     affiliationType: z.enum(["independent", "organization"]).optional(),
     organizationId: z.string().trim().optional().or(z.literal("")),
     password: passwordSchema,

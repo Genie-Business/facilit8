@@ -142,6 +142,14 @@ model User {
   cvUrl              String?
   certificateUrl     String?
 
+  // Onboarding wizard (post-signup) — null means not yet completed. Users can skip and
+  // finish later, so this never blocks access to the product, only shows a redirect nudge.
+  // onboardingSkippedAt distinguishes "chose to skip, don't force the redirect again" from
+  // "never even started" (both leave onboardingCompletedAt null).
+  onboardingStep        Int       @default(0)
+  onboardingCompletedAt DateTime?
+  onboardingSkippedAt   DateTime?
+
   // KYC
   bvn             String?
   dateOfBirth     DateTime?
@@ -204,6 +212,10 @@ model User {
   aweSubscription  AweSubscription?
   aweConversations AweConversation[]
   aweCareerProfile AweCareerProfile?
+
+  employmentHistory       EmploymentHistory[]
+  educationHistory        EducationHistory[]
+  professionalDevelopment ProfessionalDevelopment[]
 
   @@index([role])
 }
@@ -909,6 +921,35 @@ model AweCareerProfile {
   strengths              String?
   developmentAreas       String?
   preferredLearningStyle String?
+
+  // Onboarding wizard's "Professional Profile" step — quick-answer fields, distinct from
+  // the detailed dated records in EducationHistory/ProfessionalDevelopment.
+  highestEducationLevel  String?
+  professionalMemberships String[]
+  certifications          String[]
+  languagesSpoken         String[]
+
+  // "Career Direction" step.
+  careerGoalTags   String[]
+  targetCareerLevel String?
+  targetTimeline    String?
+  longTermAmbition  String?
+  topStrengths      String[]
+  skillsToImprove   String[]
+  weakSkills        String[]
+  skillsToAcquire   String[]
+  challengeTags     String[]
+  challengeOther    String?
+
+  // "Learning Preferences" step.
+  learningFormats     String[]
+  availableLearningTime String?
+  preferredSchedule   String[]
+  preferredDelivery   String?
+
+  // "Meet Awe" step — free text the structured fields above can't anticipate.
+  tellAweText String?
+
   createdAt              DateTime @default(now())
   updatedAt              DateTime @updatedAt
 
@@ -927,4 +968,91 @@ model AweCareerProfileSkill {
   proficiency String?
 
   @@unique([profileId, skillId])
+}
+
+enum EmploymentType {
+  FULL_TIME
+  PART_TIME
+  CONTRACT
+  FREELANCE
+  INTERNSHIP
+  VOLUNTEER
+  SELF_EMPLOYED
+}
+
+// Onboarding "Your Background" step — repeatable, multiple rows per user. Gives Awe a
+// timeline of career progression rather than just a single current-job free-text field.
+model EmploymentHistory {
+  id               String         @id @default(cuid())
+  userId           String
+  user             User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  companyName      String
+  jobTitle         String
+  industry         String?
+  employmentType   EmploymentType
+  location         String?
+  startDate        DateTime
+  endDate          DateTime?
+  isCurrent        Boolean        @default(false)
+  responsibilities String?
+  achievements     String?
+  skillsDeveloped  String[]
+  majorProjects    String?
+  teamSize         Int?
+  reasonForLeaving String?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  @@index([userId])
+}
+
+model EducationHistory {
+  id                 String    @id @default(cuid())
+  userId             String
+  user               User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  institution        String
+  qualification      String
+  fieldOfStudy       String?
+  startDate          DateTime
+  endDate            DateTime?
+  grade              String?
+  relevantCoursework String?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  @@index([userId])
+}
+
+enum ProfessionalDevelopmentType {
+  COURSE
+  TRAINING
+  CERTIFICATION
+  WORKSHOP
+  CONFERENCE
+}
+
+enum ProfessionalDevelopmentSource {
+  MANUAL
+  FACILIT8_AUTO
+}
+
+// Courses/certifications/workshops outside the structured Employment/Education history.
+// MANUAL rows are entered by the user (onboarding or later); FACILIT8_AUTO rows are
+// created automatically when a Facilitator completes a delivery on the platform (Stage 2).
+model ProfessionalDevelopment {
+  id                            String                         @id @default(cuid())
+  userId                        String
+  user                          User                           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type                          ProfessionalDevelopmentType
+  title                         String
+  provider                      String?
+  dateCompleted                 DateTime
+  skillsAcquired                String[]
+  expiryDate                    DateTime?
+  source                        ProfessionalDevelopmentSource @default(MANUAL)
+  relatedTrainingEventId        String?
+  relatedMergedTrainingEventId  String?
+  createdAt                     DateTime                       @default(now())
+
+  @@index([userId])
 }

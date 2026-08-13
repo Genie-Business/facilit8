@@ -14,7 +14,6 @@ import { appUrl, siteUrl } from "@/lib/site";
 import { getBankOptions } from "@/lib/services/bank-list.service";
 import { provisionAnchorCustomer } from "@/lib/services/anchor-provisioning.service";
 import { joinOrCreateOrganization, requestOrganizationMembership } from "@/lib/services/organization.service";
-import { setFacilitatorSkills } from "@/lib/services/skill.service";
 import { isRateLimited, RATE_LIMITS, RATE_LIMIT_MESSAGE } from "@/lib/rate-limit";
 import {
   forgotPasswordSchema,
@@ -42,8 +41,7 @@ export async function signupAction(_prev: ActionState, formData: FormData): Prom
     return { error: RATE_LIMIT_MESSAGE };
   }
 
-  const raw = { ...Object.fromEntries(formData), skillIds: formData.getAll("skillIds") };
-  const parsed = signupSchema.safeParse(raw);
+  const parsed = signupSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) {
     return { fieldErrors: firstFieldErrors(parsed.error.flatten().fieldErrors) };
   }
@@ -84,8 +82,6 @@ export async function signupAction(_prev: ActionState, formData: FormData): Prom
       linkedBankName: bankName,
       linkedAccountNumber: data.accountNumber || null,
       linkedAccountName: data.accountName || null,
-      profileDescription: data.profileDescription || null,
-      profileImageUrl: data.profileImageUrl || null,
       slug,
     },
   });
@@ -95,10 +91,6 @@ export async function signupAction(_prev: ActionState, formData: FormData): Prom
     revalidatePath("/signup");
   } else if (data.role === "PROFESSIONAL" && data.affiliationType === "organization" && data.organizationId) {
     await requestOrganizationMembership(user.id, data.organizationId);
-  }
-
-  if (data.role === "FACILITATOR" && data.skillIds && data.skillIds.length > 0) {
-    await setFacilitatorSkills(user.id, data.skillIds);
   }
 
   // Never let account creation fail because Anchor is slow/unreachable — provisioning

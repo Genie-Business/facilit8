@@ -8,9 +8,7 @@ import { resolveAccountNameAction } from "@/lib/actions/bank.actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { ImageUploadField } from "@/components/shared/image-upload-field";
 import { NIGERIA_STATES } from "@/lib/data/nigeria-locations";
 
 const nativeSelectClassName =
@@ -22,11 +20,9 @@ type Role = "EVENT_MANAGER" | "FACILITATOR" | "PROFESSIONAL";
 
 export function SignupForm({
   banks,
-  skills,
   organizations,
 }: {
   banks: { code: string; name: string }[];
-  skills: { id: string; name: string }[];
   organizations: { id: string; name: string }[];
 }) {
   const [state, formAction, pending] = useActionState(signupAction, initialState);
@@ -211,37 +207,6 @@ export function SignupForm({
               {state.fieldErrors?.organizationId && (
                 <p className="text-sm text-destructive">{state.fieldErrors.organizationId}</p>
               )}
-            </div>
-          )}
-        </div>
-      )}
-
-      <ImageUploadField
-        name="profileImageUrl"
-        label={role === "EVENT_MANAGER" ? "Company logo (optional)" : "Profile picture (optional)"}
-        shape={role === "EVENT_MANAGER" ? "square" : "circle"}
-      />
-
-      <div className="space-y-2">
-        <Label htmlFor="profileDescription">
-          {role === "EVENT_MANAGER" ? "About your organization (optional)" : "About you (optional)"}
-        </Label>
-        <Textarea id="profileDescription" name="profileDescription" rows={3} maxLength={1000} />
-      </div>
-
-      {role === "FACILITATOR" && (
-        <div className="space-y-2">
-          <Label>Facilitating skills</Label>
-          {skills.length === 0 ? (
-            <p className="text-xs text-muted-foreground">No skills are listed yet — you can add these later.</p>
-          ) : (
-            <div className="grid grid-cols-2 gap-2 rounded-lg border border-input p-3">
-              {skills.map((skill) => (
-                <label key={skill.id} className="flex items-center gap-2 text-sm">
-                  <input type="checkbox" name="skillIds" value={skill.id} className="size-4 rounded border-input" />
-                  {skill.name}
-                </label>
-              ))}
             </div>
           )}
         </div>

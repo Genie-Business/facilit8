@@ -5,6 +5,8 @@ import { getChatModel } from "@/lib/ai/get-chat-model";
 import { getToolDefinitions, executeTool } from "@/lib/ai/tools";
 import { buildAweSystemPrompt } from "@/lib/ai/system-prompt";
 import { getCareerProfile, summarizeCareerProfile } from "@/lib/services/awe-career-profile.service";
+import { listEmploymentHistory } from "@/lib/services/employment-history.service";
+import { listEducationHistory } from "@/lib/services/education-history.service";
 import { hasAweAccess } from "@/lib/services/awe-subscription.service";
 import type { ChatContentBlock, ChatModelMessage } from "@/lib/ai/provider";
 import type { AweConversation, Role } from "@/lib/generated/prisma/client";
@@ -90,16 +92,20 @@ export async function sendAweMessage(
     data: { conversationId: conversation.id, role: "USER", content },
   });
 
-  const [history, careerProfile] = await Promise.all([
+  const [history, careerProfile, employmentHistory, educationHistory] = await Promise.all([
     prisma.aweMessage.findMany({
       where: { conversationId: conversation.id },
       orderBy: { createdAt: "asc" },
       take: HISTORY_LIMIT,
     }),
     getCareerProfile(userId),
+    listEmploymentHistory(userId),
+    listEducationHistory(userId),
   ]);
 
-  const systemPrompt = buildAweSystemPrompt(summarizeCareerProfile(careerProfile));
+  const systemPrompt = buildAweSystemPrompt(
+    summarizeCareerProfile(careerProfile, { employment: employmentHistory, education: educationHistory })
+  );
   const chatModel = getChatModel();
   const tools = getToolDefinitions();
 

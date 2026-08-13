@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { Sidebar } from "@/components/app-shell/sidebar";
 import { Topbar } from "@/components/app-shell/topbar";
 import { ShellRoot } from "@/components/app-shell/shell-root";
+import { resolveOnboardingRoute } from "@/lib/onboarding/steps";
 import "./adminator.css";
 
 export const metadata: Metadata = {
@@ -23,7 +25,15 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const [user, notifications, unreadCount] = await Promise.all([
     prisma.user.findUnique({
       where: { id: session.user.id },
-      select: { firstName: true, lastName: true, email: true, profileImageUrl: true },
+      select: {
+        firstName: true,
+        lastName: true,
+        email: true,
+        profileImageUrl: true,
+        onboardingStep: true,
+        onboardingCompletedAt: true,
+        onboardingSkippedAt: true,
+      },
     }),
     prisma.notification.findMany({
       where: { userId: session.user.id },
@@ -33,6 +43,15 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     }),
     prisma.notification.count({ where: { userId: session.user.id, isRead: false } }),
   ]);
+
+  if (
+    user &&
+    session.user.role !== "ADMIN" &&
+    !user.onboardingCompletedAt &&
+    !user.onboardingSkippedAt
+  ) {
+    redirect(resolveOnboardingRoute(user.onboardingStep));
+  }
 
   const name = user ? `${user.firstName} ${user.lastName}` : (session.user.name ?? session.user.email ?? "");
 
