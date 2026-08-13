@@ -54,6 +54,14 @@ async function advanceStep(userId: string, step: number) {
   }
 }
 
+/** The employment/education/professional-development CRUD actions below are used both by
+ * the onboarding wizard's "Your Background" step and by the post-onboarding /profile/background
+ * settings page — revalidate both so whichever one is currently mounted picks up the change. */
+function revalidateBackgroundPaths() {
+  revalidatePath("/onboarding/background");
+  revalidatePath("/profile/background");
+}
+
 export async function updateProfessionalProfileAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const user = await requireUser();
 
@@ -97,7 +105,7 @@ export async function addEmploymentHistoryAction(_prev: ActionState, formData: F
   if (!parsed.success) return { fieldErrors: firstFieldErrors(parsed.error.flatten().fieldErrors) };
 
   await createEmploymentHistory(user.id, parsed.data);
-  revalidatePath("/onboarding/background");
+  revalidateBackgroundPaths();
   return { success: "Employment record added." };
 }
 
@@ -113,14 +121,14 @@ export async function editEmploymentHistoryAction(
   if (!parsed.success) return { fieldErrors: firstFieldErrors(parsed.error.flatten().fieldErrors) };
 
   await updateEmploymentHistory(id, user.id, parsed.data);
-  revalidatePath("/onboarding/background");
+  revalidateBackgroundPaths();
   return { success: "Employment record updated." };
 }
 
 export async function deleteEmploymentHistoryAction(id: string): Promise<void> {
   const user = await requireUser();
   await deleteEmploymentHistory(id, user.id);
-  revalidatePath("/onboarding/background");
+  revalidateBackgroundPaths();
 }
 
 export async function addEducationHistoryAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
@@ -130,7 +138,7 @@ export async function addEducationHistoryAction(_prev: ActionState, formData: Fo
   if (!parsed.success) return { fieldErrors: firstFieldErrors(parsed.error.flatten().fieldErrors) };
 
   await createEducationHistory(user.id, parsed.data);
-  revalidatePath("/onboarding/background");
+  revalidateBackgroundPaths();
   return { success: "Education record added." };
 }
 
@@ -145,14 +153,14 @@ export async function editEducationHistoryAction(
   if (!parsed.success) return { fieldErrors: firstFieldErrors(parsed.error.flatten().fieldErrors) };
 
   await updateEducationHistory(id, user.id, parsed.data);
-  revalidatePath("/onboarding/background");
+  revalidateBackgroundPaths();
   return { success: "Education record updated." };
 }
 
 export async function deleteEducationHistoryAction(id: string): Promise<void> {
   const user = await requireUser();
   await deleteEducationHistory(id, user.id);
-  revalidatePath("/onboarding/background");
+  revalidateBackgroundPaths();
 }
 
 export async function addProfessionalDevelopmentAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
@@ -162,14 +170,14 @@ export async function addProfessionalDevelopmentAction(_prev: ActionState, formD
   if (!parsed.success) return { fieldErrors: firstFieldErrors(parsed.error.flatten().fieldErrors) };
 
   await createProfessionalDevelopment(user.id, parsed.data);
-  revalidatePath("/onboarding/background");
+  revalidateBackgroundPaths();
   return { success: "Record added." };
 }
 
 export async function deleteProfessionalDevelopmentAction(id: string): Promise<void> {
   const user = await requireUser();
   await deleteProfessionalDevelopment(id, user.id);
-  revalidatePath("/onboarding/background");
+  revalidateBackgroundPaths();
 }
 
 export async function continueFromBackgroundAction(): Promise<void> {

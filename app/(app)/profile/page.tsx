@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Pencil, MapPin, Briefcase } from "lucide-react";
+import { Pencil, MapPin, Briefcase, History } from "lucide-react";
 
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
@@ -94,6 +94,10 @@ export default async function ProfilePage() {
           </div>
         </div>
         <div className="hero-actions">
+          <Link href="/profile/background" className="btn btn--ghost">
+            <History />
+            Career background
+          </Link>
           <Link href="/profile/edit" className="btn btn--primary">
             <Pencil />
             Edit profile

@@ -69,6 +69,7 @@ export default async function DashboardPage() {
     unreadCount,
     membership,
     pendingRequests,
+    onboarding,
   ] = await Promise.all([
     getWalletBalance(userId),
     role === "PROFESSIONAL"
@@ -80,9 +81,14 @@ export default async function DashboardPage() {
     prisma.notification.count({ where: { userId, isRead: false } }),
     role === "PROFESSIONAL" ? getUserOrganizationMembership(userId) : Promise.resolve(null),
     isEventManager ? listPendingMembershipRequests(userId) : Promise.resolve([]),
+    prisma.user.findUnique({
+      where: { id: userId },
+      select: { onboardingSkippedAt: true, onboardingCompletedAt: true },
+    }),
   ]);
 
   const firstName = session.user.name?.split(" ")[0] ?? "there";
+  const showOnboardingNudge = !!onboarding?.onboardingSkippedAt && !onboarding?.onboardingCompletedAt;
 
   return (
     <>
@@ -103,6 +109,31 @@ export default async function DashboardPage() {
           ))}
         </div>
       </section>
+
+      {showOnboardingNudge && (
+        <section
+          className="card"
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 16,
+            flexWrap: "wrap",
+            borderLeft: "3px solid var(--primary)",
+          }}
+        >
+          <div>
+            <p style={{ fontWeight: 600, marginBottom: 2 }}>Finish setting up your profile</p>
+            <p style={{ fontSize: 13, color: "var(--t-muted)" }}>
+              You skipped a few steps earlier — finishing them helps Awe give you sharper, more relevant
+              recommendations.
+            </p>
+          </div>
+          <Link href="/onboarding" className="btn btn--primary">
+            Continue setup
+          </Link>
+        </section>
+      )}
 
       <section className="kpi-grid" aria-label="Key metrics">
         <article className="kpi-card">

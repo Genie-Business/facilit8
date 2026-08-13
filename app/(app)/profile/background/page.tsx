@@ -1,19 +1,24 @@
+import type { Metadata } from "next";
+import Link from "next/link";
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { BackLink } from "@/components/onboarding/back-link";
 import { EmploymentHistorySection } from "@/components/onboarding/employment-history-section";
 import { EducationHistorySection } from "@/components/onboarding/education-history-section";
 import { ProfessionalDevelopmentSection } from "@/components/onboarding/professional-development-section";
-import { continueFromBackgroundAction } from "@/lib/actions/onboarding.actions";
 import { auth } from "@/lib/auth";
 import { listEmploymentHistory } from "@/lib/services/employment-history.service";
 import { listEducationHistory } from "@/lib/services/education-history.service";
 import { listProfessionalDevelopment } from "@/lib/services/professional-development.service";
 
-export default async function BackgroundPage() {
-  const session = await auth();
-  const userId = session!.user.id;
+export const metadata: Metadata = {
+  title: "Career Background",
+};
 
+export default async function ProfileBackgroundPage() {
+  const session = await auth();
+  if (!session) return null;
+
+  const userId = session.user.id;
   const [employment, education, professionalDevelopment] = await Promise.all([
     listEmploymentHistory(userId),
     listEducationHistory(userId),
@@ -21,14 +26,23 @@ export default async function BackgroundPage() {
   ]);
 
   return (
-    <div className="space-y-6">
-      <BackLink href="/onboarding/professional-profile" />
+    <div className="max-w-3xl space-y-6">
+      <div>
+        <Link href="/profile" className="text-sm text-muted-foreground hover:text-foreground">
+          ← Back to profile
+        </Link>
+        <h1 className="mt-2 text-2xl font-semibold">Career Background</h1>
+        <p className="text-sm text-muted-foreground">
+          Keep your work and education history up to date — this is what Awe uses to understand your career
+          progression, not just where you are today.
+        </p>
+      </div>
+
       <Card>
         <CardHeader>
-          <CardTitle>Your Background</CardTitle>
+          <CardTitle className="text-base">Your history</CardTitle>
           <CardDescription>
-            Add your work and education history so Awe understands how your career has progressed, not just where
-            you are today.
+            Add anything you've completed since onboarding, including training from outside Facilit8.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-8">
@@ -55,10 +69,6 @@ export default async function BackgroundPage() {
           />
         </CardContent>
       </Card>
-
-      <form action={continueFromBackgroundAction}>
-        <Button type="submit">Continue</Button>
-      </form>
     </div>
   );
 }

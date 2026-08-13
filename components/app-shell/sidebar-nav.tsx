@@ -23,6 +23,7 @@ import {
   FileText,
   Activity,
   Repeat,
+  History,
 } from "lucide-react";
 
 import { useShell } from "./shell-root";
@@ -55,6 +56,7 @@ const COMMUNICATIONS_LINKS: NavItem[] = [
 
 const ACCOUNT_LINKS: NavItem[] = [
   { href: "/profile", label: "My Profile", icon: UserCircle },
+  { href: "/profile/background", label: "Career Background", icon: History },
   { href: "/wallet", label: "Wallet", icon: Wallet },
   { href: "/settings/kyc", label: "Verify Identity", icon: ShieldCheck },
 ];
