@@ -212,61 +212,56 @@ export function SignupForm({
         </div>
       )}
 
-      {role !== "PROFESSIONAL" && (
-        <>
-          <div className="space-y-2">
-            <Label htmlFor="bankCode">Bank</Label>
-            <select id="bankCode" name="bankCode" defaultValue="" required className={nativeSelectClassName}>
-              <option value="" disabled>
-                Select your bank
-              </option>
-              {banks.map((bank) => (
-                <option key={bank.code} value={bank.code}>
-                  {bank.name}
-                </option>
-              ))}
-            </select>
-            {state.fieldErrors?.bankCode && (
-              <p className="text-sm text-destructive">{state.fieldErrors.bankCode}</p>
-            )}
-          </div>
+      <div className="space-y-2">
+        <Label htmlFor="bankCode">Bank</Label>
+        <select id="bankCode" name="bankCode" defaultValue="" required className={nativeSelectClassName}>
+          <option value="" disabled>
+            Select your bank
+          </option>
+          {banks.map((bank) => (
+            <option key={bank.code} value={bank.code}>
+              {bank.name}
+            </option>
+          ))}
+        </select>
+        <p className="text-xs text-muted-foreground">Where you&apos;ll receive withdrawals from your Facilit8 wallet.</p>
+        {state.fieldErrors?.bankCode && <p className="text-sm text-destructive">{state.fieldErrors.bankCode}</p>}
+      </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="accountNumber">Account number</Label>
-              <Input
-                id="accountNumber"
-                name="accountNumber"
-                inputMode="numeric"
-                maxLength={10}
-                required
-                onBlur={(e) => {
-                  const bankCode = (document.getElementById("bankCode") as HTMLSelectElement | null)?.value ?? "";
-                  handleAccountNumberBlur(bankCode, e.target.value);
-                }}
-              />
-              {state.fieldErrors?.accountNumber && (
-                <p className="text-sm text-destructive">{state.fieldErrors.accountNumber}</p>
-              )}
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="accountName">Account name</Label>
-              <Input
-                id="accountName"
-                name="accountName"
-                required
-                value={accountName}
-                onChange={(e) => setAccountName(e.target.value)}
-                placeholder={resolving ? "Resolving..." : undefined}
-              />
-              {resolveMessage && <p className="text-xs text-muted-foreground">{resolveMessage}</p>}
-              {state.fieldErrors?.accountName && (
-                <p className="text-sm text-destructive">{state.fieldErrors.accountName}</p>
-              )}
-            </div>
-          </div>
-        </>
-      )}
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="accountNumber">Account number</Label>
+          <Input
+            id="accountNumber"
+            name="accountNumber"
+            inputMode="numeric"
+            maxLength={10}
+            required
+            onBlur={(e) => {
+              const bankCode = (document.getElementById("bankCode") as HTMLSelectElement | null)?.value ?? "";
+              handleAccountNumberBlur(bankCode, e.target.value);
+            }}
+          />
+          {state.fieldErrors?.accountNumber && (
+            <p className="text-sm text-destructive">{state.fieldErrors.accountNumber}</p>
+          )}
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="accountName">Account name</Label>
+          <Input
+            id="accountName"
+            name="accountName"
+            required
+            value={accountName}
+            onChange={(e) => setAccountName(e.target.value)}
+            placeholder={resolving ? "Resolving..." : undefined}
+          />
+          {resolveMessage && <p className="text-xs text-muted-foreground">{resolveMessage}</p>}
+          {state.fieldErrors?.accountName && (
+            <p className="text-sm text-destructive">{state.fieldErrors.accountName}</p>
+          )}
+        </div>
+      </div>
 
       <div className="space-y-2">
         <Label htmlFor="password">Password</Label>

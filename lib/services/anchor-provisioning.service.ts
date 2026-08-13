@@ -58,3 +58,43 @@ export async function provisionAnchorCustomer(userId: string): Promise<void> {
     }
   }
 }
+
+export interface UpdateLinkedBankAccountResult {
+  success: boolean;
+  error?: string;
+}
+
+/**
+ * Links a (possibly new) withdrawal bank account for an existing user — used both by users
+ * who skipped this at signup and by anyone switching banks later. Anchor CounterParty
+ * objects represent one specific external account each, so switching banks means creating
+ * a fresh CounterParty rather than mutating the old one; the old one is simply abandoned
+ * (Anchor doesn't require deleting it).
+ */
+export async function updateLinkedBankAccount(
+  userId: string,
+  params: { bankCode: string; bankName: string; accountNumber: string; accountName: string }
+): Promise<UpdateLinkedBankAccountResult> {
+  try {
+    const counterpartyId = await createCounterParty({
+      bankCode: params.bankCode,
+      accountNumber: params.accountNumber,
+      accountName: params.accountName,
+    });
+
+    await prisma.user.update({
+      where: { id: userId },
+      data: {
+        linkedBankCode: params.bankCode,
+        linkedBankName: params.bankName,
+        linkedAccountNumber: params.accountNumber,
+        linkedAccountName: params.accountName,
+        anchorCounterpartyId: counterpartyId,
+      },
+    });
+    return { success: true };
+  } catch (err) {
+    console.error(`Failed to link bank account for user ${userId}:`, err);
+    return { success: false, error: err instanceof Error ? err.message : "Couldn't link this account." };
+  }
+}

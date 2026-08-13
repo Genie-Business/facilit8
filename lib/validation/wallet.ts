@@ -6,3 +6,11 @@ export const withdrawFormSchema = z.object({
 });
 
 export type WithdrawFormInput = z.infer<typeof withdrawFormSchema>;
+
+export const linkBankAccountSchema = z.object({
+  bankCode: z.string().trim().min(1, "Select your bank."),
+  accountNumber: z.string().trim().regex(/^\d{10}$/, "Account number must be 10 digits."),
+  accountName: z.string().trim().min(1, "Account name is required."),
+});
+
+export type LinkBankAccountInput = z.infer<typeof linkBankAccountSchema>;

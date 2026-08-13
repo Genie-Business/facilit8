@@ -26,14 +26,9 @@ export const signupSchema = z
     localGovt: z.string().trim().optional().or(z.literal("")),
     address: z.string().trim().max(500, "Keep it under 500 characters.").optional().or(z.literal("")),
     organization: z.string().trim().optional().or(z.literal("")),
-    bankCode: z.string().trim().optional().or(z.literal("")),
-    accountNumber: z
-      .string()
-      .trim()
-      .regex(/^\d{10}$/, "Account number must be 10 digits.")
-      .optional()
-      .or(z.literal("")),
-    accountName: z.string().trim().optional().or(z.literal("")),
+    bankCode: z.string().trim().min(1, "Select your bank."),
+    accountNumber: z.string().trim().regex(/^\d{10}$/, "Account number must be 10 digits."),
+    accountName: z.string().trim().min(1, "Account name is required."),
     affiliationType: z.enum(["independent", "organization"]).optional(),
     organizationId: z.string().trim().optional().or(z.literal("")),
     password: passwordSchema,
@@ -42,18 +37,6 @@ export const signupSchema = z
   .refine((data) => data.password === data.confirmPassword, {
     message: "Passwords do not match.",
     path: ["confirmPassword"],
-  })
-  .refine((data) => data.role === "PROFESSIONAL" || !!data.bankCode, {
-    message: "Select your bank.",
-    path: ["bankCode"],
-  })
-  .refine((data) => data.role === "PROFESSIONAL" || !!data.accountNumber, {
-    message: "Account number is required.",
-    path: ["accountNumber"],
-  })
-  .refine((data) => data.role === "PROFESSIONAL" || !!data.accountName, {
-    message: "Account name is required.",
-    path: ["accountName"],
   })
   .refine((data) => data.affiliationType !== "organization" || !!data.organizationId, {
     message: "Select an organization.",
