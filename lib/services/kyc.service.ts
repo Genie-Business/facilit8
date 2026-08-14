@@ -14,7 +14,7 @@ export async function submitKyc(
   if (!user) return { success: false, error: "User not found." };
   if (user.kycVerified) return { success: false, error: "You're already verified." };
   if (!user.anchorCustomerId) {
-    return { success: false, error: "Account provisioning is still in progress — try again shortly." };
+    return { success: false, error: "Account provisioning is still in progress. Try again shortly." };
   }
 
   await prisma.user.update({

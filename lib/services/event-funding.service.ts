@@ -22,7 +22,7 @@ export async function fundTrainingEvent(eventId: string, userId: string): Promis
   if (event.companyId !== userId) return { success: false, error: "This isn't your event." };
   if (event.paymentConfirmed) return { success: false, error: "This event is already funded." };
   if (!event.company.depositAccountId) {
-    return { success: false, error: "Your wallet isn't set up yet — complete KYC first." };
+    return { success: false, error: "Your wallet isn't set up yet. Complete KYC first." };
   }
 
   const settlementAccountId = process.env.ANCHOR_SETTLEMENT_ACCOUNT_ID;
@@ -47,7 +47,7 @@ export async function fundTrainingEvent(eventId: string, userId: string): Promis
 
     const status = await verifyTransfer(transferId);
     if (!["successful", "completed"].includes(status)) {
-      throw new Error(`Transfer not successful — status: ${status}`);
+      throw new Error(`Transfer not successful, status: ${status}`);
     }
 
     await prisma.$transaction([

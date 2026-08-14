@@ -129,7 +129,7 @@ export function ProfessionalProfileForm({
       <div className="space-y-2">
         <Label>Skills</Label>
         {skills.length === 0 ? (
-          <p className="text-xs text-muted-foreground">No skills are listed yet — you can add these later.</p>
+          <p className="text-xs text-muted-foreground">No skills are listed yet. You can add these later.</p>
         ) : (
           <div className="grid grid-cols-2 gap-2 rounded-lg border border-input p-3">
             {skills.map((skill) => (

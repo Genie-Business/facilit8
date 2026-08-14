@@ -7,7 +7,7 @@ import { HoverRollButton } from "@/components/marketing/hover-roll-button";
 export const metadata: Metadata = {
   title: "About Us",
   description:
-    "Facilit8 is Nigeria's professional development ecosystem, where organizations staff vetted training, facilitators get discovered and paid, and every professional grows with Awe.",
+    "Facilit8 is Nigeria's professional development ecosystem, where organizations staff vetted training, facilitators get discovered and paid, and every professional grows with Awé.",
   alternates: { canonical: "/about" },
 };
 
@@ -49,7 +49,7 @@ export default function AboutPage() {
             nowhere built for all three people who make that happen: Event Managers sourcing real
             training, Facilitators proving real expertise, and Professionals building a real
             career. Facilit8 is that place. A vetted marketplace so training gets funded in days,
-            not weeks, and Awe, an AI partner so every person on the platform always knows their
+            not weeks, and Awé, an AI partner so every person on the platform always knows their
             next step. We&apos;re not a bidding tool. We&apos;re the ecosystem Nigeria&apos;s
             workforce needs to grow.
           </p>

@@ -21,7 +21,7 @@ export default async function WithdrawPage() {
   // account) is handled inline below instead of redirecting away.
   if (!user.depositAccountId) redirect("/wallet");
 
-  const bankLabel = `${user.linkedBankName ?? "linked bank"} — ${user.linkedAccountNumber ?? ""}`;
+  const bankLabel = `${user.linkedBankName ?? "linked bank"} · ${user.linkedAccountNumber ?? ""}`;
 
   return (
     <div className="max-w-md space-y-6">

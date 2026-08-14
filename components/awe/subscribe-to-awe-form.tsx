@@ -22,7 +22,7 @@ export function SubscribeToAweForm() {
         </div>
       )}
       <Button type="submit" disabled={pending} style={{ width: "100%", justifyContent: "center" }}>
-        {pending ? "Processing..." : "Subscribe & unlock Awe"}
+        {pending ? "Processing..." : "Subscribe & unlock Awé"}
       </Button>
     </form>
   );

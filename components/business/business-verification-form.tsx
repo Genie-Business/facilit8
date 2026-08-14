@@ -46,7 +46,7 @@ export function BusinessVerificationForm({ organizationId }: { organizationId: s
         <Label htmlFor="businessBvn">Business BVN</Label>
         <Input id="businessBvn" name="businessBvn" inputMode="numeric" maxLength={11} required />
         <p className="text-xs text-muted-foreground">
-          Your bank can generate a Business BVN for a CAC-registered account — separate from your own
+          Your bank can generate a Business BVN for a CAC-registered account, separate from your own
           personal BVN.
         </p>
         {state.fieldErrors?.businessBvn && (

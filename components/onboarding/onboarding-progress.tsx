@@ -21,7 +21,7 @@ const ROLE_STEP: Record<string, { href: string; label: string } | null> = {
 export function OnboardingProgress({ role }: { role: Role }) {
   const pathname = usePathname();
   const roleStep = ROLE_STEP[role];
-  const STEPS = [...COMMON_STEPS, ...(roleStep ? [roleStep] : []), { href: "/onboarding/meet-awe", label: "Meet Awe" }];
+  const STEPS = [...COMMON_STEPS, ...(roleStep ? [roleStep] : []), { href: "/onboarding/meet-awe", label: "Meet Awé" }];
   const currentIndex = STEPS.findIndex((s) => s.href === pathname);
 
   return (

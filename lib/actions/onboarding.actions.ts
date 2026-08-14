@@ -296,7 +296,7 @@ export async function updateOrganizationProfileAction(_prev: ActionState, formDa
 
   const membership = await getUserOrganizationMembership(user.id);
   if (!membership) {
-    return { error: "You're not affiliated with an organization yet — add one from your profile first." };
+    return { error: "You're not affiliated with an organization yet. Add one from your profile first." };
   }
 
   const raw = {

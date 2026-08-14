@@ -40,7 +40,7 @@ export async function payFacilitatorForEvent(eventId: string, requesterId: strin
   const grossAmount = Number(event.trainingBudget);
   const feeAmount = await calculateFee("FACILITATOR_PAYOUT", grossAmount);
   const netAmount = grossAmount - feeAmount;
-  if (netAmount <= 0) return { success: false, error: "Net payout is zero or negative — check the fee configuration." };
+  if (netAmount <= 0) return { success: false, error: "Net payout is zero or negative. Check the fee configuration." };
 
   const reference = `facpay_${event.id.slice(0, 16)}`;
 
@@ -142,7 +142,7 @@ export async function payFacilitatorForMergedTrainingEvent(
   if (session.initiatorId !== requesterId) return { success: false, error: "Only the initiator can complete this." };
   if (session.isPaid) return { success: false, error: "This session has already been paid out." };
   if (!session.selectedTrainerId || !session.selectedTrainer) {
-    return { success: false, error: "No facilitator has been selected yet — voting must finalize first." };
+    return { success: false, error: "No facilitator has been selected yet. Voting must finalize first." };
   }
   if (session.approval !== "APPROVED") {
     return { success: false, error: "This session hasn't been fully funded yet." };
@@ -171,7 +171,7 @@ export async function payFacilitatorForMergedTrainingEvent(
   const grossAmount = session.participants.reduce((sum, p) => sum + Number(p.amountPaid), 0);
   const feeAmount = await calculateFee("MERGED_TRAINING_PAYOUT", grossAmount);
   const netAmount = grossAmount - feeAmount;
-  if (netAmount <= 0) return { success: false, error: "Net payout is zero or negative — check the fee configuration." };
+  if (netAmount <= 0) return { success: false, error: "Net payout is zero or negative. Check the fee configuration." };
 
   // Equal split, remainder (from rounding to the kobo) goes to the first payee — the
   // initiator/selectedTrainer — so shares always sum exactly to netAmount.
@@ -196,7 +196,7 @@ export async function payFacilitatorForMergedTrainingEvent(
 
       const status = await verifyTransfer(transferId);
       if (!["successful", "completed"].includes(status)) {
-        throw new Error(`Transfer not successful — status: ${status}`);
+        throw new Error(`Transfer not successful, status: ${status}`);
       }
 
       await prisma.trainingPayment.create({
@@ -247,7 +247,7 @@ export async function payFacilitatorForMergedTrainingEvent(
   if (failed.length > 0) {
     return {
       success: false,
-      error: `${results.length - failed.length} of ${results.length} payouts succeeded — ${failed.map((f) => f.payee.label).join(", ")} failed. Contact support before retrying.`,
+      error: `${results.length - failed.length} of ${results.length} payouts succeeded. ${failed.map((f) => f.payee.label).join(", ")} failed. Contact support before retrying.`,
     };
   }
 

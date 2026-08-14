@@ -5,7 +5,7 @@ const SERVICES = [
   { icon: Wallet, title: "Secure escrow wallet", body: "Budget sits in escrow until training is confirmed complete. Funds never move on a handshake." },
   { icon: MessageCircle, title: "In-app chat", body: "Align on scope, dates, and delivery before anyone commits budget or accepts a bid." },
   { icon: Handshake, title: "Merged training", body: "Organisations, Professionals, and Facilitators can all propose a session and invite others to co-fund or co-deliver it, not just one company's budget." },
-  { icon: Sparkles, title: "Awe, AI growth partner", body: "Ask Awe about your career: a growth partner for Professionals, Facilitators, and Event Managers, grounded in real Facilit8 data." },
+  { icon: Sparkles, title: "Awé, AI growth partner", body: "Ask Awé about your career: a growth partner for Professionals, Facilitators, and Event Managers, grounded in real Facilit8 data." },
 ];
 
 export function ServicesGrid() {

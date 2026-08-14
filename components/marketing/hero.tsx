@@ -8,8 +8,8 @@ import { HoverRollButton } from "./hover-roll-button";
 import { RotatingBorderButton } from "./rotating-border-button";
 import { HeroOrbit } from "./hero-orbit";
 
-const HEADLINE = "Grow Your Career. Staff Your Team. Meet Awe.";
-const HIGHLIGHT_START = HEADLINE.indexOf("Meet Awe");
+const HEADLINE = "Grow Your Career. Staff Your Team. Meet Awé.";
+const HIGHLIGHT_START = HEADLINE.indexOf("Meet Awé");
 
 function TypewriterHeading() {
   const { displayed, done } = useTypewriter(HEADLINE, 35, 400);
@@ -50,7 +50,7 @@ export function Hero() {
 
           <p className="mt-5 max-w-[480px] text-base leading-relaxed text-white/60 sm:text-lg">
             Facilit8 is where professionals grow their careers, organizations staff vetted
-            training, and facilitators get discovered and paid, all guided by Awe, your AI
+            training, and facilitators get discovered and paid, all guided by Awé, your AI
             partner for what&apos;s next.
           </p>
 

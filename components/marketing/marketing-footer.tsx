@@ -35,7 +35,7 @@ export function MarketingFooter() {
           <div>
             <Image src="/brand/logo.png" alt="Facilit8" width={100} height={50} />
             <p className="mt-4 max-w-xs text-sm text-muted-foreground">
-              The professional development ecosystem: training, talent, and Awe, your AI growth
+              The professional development ecosystem: training, talent, and Awé, your AI growth
               partner, in one place.
             </p>
           </div>

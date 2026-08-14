@@ -47,7 +47,7 @@ export function EducationHistorySection({ records }: { records: EducationRecord[
                 {record.qualification} · {record.institution}
               </p>
               <p className="text-xs text-muted-foreground">
-                {formatMonthYear(record.startDate)} – {record.endDate ? formatMonthYear(record.endDate) : "—"}
+                {formatMonthYear(record.startDate)} – {record.endDate ? formatMonthYear(record.endDate) : "Present"}
               </p>
             </div>
             <div className="flex shrink-0 gap-2">

@@ -7,7 +7,7 @@ import { hasAweAccess } from "@/lib/services/awe-subscription.service";
 import { SubscribeToAweForm } from "@/components/awe/subscribe-to-awe-form";
 
 export const metadata: Metadata = {
-  title: "Subscribe to Awe",
+  title: "Subscribe to Awé",
   robots: { index: false, follow: false },
 };
 
@@ -22,9 +22,9 @@ export default async function AweSubscribePage() {
 
   return (
     <div style={{ maxWidth: 480 }}>
-      <h1 style={{ fontSize: 24, fontWeight: 600, marginBottom: 8, color: "var(--t-base)" }}>Unlock Awe</h1>
+      <h1 style={{ fontSize: 24, fontWeight: 600, marginBottom: 8, color: "var(--t-base)" }}>Unlock Awé</h1>
       <p style={{ color: "var(--t-muted)", fontSize: 13, marginBottom: 20 }}>
-        Your AI Career &amp; Professional Growth Partner — understands where you are, where you want to go, and
+        Your AI Career &amp; Professional Growth Partner: understands where you are, where you want to go, and
         what to do next.
       </p>
 
@@ -32,12 +32,12 @@ export default async function AweSubscribePage() {
         <div className="card-head">
           <div className="card-title-wrap">
             <span className="eyebrow">Pricing</span>
-            <h2 className="card-title">Awe subscription</h2>
+            <h2 className="card-title">Awé subscription</h2>
           </div>
         </div>
 
         {pricing.isFree ? (
-          <p style={{ fontSize: 14, color: "var(--t-base)" }}>Awe is currently free for everyone on Facilit8.</p>
+          <p style={{ fontSize: 14, color: "var(--t-base)" }}>Awé is currently free for everyone on Facilit8.</p>
         ) : (
           <div>
             <p style={{ fontSize: 22, fontWeight: 700, color: "var(--t-base)" }}>

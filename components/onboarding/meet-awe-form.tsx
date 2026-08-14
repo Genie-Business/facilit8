@@ -23,13 +23,13 @@ export function MeetAweForm({ defaultValue }: { defaultValue: string }) {
       )}
 
       <div className="space-y-2">
-        <Label htmlFor="tellAweText">Tell Awe about your professional journey</Label>
+        <Label htmlFor="tellAweText">Tell Awé about your professional journey</Label>
         <Textarea
           id="tellAweText"
           name="tellAweText"
           rows={6}
           maxLength={4000}
-          placeholder="What drives you? What are you proud of? What do you want Awe to know that the form above didn't ask about?"
+          placeholder="What drives you? What are you proud of? What do you want Awé to know that the form above didn't ask about?"
           defaultValue={defaultValue}
         />
         {state.fieldErrors?.tellAweText && (

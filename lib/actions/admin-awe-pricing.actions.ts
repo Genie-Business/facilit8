@@ -27,5 +27,5 @@ export async function updateAwePricingAction(_prev: ActionState, formData: FormD
   revalidatePath("/admin/awe-pricing");
   revalidatePath("/awe");
   revalidatePath("/awe/subscribe");
-  return { success: "Awe pricing updated." };
+  return { success: "Awé pricing updated." };
 }

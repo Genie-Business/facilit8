@@ -125,7 +125,7 @@ export default async function DashboardPage() {
           <div>
             <p style={{ fontWeight: 600, marginBottom: 2 }}>Finish setting up your profile</p>
             <p style={{ fontSize: 13, color: "var(--t-muted)" }}>
-              You skipped a few steps earlier — finishing them helps Awe give you sharper, more relevant
+              You skipped a few steps earlier. Finishing them helps Awé give you sharper, more relevant
               recommendations.
             </p>
           </div>
@@ -218,7 +218,7 @@ export default async function DashboardPage() {
             </div>
             {!membership ? (
               <p style={{ color: "var(--t-muted)", fontSize: 13 }}>
-                You&apos;re signed up as an independent professional — not affiliated with an organization.
+                You&apos;re signed up as an independent professional, not affiliated with an organization.
               </p>
             ) : (
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>

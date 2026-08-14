@@ -53,7 +53,7 @@ export function ChatThread({
   return (
     <div className="flex h-[70vh] max-w-2xl flex-col rounded-lg border">
       <div ref={listRef} className="flex-1 space-y-2 overflow-y-auto p-4">
-        {messages.length === 0 && <p className="text-sm text-muted-foreground">No messages yet — say hello.</p>}
+        {messages.length === 0 && <p className="text-sm text-muted-foreground">No messages yet. Say hello.</p>}
         {messages.map((message) => {
           const isMine = message.senderId === currentUserId;
           return (

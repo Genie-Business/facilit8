@@ -44,7 +44,7 @@ export function AwePricingForm({
           onChange={(e) => setFree(e.target.checked)}
           className="size-4 rounded border-input"
         />
-        Make Awe free for everyone (skip billing entirely)
+        Make Awé free for everyone (skip billing entirely)
       </label>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, opacity: free ? 0.5 : 1 }}>

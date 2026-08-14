@@ -187,7 +187,7 @@ export async function sendAweMessage(
     };
   }
 
-  const finalText = textBlocksFrom(finalContent) || "I wasn't able to finish that thought — could you try rephrasing?";
+  const finalText = textBlocksFrom(finalContent) || "I wasn't able to finish that thought, could you try rephrasing?";
 
   const assistantMessage = await prisma.aweMessage.create({
     data: {

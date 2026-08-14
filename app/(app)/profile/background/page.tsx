@@ -33,7 +33,7 @@ export default async function ProfileBackgroundPage() {
         </Link>
         <h1 className="mt-2 text-2xl font-semibold">Career Background</h1>
         <p className="text-sm text-muted-foreground">
-          Keep your work and education history up to date — this is what Awe uses to understand your career
+          Keep your work and education history up to date. This is what Awé uses to understand your career
           progression, not just where you are today.
         </p>
       </div>

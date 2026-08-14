@@ -157,7 +157,7 @@ export function FacilitatorProfileForm({
       </div>
 
       <div className="space-y-2">
-        <Label>Facilitation skills — rate yourself</Label>
+        <Label>Facilitation skills: rate yourself</Label>
         <div className="grid grid-cols-2 gap-3 rounded-lg border border-input p-3">
           {Object.entries(FACILITATION_SKILL_LABELS).map(([key, label]) => (
             <div key={key} className="space-y-1">

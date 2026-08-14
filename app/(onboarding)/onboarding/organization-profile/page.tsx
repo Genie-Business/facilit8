@@ -20,7 +20,7 @@ export default async function OrganizationProfilePage() {
           <CardTitle>Organization Profile</CardTitle>
           <CardDescription>
             {membership
-              ? `Tell Awe about ${membership.organization.name}'s workforce and training needs — this is shared across everyone on your team.`
+              ? `Tell Awé about ${membership.organization.name}'s workforce and training needs. This is shared across everyone on your team.`
               : "You're not affiliated with an organization yet. Add one from your profile, then come back to this step."}
           </CardDescription>
         </CardHeader>

@@ -153,7 +153,7 @@ export default async function BidsPage() {
 
           {role === "PROFESSIONAL" ? (
             <p style={{ color: "var(--t-muted)", fontSize: 13 }}>
-              Bids apply to Event Managers and Facilitators — Professional accounts don&apos;t submit or receive them.
+              Bids apply to Event Managers and Facilitators. Professional accounts don&apos;t submit or receive them.
             </p>
           ) : bids.length === 0 ? (
             <p style={{ color: "var(--t-muted)", fontSize: 13 }}>

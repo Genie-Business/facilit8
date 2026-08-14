@@ -157,7 +157,7 @@ export default async function EventDetailPage({ params }: { params: Promise<{ sl
                   </Link>
                 ) : (
                   <button type="button" disabled className="btn btn--secondary">
-                    {event.paymentConfirmed ? "No longer accepting applications" : "Not yet open — awaiting funding"}
+                    {event.paymentConfirmed ? "No longer accepting applications" : "Not yet open: awaiting funding"}
                   </button>
                 )}
               </>

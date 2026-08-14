@@ -25,7 +25,7 @@ export async function payForChatAccess(conversation: Conversation, payerId: stri
 
   const payer = await prisma.user.findUnique({ where: { id: payerId } });
   if (!payer?.depositAccountId) {
-    return { success: false, error: "Your wallet isn't set up yet — complete KYC first." };
+    return { success: false, error: "Your wallet isn't set up yet. Complete KYC first." };
   }
 
   const settlementAccountId = process.env.ANCHOR_SETTLEMENT_ACCOUNT_ID;
@@ -52,7 +52,7 @@ export async function payForChatAccess(conversation: Conversation, payerId: stri
 
     const status = await verifyTransfer(transferId);
     if (!["successful", "completed"].includes(status)) {
-      throw new Error(`Transfer not successful — status: ${status}`);
+      throw new Error(`Transfer not successful, status: ${status}`);
     }
 
     const expiresAt = new Date(Date.now() + pricing.durationDays * 24 * 60 * 60 * 1000);

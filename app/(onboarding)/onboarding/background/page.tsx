@@ -27,7 +27,7 @@ export default async function BackgroundPage() {
         <CardHeader>
           <CardTitle>Your Background</CardTitle>
           <CardDescription>
-            Add your work and education history so Awe understands how your career has progressed, not just where
+            Add your work and education history so Awé understands how your career has progressed, not just where
             you are today.
           </CardDescription>
         </CardHeader>

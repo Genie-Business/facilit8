@@ -24,7 +24,7 @@ export async function submitContactAction(_prev: ActionState, formData: FormData
     },
   });
 
-  return { success: "Thanks for reaching out — we'll get back to you soon." };
+  return { success: "Thanks for reaching out, we'll get back to you soon." };
 }
 
 export async function submitNewsletterAction(_prev: ActionState, formData: FormData): Promise<ActionState> {

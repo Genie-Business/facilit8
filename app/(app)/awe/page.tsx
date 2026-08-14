@@ -8,7 +8,7 @@ import { AweConversationList } from "@/components/awe/awe-conversation-list";
 import { AweChatThread } from "@/components/awe/awe-chat-thread";
 
 export const metadata: Metadata = {
-  title: "Awe",
+  title: "Awé",
   robots: { index: false, follow: false },
 };
 
@@ -28,7 +28,7 @@ export default async function AwePage() {
       <section className="hero">
         <div className="hero-text">
           <span className="eyebrow">Communications</span>
-          <h1 className="hero-title">Awe</h1>
+          <h1 className="hero-title">Awé</h1>
           <p className="hero-sub">Your AI Career &amp; Professional Growth Partner.</p>
         </div>
       </section>

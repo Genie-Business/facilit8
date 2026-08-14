@@ -23,7 +23,7 @@ export async function payMergedTrainingShare(
   if (!session) return { success: false, error: "Session not found." };
   if (!participant) return { success: false, error: "You haven't joined this session." };
   if (participant.hasPaid) return { success: false, error: "You've already paid your share." };
-  if (!payer?.depositAccountId) return { success: false, error: "Your wallet isn't set up yet — complete KYC first." };
+  if (!payer?.depositAccountId) return { success: false, error: "Your wallet isn't set up yet. Complete KYC first." };
 
   const settlementAccountId = process.env.ANCHOR_SETTLEMENT_ACCOUNT_ID;
   if (!settlementAccountId) return { success: false, error: "Payments are not configured yet." };
@@ -47,7 +47,7 @@ export async function payMergedTrainingShare(
 
     const status = await verifyTransfer(transferId);
     if (!["successful", "completed"].includes(status)) {
-      throw new Error(`Transfer not successful — status: ${status}`);
+      throw new Error(`Transfer not successful, status: ${status}`);
     }
 
     await prisma.$transaction([

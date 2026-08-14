@@ -30,8 +30,8 @@ async function recordFailedCharge(
     userId: subscription.userId,
     notificationType: "AWE_SUBSCRIPTION_PAYMENT_FAILED",
     message: escalateToPastDue
-      ? "Your Awe subscription payment failed and access has been paused. Add funds to your wallet to resume."
-      : `Your Awe subscription payment failed${errorMessage ? `: ${errorMessage}` : ""}. We'll retry automatically.`,
+      ? "Your Awé subscription payment failed and access has been paused. Add funds to your wallet to resume."
+      : `Your Awé subscription payment failed${errorMessage ? `: ${errorMessage}` : ""}. We'll retry automatically.`,
     link: "/awe/subscribe",
   });
 }

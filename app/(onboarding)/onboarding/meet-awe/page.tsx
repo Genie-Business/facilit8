@@ -20,10 +20,10 @@ export default async function MeetAwePage() {
       <BackLink href={backHref} />
       <Card>
         <CardHeader>
-          <CardTitle>Meet Awe</CardTitle>
+          <CardTitle>Meet Awé</CardTitle>
           <CardDescription>
-            Awe is Facilit8's AI career and professional growth partner. Everything you just shared feeds directly
-            into how Awe understands you — but structured fields can't capture everything. Tell Awe about your
+            Awé is Facilit8's AI career and professional growth partner. Everything you just shared feeds directly
+            into how Awé understands you, but structured fields can't capture everything. Tell Awé about your
             professional journey in your own words.
           </CardDescription>
         </CardHeader>

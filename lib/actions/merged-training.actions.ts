@@ -35,7 +35,7 @@ export async function createMergedTrainingAction(_prev: ActionState, formData: F
 
   const user = await prisma.user.findUnique({ where: { id: session.user.id } });
   if (!user?.depositAccountId) {
-    return { error: "Your wallet isn't set up yet — complete KYC before starting a session." };
+    return { error: "Your wallet isn't set up yet. Complete KYC before starting a session." };
   }
 
   const raw = Object.fromEntries(formData);
@@ -133,7 +133,7 @@ export async function updateMergedTrainingAction(_prev: ActionState, formData: F
     where: { mergedTrainingEventId: existing.id },
   });
   if (participantCount > 1) {
-    return { error: "Other companies have already joined this session — it can no longer be edited." };
+    return { error: "Other companies have already joined this session, it can no longer be edited." };
   }
 
   const raw = Object.fromEntries(formData);

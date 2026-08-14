@@ -35,7 +35,7 @@ export default async function TransactionsPage() {
               <TableRow key={tx.id}>
                 <TableCell className="whitespace-nowrap">{tx.createdAt.toLocaleDateString()}</TableCell>
                 <TableCell>{tx.type}</TableCell>
-                <TableCell>{tx.description ?? "—"}</TableCell>
+                <TableCell>{tx.description ?? "N/A"}</TableCell>
                 <TableCell>₦{Number(tx.amount).toLocaleString()}</TableCell>
                 <TableCell>
                   <Badge variant={tx.status === "SUCCESS" ? "secondary" : "outline"}>{tx.status}</Badge>

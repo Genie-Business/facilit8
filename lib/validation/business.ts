@@ -103,11 +103,11 @@ export const INDUSTRIES = [
   "OtherEducationServices",
 ] as const;
 
-/** Turns "FinancialServices_MobileWallets" into "Financial Services — Mobile Wallets". */
+/** Turns "FinancialServices_MobileWallets" into "Financial Services · Mobile Wallets". */
 export function formatIndustryLabel(value: string): string {
   const spaced = (s: string) => s.replace(/([a-z0-9])([A-Z])/g, "$1 $2");
   const parts = value.split("_").map(spaced);
-  return parts.join(" — ");
+  return parts.join(" · ");
 }
 
 export const businessVerificationSchema = z.object({

@@ -198,7 +198,7 @@ export function SignupForm({
               </select>
               {organizations.length === 0 && (
                 <p className="text-xs text-muted-foreground">
-                  No CAC-verified organizations are on Facilit8 yet — only verified businesses can be joined.
+                  No CAC-verified organizations are on Facilit8 yet. Only verified businesses can be joined.
                 </p>
               )}
               <p className="text-xs text-muted-foreground">

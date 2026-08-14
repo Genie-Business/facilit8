@@ -10,7 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import type { AweSubscriptionStatus } from "@/lib/generated/prisma/client";
 
 export const metadata: Metadata = {
-  title: "Awe Subscriptions",
+  title: "Awé Subscriptions",
   robots: { index: false, follow: false },
 };
 
@@ -27,8 +27,8 @@ export default async function AdminAweSubscriptionsPage() {
   return (
     <div className="max-w-5xl space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold">Awe subscriptions</h1>
-        <p className="text-muted-foreground">Manage active Awe subscribers and review billing history.</p>
+        <h1 className="text-2xl font-semibold">Awé subscriptions</h1>
+        <p className="text-muted-foreground">Manage active Awé subscribers and review billing history.</p>
       </div>
 
       <Card>
@@ -38,7 +38,7 @@ export default async function AdminAweSubscriptionsPage() {
         </CardHeader>
         <CardContent>
           {subscriptions.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No one has subscribed to Awe yet.</p>
+            <p className="text-sm text-muted-foreground">No one has subscribed to Awé yet.</p>
           ) : (
             <Table>
               <TableHeader>
@@ -67,7 +67,7 @@ export default async function AdminAweSubscriptionsPage() {
                         <Badge variant={STATUS_BADGE[sub.status]}>{sub.status}</Badge>
                       </TableCell>
                       <TableCell>
-                        {sub.pricing?.isFree ? "Free" : sub.pricing ? `₦${Number(sub.pricing.monthlyPrice).toLocaleString()}` : "—"}
+                        {sub.pricing?.isFree ? "Free" : sub.pricing ? `₦${Number(sub.pricing.monthlyPrice).toLocaleString()}` : "N/A"}
                       </TableCell>
                       <TableCell>{sub.failedPaymentCount}</TableCell>
                       <TableCell className="text-sm text-muted-foreground">

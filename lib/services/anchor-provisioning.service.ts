@@ -30,7 +30,7 @@ export async function provisionAnchorCustomer(userId: string): Promise<void> {
     } catch (err) {
       const alreadyExists = err instanceof AnchorApiError && /already exist/i.test(JSON.stringify(err.body));
       const message = alreadyExists
-        ? "A customer with this email already exists in Anchor for this organization — needs manual reconciliation."
+        ? "A customer with this email already exists in Anchor for this organization. Needs manual reconciliation."
         : err instanceof Error
           ? err.message
           : "Unknown provisioning error";

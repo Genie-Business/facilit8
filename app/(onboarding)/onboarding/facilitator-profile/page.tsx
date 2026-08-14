@@ -20,7 +20,7 @@ export default async function FacilitatorProfilePage() {
         <CardHeader>
           <CardTitle>Facilitator Profile</CardTitle>
           <CardDescription>
-            Tell Awe about your facilitation track record and craft so it can match you to the right
+            Tell Awé about your facilitation track record and craft so it can match you to the right
             opportunities and coach you toward the ones you're not ready for yet.
           </CardDescription>
         </CardHeader>

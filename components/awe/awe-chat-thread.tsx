@@ -73,7 +73,7 @@ export function AweChatThread({
       <div ref={listRef} style={{ flex: 1, overflowY: "auto", padding: 16, display: "flex", flexDirection: "column", gap: 10 }}>
         {messages.length === 0 && (
           <p style={{ color: "var(--t-muted)", fontSize: 13 }}>
-            Ask Awe about your career, skills, or what to learn next.
+            Ask Awé about your career, skills, or what to learn next.
           </p>
         )}
         {messages.map((message) => {
@@ -97,7 +97,7 @@ export function AweChatThread({
             </div>
           );
         })}
-        {pending && <p style={{ fontSize: 12, color: "var(--t-light)" }}>Awe is thinking…</p>}
+        {pending && <p style={{ fontSize: 12, color: "var(--t-light)" }}>Awé is thinking…</p>}
       </div>
 
       <form
@@ -108,7 +108,7 @@ export function AweChatThread({
         {conversationId && <input type="hidden" name="conversationId" value={conversationId} />}
         <Input
           name="content"
-          placeholder="Ask Awe anything about your career..."
+          placeholder="Ask Awé anything about your career..."
           autoComplete="off"
           required
           disabled={pending}

@@ -7,7 +7,7 @@ import { HoverRollButton } from "@/components/marketing/hover-roll-button";
 export const metadata: Metadata = {
   title: "How It Works",
   description:
-    "See how Event Managers post and fund training needs, how Facilitators bid and get paid, and how Professionals grow with Awe on Facilit8.",
+    "See how Event Managers post and fund training needs, how Facilitators bid and get paid, and how Professionals grow with Awé on Facilit8.",
   alternates: { canonical: "/services" },
 };
 
@@ -50,9 +50,9 @@ const PLATFORM_FEATURES = [
 ];
 
 const PROFESSIONAL_STEPS = [
-  { title: "Build your profile", body: "Sign up independent, or affiliate with a verified organization. Either way, Awe starts learning your goals." },
+  { title: "Build your profile", body: "Sign up independent, or affiliate with a verified organization. Either way, Awé starts learning your goals." },
   { title: "Browse the ecosystem", body: "See the open training events and the facilitator directory shaping your industry." },
-  { title: "Grow with Awe", body: "Get a career partner grounded in real Facilit8 data, not generic advice, that turns your profile into a concrete next step." },
+  { title: "Grow with Awé", body: "Get a career partner grounded in real Facilit8 data, not generic advice, that turns your profile into a concrete next step." },
   { title: "Or start your own merged session", body: "Invite other professionals in your field to pool funds and bring in a facilitator together." },
 ];
 
@@ -124,11 +124,11 @@ export default function ServicesPage() {
             </p>
           </div>
           <div className="rounded-2xl bg-[#F5F5F5] p-8 sm:p-10">
-            <h2 className="text-2xl font-medium tracking-tight text-foreground">Ask Awe. Whoever you are.</h2>
+            <h2 className="text-2xl font-medium tracking-tight text-foreground">Ask Awé. Whoever you are.</h2>
             <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-              Awe isn&apos;t just for Professionals. Facilitators use it to grow their
+              Awé isn&apos;t just for Professionals. Facilitators use it to grow their
               specialization between engagements, and Event Managers use it for their own career
-              progression too. Everyone on Facilit8 has a next step, and Awe helps find it.
+              progression too. Everyone on Facilit8 has a next step, and Awé helps find it.
             </p>
           </div>
         </div>

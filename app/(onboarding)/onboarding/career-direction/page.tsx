@@ -15,7 +15,7 @@ export default async function CareerDirectionPage() {
         <CardHeader>
           <CardTitle>Career Direction</CardTitle>
           <CardDescription>
-            Where are you trying to get to, and what's in the way? This is the single most useful input for Awe's
+            Where are you trying to get to, and what's in the way? This is the single most useful input for Awé's
             recommendations.
           </CardDescription>
         </CardHeader>

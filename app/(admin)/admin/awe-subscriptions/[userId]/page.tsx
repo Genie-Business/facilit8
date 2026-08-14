@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import type { TransactionStatus } from "@/lib/generated/prisma/client";
 
 export const metadata: Metadata = {
-  title: "Awe Subscription History",
+  title: "Awé Subscription History",
   robots: { index: false, follow: false },
 };
 
@@ -36,7 +36,7 @@ export default async function AdminAweSubscriptionHistoryPage({
         <h1 className="text-2xl font-semibold">
           {subscription.user.firstName} {subscription.user.lastName}
         </h1>
-        <p className="text-muted-foreground">{subscription.user.email} — Awe billing history</p>
+        <p className="text-muted-foreground">{subscription.user.email}: Awé billing history</p>
       </div>
 
       <Card>
@@ -64,7 +64,7 @@ export default async function AdminAweSubscriptionHistoryPage({
                     <TableCell>
                       <Badge variant={TRANSACTION_STATUS_BADGE[tx.status]}>{tx.status}</Badge>
                     </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">{tx.description ?? "—"}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">{tx.description ?? "N/A"}</TableCell>
                     <TableCell className="text-right text-sm text-muted-foreground">
                       {tx.createdAt.toLocaleString()}
                     </TableCell>

@@ -20,7 +20,7 @@ export default async function ProfessionalProfilePage() {
       <CardHeader>
         <CardTitle>Professional Profile</CardTitle>
         <CardDescription>
-          Tell us about where you are today — this is the context Awe uses to make recommendations that actually
+          Tell us about where you are today. This is the context Awé uses to make recommendations that actually
           fit your career.
         </CardDescription>
       </CardHeader>

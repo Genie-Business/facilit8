@@ -24,7 +24,7 @@ export default async function AdminActivityPage() {
       <div>
         <h1 className="text-2xl font-semibold">Activity</h1>
         <p className="text-muted-foreground">
-          Recent applications, reviews, and notifications across users — a glance-view, not a full audit log.
+          Recent applications, reviews, and notifications across users: a glance-view, not a full audit log.
         </p>
       </div>
 

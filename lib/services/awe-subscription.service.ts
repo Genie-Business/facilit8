@@ -28,7 +28,7 @@ export async function hasAweAccess(userId: string): Promise<boolean> {
 export async function chargeAweSubscriptionPeriod(userId: string, pricing: AwePricing): Promise<AweChargeResult> {
   const payer = await prisma.user.findUnique({ where: { id: userId } });
   if (!payer?.depositAccountId) {
-    return { success: false, error: "Your wallet isn't set up yet — complete KYC first." };
+    return { success: false, error: "Your wallet isn't set up yet. Complete KYC first." };
   }
 
   const settlementAccountId = process.env.ANCHOR_SETTLEMENT_ACCOUNT_ID;
@@ -53,7 +53,7 @@ export async function chargeAweSubscriptionPeriod(userId: string, pricing: AwePr
 
     const status = await verifyTransfer(transferId);
     if (!["successful", "completed"].includes(status)) {
-      throw new Error(`Transfer not successful — status: ${status}`);
+      throw new Error(`Transfer not successful, status: ${status}`);
     }
 
     const now = new Date();
@@ -97,7 +97,7 @@ export async function chargeAweSubscriptionPeriod(userId: string, pricing: AwePr
     await createNotification({
       userId,
       notificationType: "AWE_SUBSCRIPTION_RENEWED",
-      message: "Your Awe subscription is active.",
+      message: "Your Awé subscription is active.",
       link: "/awe",
     });
 

@@ -31,7 +31,7 @@ export function ProfessionalDevelopmentSection({ records }: { records: Professio
     <div className="space-y-3">
       <Label>Professional Development</Label>
       <p className="text-xs text-muted-foreground">
-        Courses, certifications, and workshops — including training outside Facilit8. Trainings you complete on
+        Courses, certifications, and workshops, including training outside Facilit8. Trainings you complete on
         Facilit8 will show up here automatically once they're delivered.
       </p>
 

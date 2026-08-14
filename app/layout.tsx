@@ -28,7 +28,7 @@ export const metadata: Metadata = {
     template: `%s | ${siteName}`,
   },
   description:
-    "Facilit8 is Nigeria's professional development ecosystem, where Event Managers staff vetted training, Facilitators get discovered and paid, and every professional grows with Awe, an AI partner grounded in real platform data.",
+    "Facilit8 is Nigeria's professional development ecosystem, where Event Managers staff vetted training, Facilitators get discovered and paid, and every professional grows with Awé, an AI partner grounded in real platform data.",
   openGraph: {
     siteName,
     type: "website",

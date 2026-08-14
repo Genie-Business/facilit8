@@ -19,7 +19,7 @@ const PAGE_META: Record<string, { group: string; label: string }> = {
   "/merged-trainings": { group: "Training Ecosystem", label: "Merger Trainings" },
   "/calendar": { group: "Event Management", label: "Calendar" },
   "/chat": { group: "Communications", label: "Chat" },
-  "/awe": { group: "Communications", label: "Awe" },
+  "/awe": { group: "Communications", label: "Awé" },
   "/profile": { group: "Account", label: "My Profile" },
   "/wallet": { group: "Account", label: "Wallet" },
   "/settings/kyc": { group: "Account", label: "Verify Identity" },
@@ -28,10 +28,10 @@ const PAGE_META: Record<string, { group: string; label: string }> = {
   "/search": { group: "Workspace", label: "Search" },
   "/admin": { group: "Admin", label: "Admin Home" },
   "/admin/skills": { group: "Admin", label: "Skills" },
-  "/admin/awe-pricing": { group: "Admin", label: "Awe Pricing" },
+  "/admin/awe-pricing": { group: "Admin", label: "Awé Pricing" },
   "/admin/content": { group: "Admin", label: "Content" },
   "/admin/activity": { group: "Admin", label: "Activity" },
-  "/admin/awe-subscriptions": { group: "Admin", label: "Awe Subscriptions" },
+  "/admin/awe-subscriptions": { group: "Admin", label: "Awé Subscriptions" },
 };
 
 function metaFor(pathname: string): { group: string; label: string } {

@@ -233,7 +233,7 @@ export default async function MergedTrainingDetailPage({ params }: { params: Pro
 
           {votingOpen && !mergedEvent.selectedTrainerId && mergedEvent._count.applications > 0 && (
             <p style={{ fontSize: 12.5, color: "var(--t-muted)", marginTop: 10 }}>
-              The funding deadline has passed — participants and invitees can now vote on bids.
+              The funding deadline has passed. Participants and invitees can now vote on bids.
             </p>
           )}
         </section>
@@ -262,7 +262,7 @@ export default async function MergedTrainingDetailPage({ params }: { params: Pro
                   }}
                 >
                   <span>
-                    {p.company.organization || `${p.company.firstName} ${p.company.lastName}`} — {p.numDelegates}{" "}
+                    {p.company.organization || `${p.company.firstName} ${p.company.lastName}`} · {p.numDelegates}{" "}
                     delegate{p.numDelegates === 1 ? "" : "s"}
                   </span>
                   <span className={`tag ${p.hasPaid ? "t-active" : "t-old"}`}>{p.hasPaid ? "Paid" : "Unpaid"}</span>

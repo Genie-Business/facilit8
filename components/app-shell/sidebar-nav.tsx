@@ -51,7 +51,7 @@ const EVENT_MANAGEMENT_LINKS: NavItem[] = [{ href: "/calendar", label: "Calendar
 
 const COMMUNICATIONS_LINKS: NavItem[] = [
   { href: "/chat", label: "Chat", icon: MessageCircle },
-  { href: "/awe", label: "Awe", icon: Sparkles },
+  { href: "/awe", label: "Awé", icon: Sparkles },
 ];
 
 const ACCOUNT_LINKS: NavItem[] = [
@@ -69,10 +69,10 @@ const MISC_LINKS: NavItem[] = [
 const ADMIN_LINKS: NavItem[] = [
   { href: `${siteUrl}/admin`, label: "Admin Home", icon: LayoutGrid, crossDomain: true },
   { href: `${siteUrl}/admin/skills`, label: "Skills", icon: Tags, crossDomain: true },
-  { href: `${siteUrl}/admin/awe-pricing`, label: "Awe Pricing", icon: Sparkles, crossDomain: true },
+  { href: `${siteUrl}/admin/awe-pricing`, label: "Awé Pricing", icon: Sparkles, crossDomain: true },
   { href: `${siteUrl}/admin/content`, label: "Content", icon: FileText, crossDomain: true },
   { href: `${siteUrl}/admin/activity`, label: "Activity", icon: Activity, crossDomain: true },
-  { href: `${siteUrl}/admin/awe-subscriptions`, label: "Awe Subscriptions", icon: Repeat, crossDomain: true },
+  { href: `${siteUrl}/admin/awe-subscriptions`, label: "Awé Subscriptions", icon: Repeat, crossDomain: true },
 ];
 
 function NavLink({ href, label, icon: Icon, external, crossDomain }: NavItem) {

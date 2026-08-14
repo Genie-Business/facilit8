@@ -60,7 +60,7 @@ export default async function SearchPage({
           <CardContent className="space-y-2">
             {events.map((event) => (
               <Link key={event.id} href={`/events/${event.slug}`} className="block text-sm hover:underline">
-                {event.title} — {event.location}
+                {event.title} · {event.location}
               </Link>
             ))}
           </CardContent>
@@ -80,7 +80,7 @@ export default async function SearchPage({
                 className="block text-sm hover:underline"
               >
                 {facilitator.firstName} {facilitator.lastName}
-                {facilitator.specialization ? ` — ${facilitator.specialization}` : ""}
+                {facilitator.specialization ? ` · ${facilitator.specialization}` : ""}
               </Link>
             ))}
           </CardContent>

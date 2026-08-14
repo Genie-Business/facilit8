@@ -5,7 +5,7 @@ import { HoverRollButton } from "./hover-roll-button";
 const BULLETS = [
   "Grounded in real Facilit8 data: training events, facilitators, and merged trainings, never invented answers.",
   "Builds a career profile over time, so every conversation picks up where the last one left off.",
-  "Closing a skills gap is how pay and opportunity catch up. Awe helps you find the shortest real path there.",
+  "Closing a skills gap is how pay and opportunity catch up. Awé helps you find the shortest real path there.",
   "For Professionals, Facilitators, and Event Managers, whichever side of the marketplace you're on.",
 ];
 
@@ -16,13 +16,13 @@ export function AweSection() {
         <div>
           <span className="inline-flex items-center gap-1.5 rounded-full border bg-white px-4 py-1.5 text-sm text-muted-foreground">
             <Sparkles className="size-3.5 text-brand" />
-            Meet Awe
+            Meet Awé
           </span>
           <h2 className="mt-6 text-3xl leading-tight font-medium tracking-tight text-foreground sm:text-4xl">
-            Awe understands your professional journey.
+            Awé understands your professional journey.
           </h2>
           <p className="mt-4 max-w-lg text-base leading-relaxed text-muted-foreground">
-            Ask Awe where you stand, where you&apos;re headed, and what closes the gap between
+            Ask Awé where you stand, where you&apos;re headed, and what closes the gap between
             them, grounded in real Facilit8 data, not generic advice.
           </p>
           <ul className="mt-6 space-y-3">
@@ -34,7 +34,7 @@ export function AweSection() {
             ))}
           </ul>
           <div className="mt-8">
-            <HoverRollButton href="/signup">Talk to Awe</HoverRollButton>
+            <HoverRollButton href="/signup">Talk to Awé</HoverRollButton>
           </div>
         </div>
 

@@ -57,7 +57,7 @@ export function EmploymentHistorySection({ records }: { records: EmploymentRecor
               <p className="text-xs text-muted-foreground">
                 {EMPLOYMENT_TYPE_LABELS[record.employmentType] ?? record.employmentType} ·{" "}
                 {formatMonthYear(record.startDate)} –{" "}
-                {record.isCurrent ? "Present" : record.endDate ? formatMonthYear(record.endDate) : "—"}
+                {record.isCurrent ? "Present" : record.endDate ? formatMonthYear(record.endDate) : "N/A"}
               </p>
             </div>
             <div className="flex shrink-0 gap-2">
