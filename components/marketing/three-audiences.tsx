@@ -26,10 +26,10 @@ export function ThreeAudiences() {
     <section className="mx-auto max-w-[1200px] px-5 py-16 sm:px-8 sm:py-20">
       <div className="mb-12 max-w-2xl">
         <span className="rounded-full border px-4 py-1.5 text-sm font-medium text-muted-foreground">
-          Built for three kinds of growth
+          One ecosystem, every kind of growth
         </span>
         <h2 className="mt-6 text-3xl leading-tight font-medium tracking-tight text-foreground sm:text-4xl">
-          One platform, three people it's actually built for.
+          Built for whoever's staffing, facilitating, or growing their career.
         </h2>
       </div>
 
