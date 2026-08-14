@@ -5,7 +5,8 @@ import { listOrderedFaqs } from "@/lib/services/faq.service";
 
 export const metadata: Metadata = {
   title: "FAQ",
-  description: "Answers to common questions about payments, KYC verification, and merged training on Facilit8.",
+  description:
+    "Answers to common questions about Facilit8: payments, KYC verification, merged training, what Professionals get from the platform, and Awé, the AI Career and Professional Growth Partner.",
   alternates: { canonical: "/faq" },
 };
 
