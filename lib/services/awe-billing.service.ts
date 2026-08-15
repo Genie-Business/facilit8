@@ -26,13 +26,16 @@ async function recordFailedCharge(
     },
   });
 
+  const message = escalateToPastDue
+    ? "Your Awé subscription payment failed and access has been paused. Add funds to your wallet to resume."
+    : `Your Awé subscription payment failed${errorMessage ? `: ${errorMessage}` : ""}. We'll retry automatically.`;
+
   await createNotification({
     userId: subscription.userId,
     notificationType: "AWE_SUBSCRIPTION_PAYMENT_FAILED",
-    message: escalateToPastDue
-      ? "Your Awé subscription payment failed and access has been paused. Add funds to your wallet to resume."
-      : `Your Awé subscription payment failed${errorMessage ? `: ${errorMessage}` : ""}. We'll retry automatically.`,
+    message,
     link: "/awe/subscribe",
+    email: { subject: "Your Awé subscription payment failed", html: `<p>${message}</p>` },
   });
 }
 

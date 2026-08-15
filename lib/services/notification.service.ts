@@ -3,12 +3,20 @@ import { prisma } from "@/lib/db";
 import { generateUniqueSlug } from "@/lib/utils/slug";
 import { pusherTrigger } from "@/lib/pusher/server";
 import { userChannel, EVENTS } from "@/lib/pusher/channels";
+import { sendEmail } from "@/lib/email/resend";
 
 interface CreateNotificationInput {
   userId: string;
   message: string;
   notificationType: NotificationType;
   link?: string;
+  /**
+   * Also emails the user, not just the in-app/realtime push. Reserve this for notifications
+   * with real financial consequence that fire from a background/async process the user isn't
+   * necessarily looking at (payout failures, subscription billing failures) — most
+   * notification types shouldn't set this, or every action would double as an email.
+   */
+  email?: { subject: string; html: string };
 }
 
 /**
@@ -44,4 +52,9 @@ export async function createNotification(
     link: notification.link,
     createdAt: notification.createdAt.toISOString(),
   });
+
+  if (input.email) {
+    const user = await prisma.user.findUnique({ where: { id: input.userId }, select: { email: true } });
+    if (user) await sendEmail({ to: user.email, subject: input.email.subject, html: input.email.html });
+  }
 }

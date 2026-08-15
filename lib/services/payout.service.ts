@@ -55,7 +55,7 @@ export async function payFacilitatorForEvent(eventId: string, requesterId: strin
 
     const status = await verifyTransfer(transferId);
     if (!["successful", "completed"].includes(status)) {
-      throw new Error(`Transfer not successful — status: ${status}`);
+      throw new Error(`Transfer not successful, status: ${status}`);
     }
 
     await prisma.$transaction([
@@ -111,6 +111,10 @@ export async function payFacilitatorForEvent(eventId: string, requesterId: strin
       userId: event.selectedTrainerId,
       notificationType: "PAYMENT_CONFIRMED",
       message: `Payment attempt for "${event.title}" failed. Please contact support.`,
+      email: {
+        subject: "A Facilit8 payout failed",
+        html: `<p>Your payment attempt for "${event.title}" failed. Please contact support.</p>`,
+      },
     });
     return { success: false, error: err instanceof Error ? err.message : "Payout failed." };
   }
@@ -238,6 +242,10 @@ export async function payFacilitatorForMergedTrainingEvent(
         userId: payee.id,
         notificationType: "PAYMENT_CONFIRMED",
         message: `Your payment for "${session.title}" failed. Please contact support.`,
+        email: {
+          subject: "A Facilit8 payout failed",
+          html: `<p>Your payment for "${session.title}" failed. Please contact support.</p>`,
+        },
       });
       results.push({ payee, amount, success: false, error: err instanceof Error ? err.message : "Payout failed." });
     }
