@@ -1168,3 +1168,11 @@ model OrganizationProfile {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
+
+// Tracks the last successful run of each background job, so a silently-stopped cron (e.g.
+// the GitHub Actions workflow that drives webhook-reconciliation, since Vercel Hobby only
+// allows daily cron) can be surfaced as stale in the admin panel instead of failing silently.
+model CronRun {
+  jobName   String   @id
+  lastRunAt DateTime
+}
