@@ -27,9 +27,13 @@ function sweepExpired(now: number) {
  * Upstash Redis) would be needed for stronger guarantees; not adopted here to avoid a new
  * service dependency before it's needed.
  */
-export async function isRateLimited(action: string, limit: number, windowMs: number): Promise<boolean> {
-  const ip = await getClientIp();
-  const key = `${action}:${ip}`;
+export async function isRateLimited(
+  action: string,
+  limit: number,
+  windowMs: number,
+  identity?: string
+): Promise<boolean> {
+  const key = identity ? `${action}:${identity}` : `${action}:${await getClientIp()}`;
   const now = Date.now();
 
   if (buckets.size > 5000) sweepExpired(now);
