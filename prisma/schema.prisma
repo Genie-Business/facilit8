@@ -379,14 +379,15 @@ model Review {
   rating          Int
   feedback        String?
   createdAt       DateTime      @default(now())
-  // NOTE: rating 1-5 range needs a raw-SQL CHECK constraint added via migration (Prisma has no schema-level CHECK).
+  // Rating 1-5 range is enforced by a raw-SQL CHECK constraint (Prisma has no schema-level
+  // CHECK) — see migration 20260808202500_add_check_constraints.
 
   @@unique([reviewerId, trainingEventId])
 }
 
 // Replaces Django's generic-FK polymorphism (ContentType) with an explicit discriminator
 // + nullable FKs. A raw-SQL CHECK enforcing "exactly one of trainingEventId/mergedTrainingEventId
-// is set, matching targetType" must be added in the migration.
+// is set, matching targetType" is applied in migration 20260808202500_add_check_constraints.
 model TrainingPayment {
   id                    String                    @id @default(cuid())
   targetType            TrainingPaymentTargetType

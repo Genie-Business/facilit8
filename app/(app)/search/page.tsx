@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Star } from "lucide-react";
 
 import { prisma } from "@/lib/db";
 import { Input } from "@/components/ui/input";
@@ -39,6 +40,16 @@ export default async function SearchPage({
       ])
     : [[], []];
 
+  const ratings = facilitators.length
+    ? await prisma.review.groupBy({
+        by: ["revieweeId"],
+        where: { revieweeId: { in: facilitators.map((f) => f.id) } },
+        _avg: { rating: true },
+        _count: { rating: true },
+      })
+    : [];
+  const ratingByUserId = new Map(ratings.map((r) => [r.revieweeId, r]));
+
   return (
     <div className="max-w-2xl space-y-6">
       <h1 className="text-2xl font-semibold">Search</h1>
@@ -73,16 +84,27 @@ export default async function SearchPage({
             <CardTitle className="text-base">Facilitators</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
-            {facilitators.map((facilitator) => (
-              <Link
-                key={facilitator.id}
-                href={`/facilitators/${facilitator.slug}`}
-                className="block text-sm hover:underline"
-              >
-                {facilitator.firstName} {facilitator.lastName}
-                {facilitator.specialization ? ` · ${facilitator.specialization}` : ""}
-              </Link>
-            ))}
+            {facilitators.map((facilitator) => {
+              const rating = ratingByUserId.get(facilitator.id);
+              return (
+                <Link
+                  key={facilitator.id}
+                  href={`/facilitators/${facilitator.slug}`}
+                  className="flex items-center gap-2 text-sm hover:underline"
+                >
+                  <span>
+                    {facilitator.firstName} {facilitator.lastName}
+                    {facilitator.specialization ? ` · ${facilitator.specialization}` : ""}
+                  </span>
+                  {rating && rating._count.rating > 0 && (
+                    <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                      <Star className="size-3 fill-amber-400 text-amber-400" />
+                      {rating._avg.rating?.toFixed(1)}
+                    </span>
+                  )}
+                </Link>
+              );
+            })}
           </CardContent>
         </Card>
       )}
