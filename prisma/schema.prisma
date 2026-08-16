@@ -67,6 +67,7 @@ enum NotificationType {
   SYSTEM
   AWE_SUBSCRIPTION_RENEWED
   AWE_SUBSCRIPTION_PAYMENT_FAILED
+  AWE_TRAINING_MATCH
 }
 
 enum TrainingPaymentTargetType {
@@ -88,6 +89,7 @@ enum TransactionType {
   INTERNAL_TRANSFER
   FEE
   AWE_SUBSCRIPTION
+  REFUND
 }
 
 enum TransactionStatus {
@@ -191,6 +193,8 @@ model User {
   reviewsGiven             Review[]          @relation("ReviewsGiven")
   reviewsReceived          Review[]          @relation("ReviewsReceived")
   trainingPaymentsReceived TrainingPayment[] @relation("FacilitatorPayments")
+  disputesRaised           Dispute[]         @relation("DisputesRaised")
+  disputesResolved         Dispute[]         @relation("DisputesResolved")
 
   conversationsAsManager         Conversation[]      @relation("ManagerConversations")
   conversationsAsFacilitator     Conversation[]      @relation("FacilitatorConversations")
@@ -331,6 +335,8 @@ model TrainingEvent {
   applications Application[]
   reviews      Review[]
   payments     TrainingPayment[] @relation("TrainingEventPayments")
+  disputes     Dispute[]         @relation("TrainingEventDisputes")
+  milestones   Milestone[]
 
   @@index([companyId])
   @@index([approval, isAvailable])
@@ -532,6 +538,7 @@ model MergedTrainingEvent {
   applications   MergerApplication[]
   payments       TrainingPayment[]             @relation("MergedTrainingEventPayments")
   coFacilitators MergedTrainingCoFacilitator[]
+  disputes       Dispute[]                     @relation("MergedTrainingEventDisputes")
 
   @@index([initiatorId])
   @@index([isPostedToBoard, isFullyFunded])
@@ -1175,4 +1182,64 @@ model OrganizationProfile {
 model CronRun {
   jobName   String   @id
   lastRunAt DateTime
+}
+
+enum DisputeTargetType {
+  TRAINING_EVENT
+  MERGED_TRAINING_EVENT
+}
+
+enum DisputeStatus {
+  OPEN
+  UNDER_REVIEW
+  RESOLVED_REFUNDED
+  RESOLVED_NO_ACTION
+}
+
+// MVP: raise/track/resolve only. Refunding is a manual admin action, gated to disputes where
+// the escrow amount is confirmed still sitting in the settlement account (event/session not
+// yet paid out) — there's no automatic clawback of funds already paid to a facilitator, since
+// reversing a completed Anchor transfer isn't something to do speculatively from a dispute
+// resolution flow. A dispute against an already-paid-out event stays flagged for manual,
+// off-platform follow-up. See raise/resolve actions in lib/actions/dispute.actions.ts.
+model Dispute {
+  id                    String               @id @default(cuid())
+  targetType            DisputeTargetType
+  trainingEventId       String?
+  trainingEvent         TrainingEvent?       @relation("TrainingEventDisputes", fields: [trainingEventId], references: [id])
+  mergedTrainingEventId String?
+  mergedTrainingEvent   MergedTrainingEvent? @relation("MergedTrainingEventDisputes", fields: [mergedTrainingEventId], references: [id])
+  raisedById            String
+  raisedBy              User                 @relation("DisputesRaised", fields: [raisedById], references: [id], onDelete: Cascade)
+  reason                String
+  status                DisputeStatus        @default(OPEN)
+  resolutionNotes       String?
+  resolvedById          String?
+  resolvedBy            User?                @relation("DisputesResolved", fields: [resolvedById], references: [id])
+  resolvedAt            DateTime?
+  createdAt             DateTime             @default(now())
+
+  @@index([targetType, trainingEventId])
+  @@index([targetType, mergedTrainingEventId])
+  @@index([status])
+}
+
+// Opt-in, implicit rather than a flag: an event with zero Milestone rows pays out exactly
+// as it always has (payFacilitatorForEvent, one lump sum). An event with milestones added
+// pays out per-milestone instead (payFacilitatorForMilestone) — payFacilitatorForEvent
+// refuses to run at all once any milestone exists, so the two paths can never double-pay
+// the same escrowed budget. Existing events are entirely unaffected since none have rows
+// here. TrainingEvent only (not MergedTrainingEvent) for this first pass.
+model Milestone {
+  id              String        @id @default(cuid())
+  trainingEventId String
+  trainingEvent   TrainingEvent @relation(fields: [trainingEventId], references: [id], onDelete: Cascade)
+  title           String
+  amount          Decimal       @db.Decimal(14, 2)
+  order           Int
+  isPaidOut       Boolean       @default(false)
+  paidOutAt       DateTime?
+  createdAt       DateTime      @default(now())
+
+  @@index([trainingEventId])
 }

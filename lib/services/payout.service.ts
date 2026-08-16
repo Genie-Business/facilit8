@@ -4,6 +4,7 @@ import { calculateFee } from "./fee.service";
 import { createNotification } from "./notification.service";
 import { getConfirmedCoFacilitators } from "./merged-training-co-facilitator.service";
 import { createAutoProfessionalDevelopment } from "./professional-development.service";
+import { splitNetAmount } from "./payout-math";
 
 interface PayoutResult {
   success: boolean;
@@ -19,10 +20,16 @@ interface PayoutResult {
 export async function payFacilitatorForEvent(eventId: string, requesterId: string): Promise<PayoutResult> {
   const event = await prisma.trainingEvent.findUnique({
     where: { id: eventId },
-    include: { selectedTrainer: { select: { id: true, depositAccountId: true } } },
+    include: {
+      selectedTrainer: { select: { id: true, depositAccountId: true } },
+      milestones: { select: { id: true } },
+    },
   });
   if (!event) return { success: false, error: "Event not found." };
   if (event.companyId !== requesterId) return { success: false, error: "This isn't your event." };
+  if (event.milestones.length > 0) {
+    return { success: false, error: "This event uses milestone-based payouts. Pay out each milestone individually." };
+  }
   if (event.isPaid) return { success: false, error: "This event has already been paid out." };
   if (!event.selectedTrainerId || !event.selectedTrainer) {
     return { success: false, error: "No facilitator has been selected for this event." };
@@ -120,6 +127,135 @@ export async function payFacilitatorForEvent(eventId: string, requesterId: strin
   }
 }
 
+/**
+ * Pays out a single milestone instead of the event's full budget in one shot. Only runs for
+ * events that have milestones defined at all (payFacilitatorForEvent refuses to run once any
+ * exist, so the two payout paths can never double-pay the same escrow). Marks the parent
+ * event isPaid/isCompleted once every milestone has been paid out.
+ */
+export async function payFacilitatorForMilestone(milestoneId: string, requesterId: string): Promise<PayoutResult> {
+  const milestone = await prisma.milestone.findUnique({
+    where: { id: milestoneId },
+    include: {
+      trainingEvent: {
+        include: {
+          selectedTrainer: { select: { id: true, depositAccountId: true } },
+          milestones: true,
+        },
+      },
+    },
+  });
+  if (!milestone) return { success: false, error: "Milestone not found." };
+  const event = milestone.trainingEvent;
+
+  if (event.companyId !== requesterId) return { success: false, error: "This isn't your event." };
+  if (milestone.isPaidOut) return { success: false, error: "This milestone has already been paid out." };
+  if (!event.selectedTrainerId || !event.selectedTrainer) {
+    return { success: false, error: "No facilitator has been selected for this event." };
+  }
+  if (event.approval !== "APPROVED") return { success: false, error: "This event hasn't been funded yet." };
+  if (!event.selectedTrainer.depositAccountId) {
+    return { success: false, error: "The facilitator's wallet isn't set up yet." };
+  }
+
+  const milestoneTotal = event.milestones.reduce((sum, m) => sum + Number(m.amount), 0);
+  if (Math.round(milestoneTotal * 100) !== Math.round(Number(event.trainingBudget) * 100)) {
+    return { success: false, error: "Milestone amounts don't add up to the funded budget yet. Fix them before paying out." };
+  }
+
+  const settlementAccountId = process.env.ANCHOR_SETTLEMENT_ACCOUNT_ID;
+  if (!settlementAccountId) return { success: false, error: "Payments are not configured yet." };
+
+  const grossAmount = Number(milestone.amount);
+  const feeAmount = await calculateFee("FACILITATOR_PAYOUT", grossAmount);
+  const netAmount = grossAmount - feeAmount;
+  if (netAmount <= 0) return { success: false, error: "Net payout is zero or negative. Check the fee configuration." };
+
+  const reference = `msfacpay_${milestone.id.slice(0, 16)}`;
+
+  try {
+    const { transferId, raw } = await bookTransfer({
+      sourceAccountId: settlementAccountId,
+      destinationAccountId: event.selectedTrainer.depositAccountId,
+      amountNaira: netAmount,
+      reason: `Milestone payment for "${event.title}": ${milestone.title}`,
+      reference,
+    });
+
+    const status = await verifyTransfer(transferId);
+    if (!["successful", "completed"].includes(status)) {
+      throw new Error(`Transfer not successful, status: ${status}`);
+    }
+
+    const allPaidOut = event.milestones.every((m) => m.id === milestone.id || m.isPaidOut);
+
+    await prisma.$transaction([
+      prisma.trainingPayment.create({
+        data: {
+          targetType: "TRAINING_EVENT",
+          trainingEventId: event.id,
+          facilitatorId: event.selectedTrainerId,
+          grossAmount,
+          feeAmount,
+          netAmount,
+          reference,
+          rawResponse: raw as never,
+          status: "SUCCESS",
+        },
+      }),
+      prisma.milestone.update({ where: { id: milestone.id }, data: { isPaidOut: true, paidOutAt: new Date() } }),
+      ...(allPaidOut
+        ? [
+            prisma.trainingEvent.update({
+              where: { id: event.id },
+              data: { isPaid: true, isCompleted: true, completedAt: new Date() },
+            }),
+          ]
+        : []),
+    ]);
+
+    await createNotification({
+      userId: event.selectedTrainerId,
+      notificationType: "PAYMENT_CONFIRMED",
+      message: `You've been paid ₦${netAmount.toLocaleString()} for the "${milestone.title}" milestone of "${event.title}".`,
+    });
+
+    if (allPaidOut) {
+      await createAutoProfessionalDevelopment(event.selectedTrainerId, {
+        title: event.title,
+        dateCompleted: new Date(),
+        skillsAcquired: [event.skillType].filter(Boolean),
+        relatedTrainingEventId: event.id,
+      }).catch(() => {});
+    }
+
+    return { success: true };
+  } catch (err) {
+    await prisma.trainingPayment.create({
+      data: {
+        targetType: "TRAINING_EVENT",
+        trainingEventId: event.id,
+        facilitatorId: event.selectedTrainerId,
+        grossAmount,
+        feeAmount,
+        netAmount,
+        reference,
+        status: "FAILED",
+      },
+    });
+    await createNotification({
+      userId: event.selectedTrainerId,
+      notificationType: "PAYMENT_CONFIRMED",
+      message: `Payment attempt for the "${milestone.title}" milestone of "${event.title}" failed. Please contact support.`,
+      email: {
+        subject: "A Facilit8 payout failed",
+        html: `<p>Your payment attempt for the "${milestone.title}" milestone of "${event.title}" failed. Please contact support.</p>`,
+      },
+    });
+    return { success: false, error: err instanceof Error ? err.message : "Payout failed." };
+  }
+}
+
 interface Payee {
   id: string;
   depositAccountId: string | null;
@@ -179,14 +315,13 @@ export async function payFacilitatorForMergedTrainingEvent(
 
   // Equal split, remainder (from rounding to the kobo) goes to the first payee — the
   // initiator/selectedTrainer — so shares always sum exactly to netAmount.
-  const baseShare = Math.floor((netAmount / payees.length) * 100) / 100;
-  const remainder = Math.round((netAmount - baseShare * payees.length) * 100) / 100;
+  const shares = splitNetAmount(netAmount, payees.length);
 
   const results: { payee: Payee; amount: number; success: boolean; error?: string }[] = [];
 
   for (let i = 0; i < payees.length; i++) {
     const payee = payees[i];
-    const amount = i === 0 ? baseShare + remainder : baseShare;
+    const amount = shares[i];
     const reference = `mtfacpay_${session.id.slice(0, 10)}_${payee.id.slice(0, 8)}`;
 
     try {
