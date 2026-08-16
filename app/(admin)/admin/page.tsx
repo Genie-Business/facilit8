@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { FileText, Activity, Repeat, Tags, Sparkles, CircleCheck, CircleAlert } from "lucide-react";
+import { FileText, Activity, Repeat, Tags, Sparkles, CircleCheck, CircleAlert, ShieldAlert } from "lucide-react";
 
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getCronRunStatus } from "@/lib/services/cron-run.service";
@@ -7,6 +7,7 @@ import { getCronRunStatus } from "@/lib/services/cron-run.service";
 const SECTIONS = [
   { href: "/admin/content", icon: FileText, title: "Content", description: "FAQ, Privacy, Terms, and contact info." },
   { href: "/admin/activity", icon: Activity, title: "Activity", description: "Recent applications, reviews, and notifications." },
+  { href: "/admin/disputes", icon: ShieldAlert, title: "Disputes", description: "Review refund requests for funded training." },
   { href: "/admin/awe-subscriptions", icon: Repeat, title: "Awé Subscriptions", description: "Manage subscribers and billing history." },
   { href: "/admin/skills", icon: Tags, title: "Skills", description: "Skills facilitators can select on their profile." },
   { href: "/admin/awe-pricing", icon: Sparkles, title: "Awé Pricing", description: "Monthly price and billing cycle for Awé." },

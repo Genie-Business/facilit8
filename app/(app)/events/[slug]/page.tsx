@@ -7,6 +7,8 @@ import { prisma } from "@/lib/db";
 import { deleteEventAction } from "@/lib/actions/event.actions";
 import { completeEventAction } from "@/lib/actions/event-funding.actions";
 import { FundEventButton } from "@/components/events/fund-event-button";
+import { RaiseDisputeForm } from "@/components/events/raise-dispute-form";
+import { MilestonesSection } from "@/components/events/milestones-section";
 import { eventStatus } from "@/lib/utils/event-status";
 
 const STATUS_TAG: Record<string, string> = {
@@ -39,6 +41,7 @@ export default async function EventDetailPage({ params }: { params: Promise<{ sl
         where: { trainerId: session.user.id },
         select: { id: true, status: true },
       },
+      milestones: { orderBy: { order: "asc" } },
     },
   });
   if (!event) notFound();
@@ -132,14 +135,21 @@ export default async function EventDetailPage({ params }: { params: Promise<{ sl
                   </>
                 )}
 
-                {event.paymentConfirmed && event.selectedTrainerId && !event.isCompleted && (
-                  <form action={completeEventAction}>
-                    <input type="hidden" name="slug" value={event.slug} />
-                    <input type="hidden" name="eventId" value={event.id} />
-                    <button type="submit" className="btn btn--primary">
-                      Mark complete &amp; pay facilitator
-                    </button>
-                  </form>
+                {event.paymentConfirmed &&
+                  event.selectedTrainerId &&
+                  !event.isCompleted &&
+                  event.milestones.length === 0 && (
+                    <form action={completeEventAction}>
+                      <input type="hidden" name="slug" value={event.slug} />
+                      <input type="hidden" name="eventId" value={event.id} />
+                      <button type="submit" className="btn btn--primary">
+                        Mark complete &amp; pay facilitator
+                      </button>
+                    </form>
+                  )}
+
+                {event.paymentConfirmed && !event.isPaid && (
+                  <RaiseDisputeForm targetType="TRAINING_EVENT" targetId={event.id} revalidateSlug={event.slug} />
                 )}
               </>
             )}
@@ -164,6 +174,24 @@ export default async function EventDetailPage({ params }: { params: Promise<{ sl
             )}
           </div>
         </section>
+
+        {isOwner && event.paymentConfirmed && !event.isCompleted && (
+          <section className="col-6 card">
+            <div className="card-head">
+              <div className="card-title-wrap">
+                <span className="eyebrow">Payout</span>
+                <h2 className="card-title">Milestones</h2>
+              </div>
+            </div>
+            <MilestonesSection
+              eventId={event.id}
+              eventSlug={event.slug}
+              milestones={event.milestones.map((m) => ({ ...m, amount: Number(m.amount) }))}
+              trainingBudget={Number(event.trainingBudget)}
+              canPay={Boolean(event.selectedTrainerId)}
+            />
+          </section>
+        )}
 
         {(event.eventObjective || event.eventDetails) && (
           <section className="col-6 card">

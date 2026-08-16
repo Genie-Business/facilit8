@@ -12,6 +12,7 @@ import {
 import { JoinForm } from "@/components/merged-training/join-form";
 import { PayShareForm } from "@/components/merged-training/pay-share-form";
 import { StageTracker } from "@/components/merged-training/stage-tracker";
+import { RaiseDisputeForm } from "@/components/events/raise-dispute-form";
 import { mergedTrainingProgress } from "@/lib/utils/merged-training-stages";
 
 function DetailRow({ label, value }: { label: string; value: React.ReactNode }) {
@@ -228,6 +229,14 @@ export default async function MergedTrainingDetailPage({ params }: { params: Pro
                   Mark complete &amp; pay facilitator
                 </button>
               </form>
+            )}
+
+            {isInitiator && mergedEvent.paymentConfirmed && !mergedEvent.isPaid && (
+              <RaiseDisputeForm
+                targetType="MERGED_TRAINING_EVENT"
+                targetId={mergedEvent.id}
+                revalidateSlug={mergedEvent.slug}
+              />
             )}
           </div>
 
