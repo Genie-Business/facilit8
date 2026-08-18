@@ -183,7 +183,8 @@ model User {
   updatedAt DateTime @updatedAt
 
   virtualAccount      VirtualAccount?
-  passwordResetTokens PasswordResetToken[]
+  passwordResetTokens   PasswordResetToken[]
+  accountRecoveryTokens AccountRecoveryToken[]
   transactions        Transaction[]
 
   eventsAsCompany          TrainingEvent[]   @relation("CompanyEvents")
@@ -228,6 +229,25 @@ model User {
 }
 
 model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+}
+
+// For users whose Anchor provisioning is incomplete: either customer creation failed
+// outright (vaCreationFailed on User — e.g. the historical leading-"+" phone bug, now fixed
+// in code but not retroactively applied to already-broken rows), or customer creation
+// succeeded but the CounterParty never got created because linkedBankCode/etc. were never
+// collected (Professionals were exempt from bank fields at signup until later — see
+// anchor-provisioning.service.ts's silent-skip condition). Same trust model as
+// PasswordResetToken: token possession is the auth factor, no login required to redeem.
+model AccountRecoveryToken {
   id        String    @id @default(cuid())
   userId    String
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)

@@ -90,6 +90,13 @@ export async function updateLinkedBankAccount(
         linkedAccountNumber: params.accountNumber,
         linkedAccountName: params.accountName,
         anchorCounterpartyId: counterpartyId,
+        // A freshly-created counterparty means whatever provisioning problem existed before
+        // (if any) no longer applies to the counterparty side. Cleared here rather than left
+        // to provisionAnchorCustomer's own counterparty branch, since that branch is skipped
+        // whenever anchorCounterpartyId is already set by the time it runs (e.g. right after
+        // this call, from the account-recovery flow) — it would otherwise never fire.
+        vaCreationFailed: false,
+        vaFailureReason: null,
       },
     });
     return { success: true };
