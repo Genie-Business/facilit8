@@ -13,6 +13,7 @@ import {
   MessageCircle,
   Wallet,
   ShieldCheck,
+  ShieldAlert,
   Tags,
   LayoutGrid,
   BadgeCheck,
@@ -24,10 +25,12 @@ import {
   Activity,
   Repeat,
   History,
+  UserCog,
+  ArrowLeftRight,
 } from "lucide-react";
 
 import { useShell } from "./shell-root";
-import { siteUrl } from "@/lib/site";
+import { siteUrl, appUrl } from "@/lib/site";
 
 interface NavItem {
   href: string;
@@ -66,14 +69,30 @@ const MISC_LINKS: NavItem[] = [
   { href: `${siteUrl}/faq`, label: "FAQs", icon: HelpCircle, crossDomain: true },
 ];
 
-const ADMIN_LINKS: NavItem[] = [
-  { href: `${siteUrl}/admin`, label: "Admin Home", icon: LayoutGrid, crossDomain: true },
-  { href: `${siteUrl}/admin/skills`, label: "Skills", icon: Tags, crossDomain: true },
-  { href: `${siteUrl}/admin/awe-pricing`, label: "Awé Pricing", icon: Sparkles, crossDomain: true },
-  { href: `${siteUrl}/admin/content`, label: "Content", icon: FileText, crossDomain: true },
-  { href: `${siteUrl}/admin/activity`, label: "Activity", icon: Activity, crossDomain: true },
-  { href: `${siteUrl}/admin/awe-subscriptions`, label: "Awé Subscriptions", icon: Repeat, crossDomain: true },
+// Base admin pages, as relative (same-host) paths — used directly when the sidebar itself
+// renders inside the (admin) shell (already on the apex host, per proxy.ts's ADMIN_PREFIX
+// gating). When rendered from within the (app) shell instead, these are re-prefixed with
+// siteUrl + crossDomain (see ADMIN_LINKS_APP below) since (app) now lives on the app
+// subdomain and admin lives on the apex.
+const ADMIN_BASE_LINKS: (Omit<NavItem, "crossDomain"> & { superAdminOnly?: boolean })[] = [
+  { href: "/admin", label: "Admin Home", icon: LayoutGrid },
+  { href: "/admin/account-recovery", label: "Account Recovery", icon: LifeBuoy },
+  { href: "/admin/content", label: "Content", icon: FileText },
+  { href: "/admin/disputes", label: "Disputes", icon: ShieldAlert },
+  { href: "/admin/activity", label: "Activity", icon: Activity },
+  { href: "/admin/skills", label: "Skills", icon: Tags },
+  { href: "/admin/awe-subscriptions", label: "Awé Subscriptions", icon: Repeat, superAdminOnly: true },
+  { href: "/admin/awe-pricing", label: "Awé Pricing", icon: Sparkles, superAdminOnly: true },
+  { href: "/admin/admins", label: "Admin Management", icon: UserCog, superAdminOnly: true },
 ];
+
+function adminLinksFor(adminTier: string | null | undefined, crossDomain: boolean): NavItem[] {
+  return ADMIN_BASE_LINKS.filter((link) => !link.superAdminOnly || adminTier === "SUPER_ADMIN").map((link) => ({
+    ...link,
+    href: crossDomain ? `${siteUrl}${link.href}` : link.href,
+    crossDomain,
+  }));
+}
 
 function NavLink({ href, label, icon: Icon, external, crossDomain }: NavItem) {
   const pathname = usePathname();
@@ -114,10 +133,33 @@ function NavSection({ label, links }: { label: string; links: NavItem[] }) {
   );
 }
 
-export function SidebarNav({ role }: { role?: string }) {
+const BACK_TO_APP_LINKS: NavItem[] = [{ href: `${appUrl}/dashboard`, label: "Back to App", icon: ArrowLeftRight, crossDomain: true }];
+
+export function SidebarNav({
+  role,
+  adminTier,
+  variant = "app",
+}: {
+  role?: string;
+  adminTier?: string | null;
+  variant?: "app" | "admin";
+}) {
+  if (variant === "admin") {
+    return (
+      <>
+        <NavSection label="Admin" links={adminLinksFor(adminTier, false)} />
+        <NavSection label="Workspace" links={BACK_TO_APP_LINKS} />
+      </>
+    );
+  }
+
   const accountLinks =
     role === "EVENT_MANAGER"
-      ? [...ACCOUNT_LINKS, { href: "/organization/verify", label: "Verify Business", icon: BadgeCheck }]
+      ? [
+          ...ACCOUNT_LINKS,
+          { href: "/organization/verify", label: "Verify Business", icon: BadgeCheck },
+          { href: "/organization/members", label: "Team Members", icon: Users },
+        ]
       : ACCOUNT_LINKS;
 
   return (
@@ -128,7 +170,7 @@ export function SidebarNav({ role }: { role?: string }) {
       <NavSection label="Communications" links={COMMUNICATIONS_LINKS} />
       <NavSection label="Account" links={accountLinks} />
       <NavSection label="Misc" links={MISC_LINKS} />
-      {role === "ADMIN" && <NavSection label="Admin" links={ADMIN_LINKS} />}
+      {role === "ADMIN" && <NavSection label="Admin" links={adminLinksFor(adminTier, true)} />}
     </>
   );
 }

@@ -18,10 +18,12 @@ export function ProfileDropdown({
   name,
   email,
   profileImageUrl,
+  variant = "app",
 }: {
   name: string;
   email: string;
   profileImageUrl: string | null;
+  variant?: "app" | "admin";
 }) {
   const [open, setOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -59,18 +61,22 @@ export function ProfileDropdown({
           <div className="dd-profile-name">{name}</div>
           <div className="dd-profile-email">{email}</div>
         </div>
-        <Link className="dd-menu-item" href="/profile" onClick={() => setOpen(false)}>
-          <UserCircle />
-          My Profile
-        </Link>
-        <Link className="dd-menu-item" href="/settings/kyc" onClick={() => setOpen(false)}>
-          <ShieldCheck />
-          Verify Identity
-        </Link>
-        <Link className="dd-menu-item" href="/wallet" onClick={() => setOpen(false)}>
-          <Settings />
-          Wallet Settings
-        </Link>
+        {variant === "app" && (
+          <>
+            <Link className="dd-menu-item" href="/profile" onClick={() => setOpen(false)}>
+              <UserCircle />
+              My Profile
+            </Link>
+            <Link className="dd-menu-item" href="/settings/kyc" onClick={() => setOpen(false)}>
+              <ShieldCheck />
+              Verify Identity
+            </Link>
+            <Link className="dd-menu-item" href="/wallet" onClick={() => setOpen(false)}>
+              <Settings />
+              Wallet Settings
+            </Link>
+          </>
+        )}
         <div className="dd-divider" />
         <form action={logoutAction}>
           <button type="submit" className="dd-menu-item danger" style={{ width: "100%" }}>

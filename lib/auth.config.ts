@@ -38,6 +38,7 @@ export const authConfig = {
         token.userId = user.id as string;
         token.role = user.role;
         token.slug = user.slug;
+        token.adminTier = user.adminTier;
       }
       return token;
     },
@@ -45,6 +46,7 @@ export const authConfig = {
       session.user.id = token.userId;
       session.user.role = token.role;
       session.user.slug = token.slug;
+      session.user.adminTier = token.adminTier;
       return session;
     },
     // Default Auth.js redirect() only allows same-origin-as-baseUrl targets, and baseUrl is

@@ -1,4 +1,4 @@
-import type { Role } from "@/lib/generated/prisma/client";
+import type { Role, AdminTier } from "@/lib/generated/prisma/client";
 import type { DefaultSession } from "@auth/core/types";
 
 // next-auth v5's own `next-auth` / `next-auth/jwt` entry points just re-export types
@@ -9,6 +9,7 @@ declare module "@auth/core/types" {
   interface User {
     role: Role;
     slug: string;
+    adminTier: AdminTier | null;
   }
 
   interface Session {
@@ -16,6 +17,7 @@ declare module "@auth/core/types" {
       id: string;
       role: Role;
       slug: string;
+      adminTier: AdminTier | null;
     } & DefaultSession["user"];
   }
 }
@@ -25,5 +27,6 @@ declare module "@auth/core/jwt" {
     userId: string;
     role: Role;
     slug: string;
+    adminTier: AdminTier | null;
   }
 }

@@ -14,6 +14,7 @@ import { appUrl, siteUrl } from "@/lib/site";
 import { getBankOptions } from "@/lib/services/bank-list.service";
 import { provisionAnchorCustomer } from "@/lib/services/anchor-provisioning.service";
 import { joinOrCreateOrganization, requestOrganizationMembership } from "@/lib/services/organization.service";
+import { reactivateUser } from "@/lib/services/user-status.service";
 import { isRateLimited, RATE_LIMITS, RATE_LIMIT_MESSAGE } from "@/lib/rate-limit";
 import {
   forgotPasswordSchema,
@@ -26,6 +27,7 @@ export interface ActionState {
   error?: string;
   fieldErrors?: Record<string, string>;
   success?: string;
+  deactivated?: boolean;
 }
 
 function firstFieldErrors(flat: Record<string, string[] | undefined>): Record<string, string> {
@@ -122,6 +124,31 @@ export async function loginAction(_prev: ActionState, formData: FormData): Promi
   const parsed = loginSchema.safeParse(raw);
   if (!parsed.success) {
     return { fieldErrors: firstFieldErrors(parsed.error.flatten().fieldErrors) };
+  }
+
+  // Checked here, before signIn(), rather than by threading a custom error type through
+  // NextAuth's authorize() -> CredentialsSignin pipeline: that mechanism is fragile and
+  // version-sensitive (this project has already been burned once trusting unverified
+  // Next.js internals in production). authorize() still independently rejects deactivated
+  // accounts as a backstop for the raw /api/auth/callback/credentials endpoint, which
+  // bypasses this action entirely — see lib/auth.ts.
+  //
+  // "intent=reactivate" comes from the submit button's own name/value (native HTML
+  // multi-submitter behavior — only present in FormData when THAT button was clicked, not
+  // the default "Sign in" one), which LoginForm swaps in once it's already shown the
+  // reactivate prompt below. A single useActionState-bound action can't be handed a second
+  // per-button formAction that also needs the (prevState, formData) signature, so this is
+  // one action branching on intent rather than two.
+  const user = await prisma.user.findUnique({ where: { email: parsed.data.email } });
+  const isReactivateIntent = formData.get("intent") === "reactivate";
+
+  if (isReactivateIntent) {
+    if (!user?.deactivatedAt) return { error: "Something went wrong. Please try logging in again." };
+    const passwordValid = await bcrypt.compare(parsed.data.password, user.passwordHash);
+    if (!passwordValid) return { error: "Something went wrong. Please try logging in again." };
+    await reactivateUser(user.id);
+  } else if (user?.deactivatedAt && (await bcrypt.compare(parsed.data.password, user.passwordHash))) {
+    return { deactivated: true };
   }
 
   const callbackUrl = formData.get("callbackUrl");

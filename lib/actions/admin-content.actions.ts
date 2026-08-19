@@ -2,17 +2,12 @@
 
 import { revalidatePath } from "next/cache";
 
-import { auth } from "@/lib/auth";
 import { createFaq, deleteFaq } from "@/lib/services/faq.service";
 import { upsertLegalPage } from "@/lib/services/legal-page.service";
 import { updateSiteSettings } from "@/lib/services/site-settings.service";
 import { faqFormSchema, legalPageFormSchema, siteSettingsFormSchema } from "@/lib/validation/content";
 import { ActionState, firstFieldErrors } from "@/lib/actions/shared";
-
-async function requireAdmin() {
-  const session = await auth();
-  if (!session || session.user.role !== "ADMIN") throw new Error("Not authorized.");
-}
+import { requireAdmin } from "@/lib/auth/admin-guard";
 
 export async function createFaqAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
   await requireAdmin();

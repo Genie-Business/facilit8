@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 
+import { auth } from "@/lib/auth";
 import { getActiveAwePricing } from "@/lib/services/awe-pricing.service";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { AwePricingForm } from "@/components/admin/awe-pricing-form";
@@ -10,6 +12,11 @@ export const metadata: Metadata = {
 };
 
 export default async function AdminAwePricingPage() {
+  const session = await auth();
+  // Billing page — Support Admins can't act on it (requireSuperAdmin() in the actions), so
+  // don't show it either.
+  if (session?.user.adminTier !== "SUPER_ADMIN") redirect("/admin");
+
   const pricing = await getActiveAwePricing();
 
   return (

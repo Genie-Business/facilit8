@@ -2,18 +2,13 @@
 
 import { revalidatePath } from "next/cache";
 
-import { auth } from "@/lib/auth";
 import { updateAwePricing } from "@/lib/services/awe-pricing.service";
 import { awePricingFormSchema } from "@/lib/validation/awe-pricing";
 import { ActionState, firstFieldErrors } from "@/lib/actions/shared";
-
-async function requireAdmin() {
-  const session = await auth();
-  if (!session || session.user.role !== "ADMIN") throw new Error("Not authorized.");
-}
+import { requireSuperAdmin } from "@/lib/auth/admin-guard";
 
 export async function updateAwePricingAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
-  await requireAdmin();
+  await requireSuperAdmin();
 
   const parsed = awePricingFormSchema.safeParse({
     ...Object.fromEntries(formData),

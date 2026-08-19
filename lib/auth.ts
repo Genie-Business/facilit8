@@ -36,12 +36,21 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const passwordValid = await bcrypt.compare(parsed.data.password, user.passwordHash);
         if (!passwordValid) return null;
 
+        // loginAction checks deactivatedAt itself first and offers a reactivation prompt
+        // before ever calling signIn() — but the raw /api/auth/callback/credentials endpoint
+        // bypasses loginAction entirely (same bypass the rate limiter above guards against),
+        // so this is the backstop: a deactivated account can never complete sign-in through
+        // any path except the explicit reactivateAccountAction flow, which clears
+        // deactivatedAt before calling signIn().
+        if (user.deactivatedAt) return null;
+
         return {
           id: user.id,
           email: user.email,
           name: `${user.firstName} ${user.lastName}`,
           role: user.role,
           slug: user.slug,
+          adminTier: user.adminTier,
         };
       },
     }),

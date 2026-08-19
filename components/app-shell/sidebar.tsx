@@ -17,20 +17,30 @@ export interface SidebarUser {
   profileImageUrl: string | null;
 }
 
-export function Sidebar({ role, user }: { role?: string; user: SidebarUser }) {
+export function Sidebar({
+  role,
+  adminTier,
+  variant = "app",
+  user,
+}: {
+  role?: string;
+  adminTier?: string | null;
+  variant?: "app" | "admin";
+  user: SidebarUser;
+}) {
   return (
     <aside className="d-sidebar">
-      <Link href="/dashboard" className="brand">
+      <Link href={variant === "admin" ? "/admin" : "/dashboard"} className="brand">
         <div className="brand-logo">
           <Image src="/brand/mark-white.png" alt="" width={18} height={18} />
         </div>
         <div className="brand-text">
           <div className="brand-name">Facilit8</div>
-          <div className="brand-tag">MARKETPLACE</div>
+          <div className="brand-tag">{variant === "admin" ? "ADMIN" : "MARKETPLACE"}</div>
         </div>
       </Link>
 
-      <SidebarNav role={role} />
+      <SidebarNav role={role} adminTier={adminTier} variant={variant} />
 
       <div className="sidebar-footer">
         <div className="workspace">

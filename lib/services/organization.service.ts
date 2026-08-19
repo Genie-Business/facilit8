@@ -64,13 +64,13 @@ export async function requestOrganizationMembership(userId: string, organization
   });
 }
 
-/** Pending join requests for organizations the given user owns. */
-export async function listPendingMembershipRequests(ownerId: string) {
-  const owned = await prisma.organizationMembership.findMany({
-    where: { userId: ownerId, role: "OWNER", status: "APPROVED" },
+/** Pending join requests for organizations the given user can approve for (OWNER or MANAGER). */
+export async function listPendingMembershipRequests(userId: string) {
+  const canApprove = await prisma.organizationMembership.findMany({
+    where: { userId, role: { in: ["OWNER", "MANAGER"] }, status: "APPROVED" },
     select: { organizationId: true },
   });
-  const organizationIds = owned.map((m) => m.organizationId);
+  const organizationIds = canApprove.map((m) => m.organizationId);
   if (organizationIds.length === 0) return [];
 
   return prisma.organizationMembership.findMany({
@@ -88,10 +88,15 @@ export async function respondToMembershipRequest(
   const membership = await prisma.organizationMembership.findUnique({ where: { id: membershipId } });
   if (!membership) throw new Error("Membership request not found.");
 
-  const isOwner = await prisma.organizationMembership.findFirst({
-    where: { organizationId: membership.organizationId, userId: responderId, role: "OWNER", status: "APPROVED" },
+  const canApprove = await prisma.organizationMembership.findFirst({
+    where: {
+      organizationId: membership.organizationId,
+      userId: responderId,
+      role: { in: ["OWNER", "MANAGER"] },
+      status: "APPROVED",
+    },
   });
-  if (!isOwner) throw new Error("Not authorized to respond to this request.");
+  if (!canApprove) throw new Error("Not authorized to respond to this request.");
 
   await prisma.organizationMembership.update({
     where: { id: membershipId },
@@ -106,4 +111,49 @@ export async function getUserOrganizationMembership(userId: string) {
     include: { organization: true },
     orderBy: { requestedAt: "desc" },
   });
+}
+
+/** Full member list (any status) for an organization, for the members-management page. */
+export async function listOrganizationMembers(organizationId: string) {
+  return prisma.organizationMembership.findMany({
+    where: { organizationId },
+    include: { user: { select: { id: true, firstName: true, lastName: true, email: true, role: true } } },
+    orderBy: [{ role: "asc" }, { requestedAt: "asc" }],
+  });
+}
+
+interface UpdateMemberRoleResult {
+  success: boolean;
+  error?: string;
+}
+
+/**
+ * Role changes are OWNER-only (a MANAGER can approve join requests but can't promote peers
+ * to MANAGER — avoids a privilege-escalation loop). The OWNER's own row can't be changed
+ * here; ownership transfer isn't supported.
+ */
+export async function updateMemberRole(
+  organizationId: string,
+  actingUserId: string,
+  targetMembershipId: string,
+  newRole: "MANAGER" | "MEMBER"
+): Promise<UpdateMemberRoleResult> {
+  const isOwner = await prisma.organizationMembership.findFirst({
+    where: { organizationId, userId: actingUserId, role: "OWNER", status: "APPROVED" },
+  });
+  if (!isOwner) return { success: false, error: "Only the organization owner can change member roles." };
+
+  const target = await prisma.organizationMembership.findUnique({ where: { id: targetMembershipId } });
+  if (!target || target.organizationId !== organizationId) {
+    return { success: false, error: "Member not found." };
+  }
+  if (target.role === "OWNER") {
+    return { success: false, error: "Can't change the owner's role." };
+  }
+  if (target.status !== "APPROVED") {
+    return { success: false, error: "Only approved members can have their role changed." };
+  }
+
+  await prisma.organizationMembership.update({ where: { id: targetMembershipId }, data: { role: newRole } });
+  return { success: true };
 }

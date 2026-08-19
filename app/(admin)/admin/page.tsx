@@ -1,17 +1,35 @@
 import Link from "next/link";
-import { FileText, Activity, Repeat, Tags, Sparkles, CircleCheck, CircleAlert, ShieldAlert, LifeBuoy } from "lucide-react";
+import {
+  FileText,
+  Activity,
+  Repeat,
+  Tags,
+  Sparkles,
+  CircleCheck,
+  CircleAlert,
+  ShieldAlert,
+  LifeBuoy,
+  Users,
+} from "lucide-react";
 
+import { auth } from "@/lib/auth";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getCronRunStatus } from "@/lib/services/cron-run.service";
 
+// Accessible to both admin tiers — day-to-day tools.
 const SECTIONS = [
   { href: "/admin/content", icon: FileText, title: "Content", description: "FAQ, Privacy, Terms, and contact info." },
   { href: "/admin/activity", icon: Activity, title: "Activity", description: "Recent applications, reviews, and notifications." },
   { href: "/admin/disputes", icon: ShieldAlert, title: "Disputes", description: "Review refund requests for funded training." },
   { href: "/admin/account-recovery", icon: LifeBuoy, title: "Account Recovery", description: "Users with incomplete Anchor wallet setup." },
-  { href: "/admin/awe-subscriptions", icon: Repeat, title: "Awé Subscriptions", description: "Manage subscribers and billing history." },
   { href: "/admin/skills", icon: Tags, title: "Skills", description: "Skills facilitators can select on their profile." },
+];
+
+// Super Admin only — billing/pricing and admin management.
+const SUPER_ADMIN_SECTIONS = [
+  { href: "/admin/awe-subscriptions", icon: Repeat, title: "Awé Subscriptions", description: "Manage subscribers and billing history." },
   { href: "/admin/awe-pricing", icon: Sparkles, title: "Awé Pricing", description: "Monthly price and billing cycle for Awé." },
+  { href: "/admin/admins", icon: Users, title: "Admin Management", description: "Create admins and manage their access tier." },
 ];
 
 // Reconciliation runs every 30 min via GitHub Actions (Vercel Hobby only allows daily cron);
@@ -22,6 +40,9 @@ const CRON_JOBS = [
 ];
 
 export default async function AdminHomePage() {
+  const session = await auth();
+  const sections = session?.user.adminTier === "SUPER_ADMIN" ? [...SECTIONS, ...SUPER_ADMIN_SECTIONS] : SECTIONS;
+
   const cronStatuses = await Promise.all(
     CRON_JOBS.map(async (job) => ({ ...job, ...(await getCronRunStatus(job.jobName, job.intervalMs)) }))
   );
@@ -50,7 +71,7 @@ export default async function AdminHomePage() {
       </Card>
 
       <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {SECTIONS.map((section) => (
+        {sections.map((section) => (
           <Link key={section.href} href={section.href}>
             <Card className="h-full transition-colors hover:bg-muted/50">
               <CardHeader>

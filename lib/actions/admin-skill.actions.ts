@@ -2,14 +2,9 @@
 
 import { revalidatePath } from "next/cache";
 
-import { auth } from "@/lib/auth";
 import { createSkill, deleteSkill, setSkillActive } from "@/lib/services/skill.service";
 import { ActionState } from "@/lib/actions/shared";
-
-async function requireAdmin() {
-  const session = await auth();
-  if (!session || session.user.role !== "ADMIN") throw new Error("Not authorized.");
-}
+import { requireAdmin } from "@/lib/auth/admin-guard";
 
 export async function createSkillAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
   await requireAdmin();

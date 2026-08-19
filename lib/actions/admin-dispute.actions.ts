@@ -2,16 +2,10 @@
 
 import { revalidatePath } from "next/cache";
 
-import { auth } from "@/lib/auth";
 import { markDisputeUnderReview, resolveDispute } from "@/lib/services/dispute.service";
 import { resolveDisputeSchema } from "@/lib/validation/dispute";
 import { ActionState, firstFieldErrors } from "@/lib/actions/shared";
-
-async function requireAdmin() {
-  const session = await auth();
-  if (!session || session.user.role !== "ADMIN") throw new Error("Not authorized.");
-  return session;
-}
+import { requireAdmin } from "@/lib/auth/admin-guard";
 
 export async function markDisputeUnderReviewAction(disputeId: string): Promise<void> {
   await requireAdmin();

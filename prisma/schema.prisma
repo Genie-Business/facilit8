@@ -21,7 +21,16 @@ enum Role {
 
 enum OrgMemberRole {
   OWNER
+  MANAGER
   MEMBER
+}
+
+// Only meaningful when Role is ADMIN. Defaults to SUPER_ADMIN so the migration that adds
+// this column doesn't strip access from admins that already exist — new support-tier admins
+// are created explicitly with SUPPORT_ADMIN via /admin/admins.
+enum AdminTier {
+  SUPER_ADMIN
+  SUPPORT_ADMIN
 }
 
 enum OrgMembershipStatus {
@@ -125,6 +134,7 @@ model User {
   email              String  @unique
   passwordHash       String
   role               Role
+  adminTier          AdminTier? @default(SUPER_ADMIN)
   firstName          String
   lastName           String
   middleName         String?
@@ -178,6 +188,12 @@ model User {
   linkedBankName      String?
   linkedAccountNumber String?
   linkedAccountName   String?
+
+  // Self-service soft delete — CBN record-retention rules mean the row (and all related
+  // financial/history data) must never actually be deleted. Null means active. Login is
+  // blocked while set; reactivation happens on a subsequent login attempt with the correct
+  // password, not automatically.
+  deactivatedAt DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

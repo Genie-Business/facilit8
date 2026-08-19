@@ -2,13 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 
-import { auth } from "@/lib/auth";
 import { sendRecoveryEmail, listUsersNeedingRecovery } from "@/lib/services/account-recovery.service";
-
-async function requireAdmin() {
-  const session = await auth();
-  if (!session || session.user.role !== "ADMIN") throw new Error("Not authorized.");
-}
+import { requireAdmin } from "@/lib/auth/admin-guard";
 
 export async function sendRecoveryEmailAction(userId: string): Promise<void> {
   await requireAdmin();

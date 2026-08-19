@@ -27,8 +27,12 @@ export default async function OrganizationVerifyPage() {
   if (!session) return null;
 
   const [membership, user] = await Promise.all([
+    // MANAGER can view status and handle document uploads once verification is underway,
+    // but NOT submit the initial verification (below) — that step uses the acting user's
+    // own BVN as the business owner's identity proof, so it has to stay OWNER-only or a
+    // teammate's identity would get submitted as if they were the registered proprietor.
     prisma.organizationMembership.findFirst({
-      where: { userId: session.user.id, role: "OWNER", status: "APPROVED" },
+      where: { userId: session.user.id, role: { in: ["OWNER", "MANAGER"] }, status: "APPROVED" },
       include: { organization: { include: { documents: true } } },
     }),
     prisma.user.findUnique({ where: { id: session.user.id } }),
@@ -39,12 +43,14 @@ export default async function OrganizationVerifyPage() {
       <div className="max-w-md space-y-2">
         <h1 className="text-2xl font-semibold">Business verification</h1>
         <p className="text-sm text-muted-foreground">
-          You don&apos;t own an organization yet. Organizations are created automatically when you sign up
+          You don&apos;t belong to an organization yet. Organizations are created automatically when you sign up
           as an Event Manager with an organization name.
         </p>
       </div>
     );
   }
+
+  const isOwner = membership.role === "OWNER";
 
   const organization = membership.organization;
 
@@ -83,7 +89,17 @@ export default async function OrganizationVerifyPage() {
       </Card>
 
       {organization.verificationStatus === "UNVERIFIED" &&
-        (!user?.kycVerified || !user.bvn ? (
+        (!isOwner ? (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Waiting on the owner</CardTitle>
+              <CardDescription>
+                Only the organization owner can submit initial business verification — it uses their own BVN as
+                the registered business owner&apos;s identity check.
+              </CardDescription>
+            </CardHeader>
+          </Card>
+        ) : !user?.kycVerified || !user.bvn ? (
           <Card>
             <CardHeader>
               <CardTitle className="text-base">Verify your own identity first</CardTitle>

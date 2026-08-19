@@ -4,6 +4,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { listActiveSkills } from "@/lib/services/skill.service";
 import { ProfileEditForm } from "@/components/profile/profile-edit-form";
+import { DeactivateAccountForm } from "@/components/profile/deactivate-account-form";
 
 export const metadata: Metadata = {
   title: "Edit Profile",
@@ -39,6 +40,13 @@ export default async function ProfileEditPage() {
           skills={skills}
           selectedSkillIds={user.facilitatorSkills.map((fs) => fs.skillId)}
         />
+      </div>
+
+      <div className="card" style={{ maxWidth: 640, borderColor: "var(--destructive)" }}>
+        <h2 className="text-lg font-semibold text-destructive">Danger zone</h2>
+        <div className="mt-4">
+          <DeactivateAccountForm />
+        </div>
       </div>
     </>
   );

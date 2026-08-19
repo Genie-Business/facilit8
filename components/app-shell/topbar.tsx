@@ -24,6 +24,7 @@ const PAGE_META: Record<string, { group: string; label: string }> = {
   "/wallet": { group: "Account", label: "Wallet" },
   "/settings/kyc": { group: "Account", label: "Verify Identity" },
   "/organization/verify": { group: "Account", label: "Verify Business" },
+  "/organization/members": { group: "Account", label: "Team Members" },
   "/notifications": { group: "Workspace", label: "Notifications" },
   "/search": { group: "Workspace", label: "Search" },
   "/admin": { group: "Admin", label: "Admin Home" },
@@ -32,6 +33,9 @@ const PAGE_META: Record<string, { group: string; label: string }> = {
   "/admin/content": { group: "Admin", label: "Content" },
   "/admin/activity": { group: "Admin", label: "Activity" },
   "/admin/awe-subscriptions": { group: "Admin", label: "Awé Subscriptions" },
+  "/admin/disputes": { group: "Admin", label: "Disputes" },
+  "/admin/account-recovery": { group: "Admin", label: "Account Recovery" },
+  "/admin/admins": { group: "Admin", label: "Admin Management" },
 };
 
 function metaFor(pathname: string): { group: string; label: string } {
@@ -49,6 +53,7 @@ export function Topbar({
   profileImageUrl,
   notifications,
   unreadCount,
+  variant = "app",
 }: {
   userId: string;
   name: string;
@@ -56,6 +61,7 @@ export function Topbar({
   profileImageUrl: string | null;
   notifications: NotificationItem[];
   unreadCount: number;
+  variant?: "app" | "admin";
 }) {
   const { openDrawer, theme, toggleTheme } = useShell();
   const pathname = usePathname();
@@ -90,7 +96,7 @@ export function Topbar({
           {theme === "dark" ? <Sun /> : <Moon />}
         </button>
 
-        <ProfileDropdown name={name} email={email} profileImageUrl={profileImageUrl} />
+        <ProfileDropdown name={name} email={email} profileImageUrl={profileImageUrl} variant={variant} />
       </div>
     </header>
   );

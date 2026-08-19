@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 
+import { auth } from "@/lib/auth";
 import { listAweSubscriptions } from "@/lib/services/admin-awe-subscription.service";
 import { cancelAweSubscriptionAction, undoAweSubscriptionCancellationAction } from "@/lib/actions/admin-awe-subscription.actions";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -21,6 +23,11 @@ const STATUS_BADGE: Record<AweSubscriptionStatus, "secondary" | "outline" | "des
 };
 
 export default async function AdminAweSubscriptionsPage() {
+  const session = await auth();
+  // Billing page — Support Admins can't act on it (requireSuperAdmin() in the actions), so
+  // don't show it either.
+  if (session?.user.adminTier !== "SUPER_ADMIN") redirect("/admin");
+
   const subscriptions = await listAweSubscriptions();
   const now = new Date();
 

@@ -59,6 +59,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     <ShellRoot>
       <Sidebar
         role={session.user.role}
+        adminTier={session.user.adminTier}
         user={{ name, role: session.user.role, profileImageUrl: user?.profileImageUrl ?? null }}
       />
       <div className="main" style={{ minHeight: "100vh" }}>
