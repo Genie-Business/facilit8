@@ -139,15 +139,20 @@ export function SidebarNav({
   role,
   adminTier,
   variant = "app",
+  adminCrossDomain = false,
 }: {
   role?: string;
   adminTier?: string | null;
   variant?: "app" | "admin";
+  // Whether the admin links need to cross from the app subdomain to the apex — true when
+  // this lean nav is shown from within the (app) shell (an admin viewing /profile, /chat,
+  // etc.), false when already rendered from inside /admin/* itself (already on the apex).
+  adminCrossDomain?: boolean;
 }) {
   if (variant === "admin") {
     return (
       <>
-        <NavSection label="Admin" links={adminLinksFor(adminTier, false)} />
+        <NavSection label="Admin" links={adminLinksFor(adminTier, adminCrossDomain)} />
         <NavSection label="Workspace" links={BACK_TO_APP_LINKS} />
       </>
     );

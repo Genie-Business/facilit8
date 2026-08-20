@@ -55,15 +55,26 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   const name = user ? `${user.firstName} ${user.lastName}` : (session.user.name ?? session.user.email ?? "");
 
+  // Admins can still land on (app)-group pages that are genuinely theirs to use (profile,
+  // chat, notifications) — but the sidebar/profile-dropdown content is written for
+  // Event Manager/Facilitator/Professional workflows (Bid, Wallet, Verify Business...),
+  // none of which apply to a staff account. Swap to the same lean "admin" chrome used
+  // inside /admin/* itself, rather than a member-oriented shell with an admin section
+  // bolted onto the bottom of it.
+  const variant = session.user.role === "ADMIN" ? "admin" : "app";
+
   return (
     <ShellRoot>
       <Sidebar
+        variant={variant}
+        adminCrossDomain
         role={session.user.role}
         adminTier={session.user.adminTier}
         user={{ name, role: session.user.role, profileImageUrl: user?.profileImageUrl ?? null }}
       />
       <div className="main" style={{ minHeight: "100vh" }}>
         <Topbar
+          variant={variant}
           userId={session.user.id}
           name={name}
           email={user?.email ?? session.user.email ?? ""}

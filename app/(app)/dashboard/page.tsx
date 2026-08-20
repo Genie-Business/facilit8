@@ -19,6 +19,7 @@ import { getWalletBalance } from "@/lib/services/wallet.service";
 import { getUserOrganizationMembership, listPendingMembershipRequests } from "@/lib/services/organization.service";
 import { eventStatus } from "@/lib/utils/event-status";
 import { MembershipRequestRow } from "@/components/dashboard/membership-request-row";
+import { siteUrl } from "@/lib/site";
 
 const EVENT_MANAGER_ACTIONS = [
   { href: "/events/new", label: "New event", icon: Plus, variant: "primary" as const },
@@ -47,6 +48,31 @@ const TRANSACTION_TAG_CLASS: Record<string, string> = {
 export default async function DashboardPage() {
   const session = await auth();
   if (!session) return null;
+
+  // This dashboard's content (applications, funded events, membership requests) has no
+  // meaning for a staff account — an admin's real dashboard is /admin, on the apex host.
+  // A plain <a> (real HTTP navigation) rather than next/navigation's redirect(), since
+  // this needs to cross from the app subdomain to the apex and a Server Component
+  // redirect() to an absolute cross-origin URL isn't something this codebase has verified
+  // works correctly (proxy.ts's own comments document a real, previously-hit class of bug
+  // where Next's redirect handling silently collapses a cross-host Location back to a
+  // same-host relative path).
+  if (session.user.role === "ADMIN") {
+    return (
+      <div className="max-w-md space-y-3 py-12 text-center">
+        <h1 className="text-xl font-semibold">This is the member dashboard</h1>
+        <p className="text-sm text-muted-foreground">
+          Admin accounts don&apos;t have events, applications, or a wallet here — head to your real dashboard.
+        </p>
+        <a
+          href={`${siteUrl}/admin`}
+          className="inline-flex h-8 items-center justify-center rounded-lg bg-primary px-3 text-sm font-medium text-primary-foreground hover:bg-primary/80"
+        >
+          Go to Admin Home
+        </a>
+      </div>
+    );
+  }
 
   const role = session.user.role;
   const isEventManager = role === "EVENT_MANAGER";
