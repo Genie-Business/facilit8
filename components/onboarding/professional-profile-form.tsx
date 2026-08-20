@@ -48,7 +48,7 @@ export function ProfessionalProfileForm({
 
       <ImageUploadField name="profileImageUrl" label="Profile picture (optional)" defaultUrl={profileImageUrl} />
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid !grid-cols-2 !gap-4">
         <div className="space-y-2">
           <Label htmlFor="currentRole">Current job title</Label>
           <Input id="currentRole" name="currentRole" defaultValue={profile?.currentRole ?? ""} />
@@ -59,7 +59,7 @@ export function ProfessionalProfileForm({
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid !grid-cols-2 !gap-4">
         <div className="space-y-2">
           <Label htmlFor="industry">Industry</Label>
           <Input id="industry" name="industry" defaultValue={profile?.industry ?? ""} />
@@ -107,7 +107,7 @@ export function ProfessionalProfileForm({
         />
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid !grid-cols-2 !gap-4">
         <div className="space-y-2">
           <Label htmlFor="certifications">Certifications (comma-separated)</Label>
           <Input
@@ -131,7 +131,7 @@ export function ProfessionalProfileForm({
         {skills.length === 0 ? (
           <p className="text-xs text-muted-foreground">No skills are listed yet. You can add these later.</p>
         ) : (
-          <div className="grid grid-cols-2 gap-2 rounded-lg border border-input p-3">
+          <div className="grid !grid-cols-2 !gap-2 rounded-lg border border-input p-3">
             {skills.map((skill) => (
               <label key={skill.id} className="flex items-center gap-2 text-sm">
                 <input

@@ -41,7 +41,7 @@ export function EducationRecordForm({
         </Alert>
       )}
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid !grid-cols-2 !gap-3">
         <div className="space-y-1">
           <Label htmlFor="institution">Institution</Label>
           <Input id="institution" name="institution" defaultValue={record?.institution ?? ""} required />
@@ -63,7 +63,7 @@ export function EducationRecordForm({
         <Input id="fieldOfStudy" name="fieldOfStudy" defaultValue={record?.fieldOfStudy ?? ""} />
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid !grid-cols-2 !gap-3">
         <div className="space-y-1">
           <Label htmlFor="startDate">Start date</Label>
           <Input

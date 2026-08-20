@@ -46,7 +46,7 @@ export function CareerDirectionForm({
 
       <div className="space-y-2">
         <Label>What are you trying to achieve? (select all that apply)</Label>
-        <div className="grid grid-cols-2 gap-2 rounded-lg border border-input p-3">
+        <div className="grid !grid-cols-2 !gap-2 rounded-lg border border-input p-3">
           {CAREER_GOAL_TAGS.map((tag) => (
             <label key={tag} className="flex items-center gap-2 text-sm">
               <input
@@ -62,7 +62,7 @@ export function CareerDirectionForm({
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid !grid-cols-2 !gap-4">
         <div className="space-y-2">
           <Label htmlFor="targetRole">Target role</Label>
           <Input id="targetRole" name="targetRole" defaultValue={profile?.targetRole ?? ""} />
@@ -73,7 +73,7 @@ export function CareerDirectionForm({
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid !grid-cols-2 !gap-4">
         <div className="space-y-2">
           <Label htmlFor="targetCareerLevel">Target career level</Label>
           <select
@@ -118,7 +118,7 @@ export function CareerDirectionForm({
         />
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid !grid-cols-2 !gap-4">
         <div className="space-y-2">
           <Label htmlFor="topStrengths">Top strengths (comma-separated)</Label>
           <Input id="topStrengths" name="topStrengths" defaultValue={(profile?.topStrengths ?? []).join(", ")} />
@@ -133,7 +133,7 @@ export function CareerDirectionForm({
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid !grid-cols-2 !gap-4">
         <div className="space-y-2">
           <Label htmlFor="weakSkills">Weak skills (comma-separated)</Label>
           <Input id="weakSkills" name="weakSkills" defaultValue={(profile?.weakSkills ?? []).join(", ")} />
@@ -150,7 +150,7 @@ export function CareerDirectionForm({
 
       <div className="space-y-2">
         <Label>What's getting in the way? (select all that apply)</Label>
-        <div className="grid grid-cols-2 gap-2 rounded-lg border border-input p-3">
+        <div className="grid !grid-cols-2 !gap-2 rounded-lg border border-input p-3">
           {CHALLENGE_TAGS.map((tag) => (
             <label key={tag} className="flex items-center gap-2 text-sm">
               <input

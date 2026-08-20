@@ -46,7 +46,7 @@ export function EmploymentRecordForm({
         </Alert>
       )}
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid !grid-cols-2 !gap-3">
         <div className="space-y-1">
           <Label htmlFor="companyName">Company</Label>
           <Input id="companyName" name="companyName" defaultValue={record?.companyName ?? ""} required />
@@ -61,7 +61,7 @@ export function EmploymentRecordForm({
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid !grid-cols-2 !gap-3">
         <div className="space-y-1">
           <Label htmlFor="industry">Industry</Label>
           <Input id="industry" name="industry" defaultValue={record?.industry ?? ""} />
@@ -88,7 +88,7 @@ export function EmploymentRecordForm({
         <Input id="location" name="location" defaultValue={record?.location ?? ""} />
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid !grid-cols-2 !gap-3">
         <div className="space-y-1">
           <Label htmlFor="startDate">Start date</Label>
           <Input
@@ -147,7 +147,7 @@ export function EmploymentRecordForm({
         />
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid !grid-cols-2 !gap-3">
         <div className="space-y-1">
           <Label htmlFor="majorProjects">Major projects</Label>
           <Input id="majorProjects" name="majorProjects" defaultValue={record?.majorProjects ?? ""} />

@@ -74,7 +74,7 @@ export function OrganizationProfileForm({ profile, disabled }: { profile: Organi
         </Alert>
       )}
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid !grid-cols-2 !gap-4">
         <div className="space-y-2">
           <Label htmlFor="organizationType">Organization type</Label>
           <select
@@ -109,7 +109,7 @@ export function OrganizationProfileForm({ profile, disabled }: { profile: Organi
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid !grid-cols-2 !gap-4">
         <div className="space-y-2">
           <Label htmlFor="website">Website</Label>
           <Input id="website" name="website" defaultValue={profile?.website ?? ""} />
@@ -126,7 +126,7 @@ export function OrganizationProfileForm({ profile, disabled }: { profile: Organi
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid !grid-cols-2 !gap-4">
         <div className="space-y-2">
           <Label htmlFor="locations">Locations (comma-separated)</Label>
           <Input id="locations" name="locations" defaultValue={(profile?.locations ?? []).join(", ")} />
@@ -139,7 +139,7 @@ export function OrganizationProfileForm({ profile, disabled }: { profile: Organi
 
       <div className="space-y-2">
         <Label>Workforce levels present</Label>
-        <div className="grid grid-cols-3 gap-2 rounded-lg border border-input p-3">
+        <div className="grid !grid-cols-3 !gap-2 rounded-lg border border-input p-3">
           {WORKFORCE_LEVELS.map((level) => (
             <label key={level} className="flex items-center gap-2 text-sm">
               <input
@@ -157,7 +157,7 @@ export function OrganizationProfileForm({ profile, disabled }: { profile: Organi
 
       <div className="space-y-2">
         <Label>Training needs</Label>
-        <div className="grid grid-cols-2 gap-2 rounded-lg border border-input p-3">
+        <div className="grid !grid-cols-2 !gap-2 rounded-lg border border-input p-3">
           {TRAINING_NEED_TAGS.map((tag) => (
             <label key={tag} className="flex items-center gap-2 text-sm">
               <input
@@ -175,7 +175,7 @@ export function OrganizationProfileForm({ profile, disabled }: { profile: Organi
 
       <div className="space-y-2">
         <Label>Workforce challenges</Label>
-        <div className="grid grid-cols-2 gap-2 rounded-lg border border-input p-3">
+        <div className="grid !grid-cols-2 !gap-2 rounded-lg border border-input p-3">
           {WORKFORCE_CHALLENGE_TAGS.map((tag) => (
             <label key={tag} className="flex items-center gap-2 text-sm">
               <input
@@ -191,7 +191,7 @@ export function OrganizationProfileForm({ profile, disabled }: { profile: Organi
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid !grid-cols-2 !gap-4">
         <div className="space-y-2">
           <Label htmlFor="preferredFormat">Preferred training format</Label>
           <select
@@ -216,7 +216,7 @@ export function OrganizationProfileForm({ profile, disabled }: { profile: Organi
 
       <div className="space-y-2">
         <Label>Preferred training schedule</Label>
-        <div className="grid grid-cols-2 gap-2 rounded-lg border border-input p-3">
+        <div className="grid !grid-cols-2 !gap-2 rounded-lg border border-input p-3">
           {PREFERRED_SCHEDULES.map((schedule) => (
             <label key={schedule} className="flex items-center gap-2 text-sm">
               <input
@@ -232,7 +232,7 @@ export function OrganizationProfileForm({ profile, disabled }: { profile: Organi
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid !grid-cols-3 !gap-4">
         <div className="space-y-2">
           <Label htmlFor="trainingFrequency">Training frequency</Label>
           <select
@@ -283,7 +283,7 @@ export function OrganizationProfileForm({ profile, disabled }: { profile: Organi
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid !grid-cols-3 !gap-4">
         <div className="space-y-2">
           <Label htmlFor="budgetRange">Typical budget range</Label>
           <Input id="budgetRange" name="budgetRange" placeholder="e.g. ₦500,000 – ₦2,000,000" defaultValue={profile?.budgetRange ?? ""} />
@@ -298,7 +298,7 @@ export function OrganizationProfileForm({ profile, disabled }: { profile: Organi
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid !grid-cols-2 !gap-4">
         <div className="space-y-2">
           <Label htmlFor="strategicInitiatives">Strategic initiatives this year (comma-separated)</Label>
           <Input
@@ -327,7 +327,7 @@ export function OrganizationProfileForm({ profile, disabled }: { profile: Organi
 
       <div className="space-y-2">
         <Label>What gets in the way of training participation?</Label>
-        <div className="grid grid-cols-2 gap-2 rounded-lg border border-input p-3">
+        <div className="grid !grid-cols-2 !gap-2 rounded-lg border border-input p-3">
           {PARTICIPATION_BARRIER_TAGS.map((tag) => (
             <label key={tag} className="flex items-center gap-2 text-sm">
               <input

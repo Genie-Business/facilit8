@@ -35,7 +35,7 @@ export function AdminCreateForm() {
         </Alert>
       )}
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid !gap-4 sm:!grid-cols-2">
         <div className="space-y-2">
           <Label htmlFor="admin-firstName">First name</Label>
           <Input id="admin-firstName" name="firstName" required />

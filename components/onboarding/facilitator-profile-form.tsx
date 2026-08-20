@@ -50,7 +50,7 @@ export function FacilitatorProfileForm({
         </Alert>
       )}
 
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid !grid-cols-3 !gap-4">
         <div className="space-y-2">
           <Label htmlFor="yearsFacilitating">Years facilitating</Label>
           <Input
@@ -83,7 +83,7 @@ export function FacilitatorProfileForm({
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid !grid-cols-2 !gap-4">
         <div className="space-y-2">
           <Label htmlFor="typicalAudienceSize">Typical audience size</Label>
           <select
@@ -120,7 +120,7 @@ export function FacilitatorProfileForm({
 
       <div className="space-y-2">
         <Label>Training formats you deliver</Label>
-        <div className="grid grid-cols-2 gap-2 rounded-lg border border-input p-3">
+        <div className="grid !grid-cols-2 !gap-2 rounded-lg border border-input p-3">
           {FACILITATOR_TRAINING_FORMATS.map((format) => (
             <label key={format} className="flex items-center gap-2 text-sm">
               <input
@@ -145,7 +145,7 @@ export function FacilitatorProfileForm({
         />
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid !grid-cols-2 !gap-4">
         <div className="space-y-2">
           <Label htmlFor="canTrainNow">What can you confidently train on today? (comma-separated)</Label>
           <Input id="canTrainNow" name="canTrainNow" defaultValue={(profile?.canTrainNow ?? []).join(", ")} />
@@ -158,7 +158,7 @@ export function FacilitatorProfileForm({
 
       <div className="space-y-2">
         <Label>Facilitation skills: rate yourself</Label>
-        <div className="grid grid-cols-2 gap-3 rounded-lg border border-input p-3">
+        <div className="grid !grid-cols-2 !gap-3 rounded-lg border border-input p-3">
           {Object.entries(FACILITATION_SKILL_LABELS).map(([key, label]) => (
             <div key={key} className="space-y-1">
               <Label htmlFor={`skillRating_${key}`} className="text-xs text-muted-foreground">

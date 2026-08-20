@@ -69,7 +69,7 @@ export function LinkBankAccountForm({
         {state.fieldErrors?.bankCode && <p className="text-sm text-destructive">{state.fieldErrors.bankCode}</p>}
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid !grid-cols-2 !gap-4">
         <div className="space-y-2">
           <Label htmlFor="link-accountNumber">Account number</Label>
           <Input

@@ -43,7 +43,7 @@ export function LearningPreferencesForm({
 
       <div className="space-y-2">
         <Label>Preferred learning formats</Label>
-        <div className="grid grid-cols-2 gap-2 rounded-lg border border-input p-3">
+        <div className="grid !grid-cols-2 !gap-2 rounded-lg border border-input p-3">
           {LEARNING_FORMATS.map((format) => (
             <label key={format} className="flex items-center gap-2 text-sm">
               <input
@@ -59,7 +59,7 @@ export function LearningPreferencesForm({
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid !grid-cols-2 !gap-4">
         <div className="space-y-2">
           <Label htmlFor="availableLearningTime">Time available for learning</Label>
           <select
@@ -96,7 +96,7 @@ export function LearningPreferencesForm({
 
       <div className="space-y-2">
         <Label>Preferred schedule</Label>
-        <div className="grid grid-cols-2 gap-2 rounded-lg border border-input p-3">
+        <div className="grid !grid-cols-2 !gap-2 rounded-lg border border-input p-3">
           {PREFERRED_SCHEDULES.map((schedule) => (
             <label key={schedule} className="flex items-center gap-2 text-sm">
               <input

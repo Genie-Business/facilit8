@@ -70,7 +70,7 @@ export default async function AdminHomePage() {
         </div>
       </Card>
 
-      <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="mt-6 grid !gap-4 sm:!grid-cols-2 lg:!grid-cols-3">
         {sections.map((section) => (
           <Link key={section.href} href={section.href}>
             <Card className="h-full transition-colors hover:bg-muted/50">

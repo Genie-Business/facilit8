@@ -151,8 +151,17 @@ export async function loginAction(_prev: ActionState, formData: FormData): Promi
     return { deactivated: true };
   }
 
+  // Admins land on their own dashboard (apex /admin), not the app subdomain's member
+  // dashboard — the redirect callback in auth.config.ts already allow-lists both origins,
+  // and this exact signIn()-redirectTo mechanism already crosses from the apex /login page
+  // to the app subdomain for every normal login today, so this is a proven-safe cross-host
+  // hop (unlike a middleware-level NextResponse.redirect(), which has a real, documented bug
+  // collapsing cross-host redirects back to a relative path — see proxy.ts's crossHostRedirect
+  // comment). An explicit callbackUrl (e.g. bounced here from a specific admin page while
+  // logged out) still wins over this default.
   const callbackUrl = formData.get("callbackUrl");
-  const redirectTo = typeof callbackUrl === "string" && callbackUrl ? callbackUrl : `${appUrl}/dashboard`;
+  const defaultRedirect = user?.role === "ADMIN" ? `${siteUrl}/admin` : `${appUrl}/dashboard`;
+  const redirectTo = typeof callbackUrl === "string" && callbackUrl ? callbackUrl : defaultRedirect;
 
   try {
     await signIn("credentials", { ...parsed.data, redirectTo });

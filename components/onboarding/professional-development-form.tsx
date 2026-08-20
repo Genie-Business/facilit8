@@ -30,7 +30,7 @@ export function ProfessionalDevelopmentForm({ onDone, onCancel }: { onDone: () =
         </Alert>
       )}
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid !grid-cols-2 !gap-3">
         <div className="space-y-1">
           <Label htmlFor="pd-type">Type</Label>
           <select id="pd-type" name="type" defaultValue="COURSE" className={nativeSelectClassName}>
@@ -48,7 +48,7 @@ export function ProfessionalDevelopmentForm({ onDone, onCancel }: { onDone: () =
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid !grid-cols-2 !gap-3">
         <div className="space-y-1">
           <Label htmlFor="pd-provider">Provider</Label>
           <Input id="pd-provider" name="provider" />
@@ -62,7 +62,7 @@ export function ProfessionalDevelopmentForm({ onDone, onCancel }: { onDone: () =
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid !grid-cols-2 !gap-3">
         <div className="space-y-1">
           <Label htmlFor="pd-skillsAcquired">Skills acquired (comma-separated)</Label>
           <Input id="pd-skillsAcquired" name="skillsAcquired" />
