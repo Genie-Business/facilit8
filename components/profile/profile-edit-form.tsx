@@ -12,6 +12,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ImageUploadField } from "@/components/shared/image-upload-field";
 import { DocumentUploadField } from "@/components/shared/document-upload-field";
+import { TagAutocomplete } from "@/components/shared/tag-autocomplete";
+import { findOrCreateSkillAction } from "@/lib/actions/skill.actions";
 import { NIGERIA_STATES } from "@/lib/data/nigeria-locations";
 
 const nativeSelectClassName =
@@ -156,25 +158,18 @@ export function ProfileEditForm({
             Willing to travel for training assignments
           </label>
 
-          {skills.length > 0 && (
-            <div className="space-y-2">
-              <Label>Facilitating skills</Label>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }} className="rounded-lg border border-input p-3">
-                {skills.map((skill) => (
-                  <label key={skill.id} className="flex items-center gap-2 text-sm">
-                    <input
-                      type="checkbox"
-                      name="skillIds"
-                      value={skill.id}
-                      defaultChecked={selectedSkillIds.includes(skill.id)}
-                      className="size-4 rounded border-input"
-                    />
-                    {skill.name}
-                  </label>
-                ))}
-              </div>
-            </div>
-          )}
+          <TagAutocomplete
+            label="Facilitating skills"
+            name="skillIds"
+            submitMode="multiple"
+            suggestions={skills}
+            initialSelected={skills.filter((skill) => selectedSkillIds.includes(skill.id))}
+            onCreateNew={async (skillName) => {
+              const result = await findOrCreateSkillAction(skillName);
+              return result.skill ?? null;
+            }}
+            placeholder="Type to search or add a skill..."
+          />
 
           <DocumentUploadField name="cvUrl" label="CV / résumé (PDF)" defaultUrl={user.cvUrl} />
           <DocumentUploadField name="certificateUrl" label="Certificate (PDF)" defaultUrl={user.certificateUrl} />

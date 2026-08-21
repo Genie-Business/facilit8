@@ -18,6 +18,22 @@ export async function createSkill(name: string) {
   return prisma.skill.create({ data: { name: trimmed, slug } });
 }
 
+/**
+ * Used by the signup/onboarding autocomplete, where any authenticated user (not just an
+ * admin) can add a skill that doesn't exist yet. Case-insensitive match first, mirroring
+ * joinOrCreateOrganization's dedup pattern, so "Public Speaking" and "public speaking"
+ * don't become two rows.
+ */
+export async function findOrCreateSkill(name: string) {
+  const trimmed = name.trim();
+  if (!trimmed) throw new Error("Skill name can't be empty.");
+
+  const existing = await prisma.skill.findFirst({ where: { name: { equals: trimmed, mode: "insensitive" } } });
+  if (existing) return existing;
+
+  return createSkill(trimmed);
+}
+
 export async function setSkillActive(id: string, isActive: boolean) {
   return prisma.skill.update({ where: { id }, data: { isActive } });
 }

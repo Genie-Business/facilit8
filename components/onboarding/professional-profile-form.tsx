@@ -9,7 +9,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ImageUploadField } from "@/components/shared/image-upload-field";
+import { TagAutocomplete } from "@/components/shared/tag-autocomplete";
+import { findOrCreateSkillAction } from "@/lib/actions/skill.actions";
 import { HIGHEST_EDUCATION_LEVELS } from "@/lib/data/onboarding-options";
+import { COMMON_LANGUAGES } from "@/lib/data/languages";
 
 const nativeSelectClassName =
   "flex h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30";
@@ -117,36 +120,29 @@ export function ProfessionalProfileForm({
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="languagesSpoken">Languages spoken (comma-separated)</Label>
-          <Input
-            id="languagesSpoken"
+          <TagAutocomplete
+            label="Languages spoken"
             name="languagesSpoken"
-            defaultValue={(profile?.languagesSpoken ?? []).join(", ")}
+            submitMode="csv"
+            suggestions={COMMON_LANGUAGES.map((lang) => ({ id: lang, name: lang }))}
+            initialSelected={(profile?.languagesSpoken ?? []).map((lang) => ({ id: lang, name: lang }))}
+            placeholder="Type to search or add a language..."
           />
         </div>
       </div>
 
-      <div className="space-y-2">
-        <Label>Skills</Label>
-        {skills.length === 0 ? (
-          <p className="text-xs text-muted-foreground">No skills are listed yet. You can add these later.</p>
-        ) : (
-          <div className="grid !grid-cols-2 !gap-2 rounded-lg border border-input p-3">
-            {skills.map((skill) => (
-              <label key={skill.id} className="flex items-center gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  name="skillIds"
-                  value={skill.id}
-                  defaultChecked={selectedSkillIds.includes(skill.id)}
-                  className="size-4 rounded border-input"
-                />
-                {skill.name}
-              </label>
-            ))}
-          </div>
-        )}
-      </div>
+      <TagAutocomplete
+        label="Skills"
+        name="skillIds"
+        submitMode="multiple"
+        suggestions={skills}
+        initialSelected={skills.filter((skill) => selectedSkillIds.includes(skill.id))}
+        onCreateNew={async (skillName) => {
+          const result = await findOrCreateSkillAction(skillName);
+          return result.skill ?? null;
+        }}
+        placeholder="Type to search or add a skill..."
+      />
 
       <Button type="submit" disabled={pending}>
         {pending ? "Saving..." : "Continue"}

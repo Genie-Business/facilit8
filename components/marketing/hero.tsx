@@ -7,14 +7,14 @@ import { useTypewriter } from "@/lib/hooks/use-typewriter";
 import { HoverRollButton } from "./hover-roll-button";
 import { RotatingBorderButton } from "./rotating-border-button";
 import { HeroOrbit } from "./hero-orbit";
+import type { HomeContent } from "@/lib/validation/content";
 
-const HEADLINE = "Grow Your Career. Staff Your Team. Meet Awé.";
-const HIGHLIGHT_START = HEADLINE.indexOf("Meet Awé");
-
-function TypewriterHeading() {
-  const { displayed, done } = useTypewriter(HEADLINE, 35, 400);
-  const before = displayed.slice(0, Math.min(displayed.length, HIGHLIGHT_START));
-  const highlighted = displayed.slice(HIGHLIGHT_START, displayed.length);
+function TypewriterHeading({ before: beforeText, highlight }: { before: string; highlight: string }) {
+  const headline = beforeText + highlight;
+  const highlightStart = beforeText.length;
+  const { displayed, done } = useTypewriter(headline, 35, 400);
+  const before = displayed.slice(0, Math.min(displayed.length, highlightStart));
+  const highlighted = displayed.slice(highlightStart, displayed.length);
 
   return (
     <h1
@@ -28,7 +28,7 @@ function TypewriterHeading() {
   );
 }
 
-export function Hero() {
+export function Hero({ content }: { content: HomeContent["hero"] }) {
   return (
     <section className="relative overflow-hidden px-5 pt-32 pb-20 sm:px-8 sm:pt-40 sm:pb-28">
       <div className="hero-dark-bg" />
@@ -41,18 +41,14 @@ export function Hero() {
           className="flex-1 lg:max-w-[560px]"
         >
           <span className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/5 px-4 py-1.5 text-sm text-white/70">
-            The Professional Development Ecosystem
+            {content.badge}
           </span>
 
           <div className="mt-6">
-            <TypewriterHeading />
+            <TypewriterHeading before={content.headlineBefore} highlight={content.headlineHighlight} />
           </div>
 
-          <p className="mt-5 max-w-[480px] text-base leading-relaxed text-white/60 sm:text-lg">
-            Facilit8 is where professionals grow their careers, organizations staff vetted
-            training, and facilitators get discovered and paid, all guided by Awé, your AI
-            partner for what&apos;s next.
-          </p>
+          <p className="mt-5 max-w-[480px] text-base leading-relaxed text-white/60 sm:text-lg">{content.subhead}</p>
 
           <motion.div
             initial={{ opacity: 0 }}

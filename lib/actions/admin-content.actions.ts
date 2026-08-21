@@ -5,7 +5,14 @@ import { revalidatePath } from "next/cache";
 import { createFaq, deleteFaq } from "@/lib/services/faq.service";
 import { upsertLegalPage } from "@/lib/services/legal-page.service";
 import { updateSiteSettings } from "@/lib/services/site-settings.service";
-import { faqFormSchema, legalPageFormSchema, siteSettingsFormSchema } from "@/lib/validation/content";
+import { updateMarketingPageContent } from "@/lib/services/marketing-content.service";
+import {
+  faqFormSchema,
+  legalPageFormSchema,
+  siteSettingsFormSchema,
+  marketingPageContentFormSchema,
+  MARKETING_PAGE_SCHEMAS,
+} from "@/lib/validation/content";
 import { ActionState, firstFieldErrors } from "@/lib/actions/shared";
 import { requireAdmin } from "@/lib/auth/admin-guard";
 
@@ -56,4 +63,35 @@ export async function updateSiteSettingsAction(_prev: ActionState, formData: For
   revalidatePath("/admin/content");
   revalidatePath("/contact");
   return { success: "Site info updated." };
+}
+
+const PAGE_PATH: Record<string, string> = { home: "/", about: "/about", services: "/services", careers: "/careers" };
+
+export async function updateMarketingPageContentAction(
+  _prev: ActionState,
+  formData: FormData
+): Promise<ActionState> {
+  await requireAdmin();
+
+  const parsed = marketingPageContentFormSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) {
+    return { fieldErrors: firstFieldErrors(parsed.error.flatten().fieldErrors) };
+  }
+
+  let blocks: unknown;
+  try {
+    blocks = JSON.parse(parsed.data.blocks);
+  } catch {
+    return { error: "Something went wrong building that page's content. Please try again." };
+  }
+
+  const pageParsed = MARKETING_PAGE_SCHEMAS[parsed.data.page].safeParse(blocks);
+  if (!pageParsed.success) {
+    return { error: "Every field is required — check for any blank titles or descriptions." };
+  }
+
+  await updateMarketingPageContent(parsed.data.page, pageParsed.data);
+  revalidatePath("/admin/content");
+  revalidatePath(PAGE_PATH[parsed.data.page]);
+  return { success: "Page updated." };
 }

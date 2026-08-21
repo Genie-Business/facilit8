@@ -755,6 +755,19 @@ model LegalPage {
   updatedAt   DateTime @updatedAt
 }
 
+// Admin-editable copy for the "home" | "about" | "services" | "careers" marketing pages —
+// each page's `blocks` shape is specific to that page (mirrors its current hardcoded JSX
+// structure exactly), not a generic block-builder. Public pages fall back to their
+// hardcoded defaults when no row exists yet for that page, so nothing regresses before an
+// admin has edited anything. Unrelated to HomepageContent/PricingContent below (dead
+// scaffolding for a future redesign, never wired up) — left untouched.
+model MarketingPageContent {
+  id        String   @id @default(cuid())
+  page      String   @unique
+  blocks    Json
+  updatedAt DateTime @updatedAt
+}
+
 // Replaces Django's ~55-field Homepage model with a block/JSON structure — this page
 // gets redesigned in a later phase anyway, so a flat 55-column table isn't worth porting.
 model HomepageContent {

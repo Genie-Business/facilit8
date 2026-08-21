@@ -7,20 +7,23 @@ import { ServicesGrid } from "@/components/marketing/services-grid";
 import { MissionSection } from "@/components/marketing/mission-section";
 import { AweSection } from "@/components/marketing/awe-section";
 import { CategoryTicker } from "@/components/marketing/category-ticker";
+import { getMarketingPageContent } from "@/lib/services/marketing-content.service";
 
 export const metadata: Metadata = {
   alternates: { canonical: "/" },
 };
 
-export default function HomePage() {
+export default async function HomePage() {
+  const content = await getMarketingPageContent("home");
+
   return (
     <>
-      <Hero />
-      <ThreeAudiences />
+      <Hero content={content.hero} />
+      <ThreeAudiences eyebrow={content.audiencesEyebrow} title={content.audiencesTitle} audiences={content.audiences} />
       <VideoShowcase />
-      <ServicesGrid />
-      <MissionSection />
-      <AweSection />
+      <ServicesGrid eyebrow={content.servicesEyebrow} title={content.servicesTitle} services={content.services} />
+      <MissionSection eyebrow={content.missionEyebrow} title={content.missionTitle} body={content.missionBody} />
+      <AweSection content={content.awe} />
       <CategoryTicker />
     </>
   );

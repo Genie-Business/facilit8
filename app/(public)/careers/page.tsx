@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 
 import { MarketingPageHeader } from "@/components/marketing/page-header";
 import { HoverRollButton } from "@/components/marketing/hover-roll-button";
+import { getMarketingPageContent } from "@/lib/services/marketing-content.service";
 
 export const metadata: Metadata = {
   title: "Careers",
@@ -9,21 +10,19 @@ export const metadata: Metadata = {
   alternates: { canonical: "/careers" },
 };
 
-export default function CareersPage() {
+export default async function CareersPage() {
+  const content = await getMarketingPageContent("careers");
+
   return (
     <>
       <MarketingPageHeader
-        eyebrow="Careers"
-        title="We're not actively hiring right now."
-        description="But we're always glad to hear from people who care about the problem we're solving."
+        eyebrow={content.hero.eyebrow}
+        title={content.hero.title}
+        description={content.hero.description}
       />
 
       <section className="mx-auto max-w-[800px] px-5 py-16 sm:px-8 sm:py-20">
-        <p className="text-base leading-relaxed text-muted-foreground">
-          Facilit8 is a small, early-stage team. We don&apos;t have open roles listed at the
-          moment, but if you&apos;re interested in what we&apos;re building, send us a note. We
-          keep good conversations on file for when that changes.
-        </p>
+        <p className="text-base leading-relaxed text-muted-foreground">{content.body}</p>
         <div className="mt-8">
           <HoverRollButton href="/contact">Get in touch</HoverRollButton>
         </div>

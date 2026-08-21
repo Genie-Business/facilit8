@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { listAllFaqs } from "@/lib/services/faq.service";
 import { getLegalPage } from "@/lib/services/legal-page.service";
 import { getSiteSettings } from "@/lib/services/site-settings.service";
+import { getMarketingPageContent } from "@/lib/services/marketing-content.service";
 import { deleteFaqAction } from "@/lib/actions/admin-content.actions";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,6 +12,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FaqForm } from "@/components/admin/faq-form";
 import { LegalPageForm } from "@/components/admin/legal-page-form";
 import { SiteSettingsForm } from "@/components/admin/site-settings-form";
+import { HomeContentForm } from "@/components/admin/marketing-content/home-content-form";
+import { AboutContentForm } from "@/components/admin/marketing-content/about-content-form";
+import { ServicesContentForm } from "@/components/admin/marketing-content/services-content-form";
+import { CareersContentForm } from "@/components/admin/marketing-content/careers-content-form";
 
 export const metadata: Metadata = {
   title: "Content",
@@ -18,23 +23,32 @@ export const metadata: Metadata = {
 };
 
 export default async function AdminContentPage() {
-  const [faqs, privacyPage, termsPage, siteSettings] = await Promise.all([
-    listAllFaqs(),
-    getLegalPage("privacy"),
-    getLegalPage("terms"),
-    getSiteSettings(),
-  ]);
+  const [faqs, privacyPage, termsPage, siteSettings, homeContent, aboutContent, servicesContent, careersContent] =
+    await Promise.all([
+      listAllFaqs(),
+      getLegalPage("privacy"),
+      getLegalPage("terms"),
+      getSiteSettings(),
+      getMarketingPageContent("home"),
+      getMarketingPageContent("about"),
+      getMarketingPageContent("services"),
+      getMarketingPageContent("careers"),
+    ]);
 
   return (
     <div className="max-w-3xl space-y-6">
       <div>
         <h1 className="text-2xl font-semibold">Content</h1>
-        <p className="text-muted-foreground">Manage the FAQ, legal pages, and contact info shown on the public site.</p>
+        <p className="text-muted-foreground">Manage every landing page, the FAQ, legal pages, and contact info.</p>
       </div>
 
       <Tabs defaultValue="faq">
         <TabsList>
           <TabsTrigger value="faq">FAQ</TabsTrigger>
+          <TabsTrigger value="home">Home</TabsTrigger>
+          <TabsTrigger value="about">About</TabsTrigger>
+          <TabsTrigger value="services">Services</TabsTrigger>
+          <TabsTrigger value="careers">Careers</TabsTrigger>
           <TabsTrigger value="privacy">Privacy</TabsTrigger>
           <TabsTrigger value="terms">Terms</TabsTrigger>
           <TabsTrigger value="site-info">Site Info</TabsTrigger>
@@ -87,6 +101,50 @@ export default async function AdminContentPage() {
                   </TableBody>
                 </Table>
               )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="home" className="mt-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Homepage</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <HomeContentForm initial={homeContent} />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="about" className="mt-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">About page</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <AboutContentForm initial={aboutContent} />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="services" className="mt-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Services page</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ServicesContentForm initial={servicesContent} />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="careers" className="mt-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Careers page</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <CareersContentForm initial={careersContent} />
             </CardContent>
           </Card>
         </TabsContent>
