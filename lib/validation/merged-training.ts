@@ -14,6 +14,7 @@ export const mergedTrainingFormSchema = z
     pricePerDelegate: z.coerce.number().positive("Price per delegate must be a positive number."),
     deadline: z.string().min(1, "Funding deadline is required."),
     isInviteOnly: z.coerce.boolean().optional(),
+    visibility: z.enum(["PUBLIC", "TEAM_ONLY"]).optional(),
     // Optional — a Facilitator proposing a session isn't funding a delegate share
     // themselves, so this only applies to Event Manager / Professional initiators.
     initiatorNumDelegates: z.coerce.number().int().positive("Enter how many delegates you're bringing.").optional(),

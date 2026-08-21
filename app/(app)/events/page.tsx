@@ -40,9 +40,11 @@ export default async function EventsPage() {
   // the multi-tenancy plan. No filter existed here at all before this.
   const seesEverything = session.user.role === "FACILITATOR" || session.user.role === "ADMIN";
   const ownOrgId = seesEverything ? null : await getApprovedOrganizationId(session.user.id);
-  const trainingEventWhere = seesEverything
-    ? {}
-    : { OR: [{ visibility: "PUBLIC" as const }, ...(ownOrgId ? [{ organizationId: ownOrgId }] : [])] };
+  const visibilityOr = { OR: [{ visibility: "PUBLIC" as const }, ...(ownOrgId ? [{ organizationId: ownOrgId }] : [])] };
+  const trainingEventWhere = seesEverything ? {} : visibilityOr;
+  const mergedEventWhere = seesEverything
+    ? { isPostedToBoard: true, cancelled: false }
+    : { isPostedToBoard: true, cancelled: false, ...visibilityOr };
 
   const [trainingEvents, mergedEvents] = await Promise.all([
     prisma.trainingEvent.findMany({
@@ -56,7 +58,7 @@ export default async function EventsPage() {
       },
     }),
     prisma.mergedTrainingEvent.findMany({
-      where: { isPostedToBoard: true, cancelled: false },
+      where: mergedEventWhere,
       orderBy: { createdAt: "desc" },
       take: 60,
       include: {
@@ -106,7 +108,7 @@ export default async function EventsPage() {
         bidCount: event._count.applications,
         isOwner: event.initiatorId === session.user.id,
         hasApplied: event.applications.length > 0,
-        isTeamOnly: false,
+        isTeamOnly: event.visibility === "TEAM_ONLY",
         createdAt: event.createdAt,
       };
     }),

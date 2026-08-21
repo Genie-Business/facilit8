@@ -11,6 +11,9 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const initialState: ActionState = {};
 
+const nativeSelectClassName =
+  "flex h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30";
+
 function toDateInputValue(date?: Date | string): string {
   if (!date) return "";
   const d = typeof date === "string" ? new Date(date) : date;
@@ -32,6 +35,7 @@ export interface MergedTrainingFormDefaults {
   deadline?: Date | string;
   isInviteOnly?: boolean;
   initiatorNumDelegates?: number;
+  visibility?: "PUBLIC" | "TEAM_ONLY";
 }
 
 export interface InviteGroup {
@@ -47,6 +51,7 @@ export function MergedTrainingForm({
   submitLabel,
   inviteGroups,
   hideInitiatorDelegates,
+  canOfferTeamOnly = false,
 }: {
   action: (prevState: ActionState, formData: FormData) => Promise<ActionState>;
   defaults?: MergedTrainingFormDefaults;
@@ -55,6 +60,8 @@ export function MergedTrainingForm({
   inviteGroups?: InviteGroup[];
   /** True when the current user is a Facilitator — they're proposing/delivering, not funding a delegate share. */
   hideInitiatorDelegates?: boolean;
+  /** Only an OWNER/MANAGER of an org can restrict the board listing to their own team. */
+  canOfferTeamOnly?: boolean;
 }) {
   const [state, formAction, pending] = useActionState(action, initialState);
   const [isInviteOnly, setIsInviteOnly] = useState(!!defaults?.isInviteOnly);
@@ -196,6 +203,21 @@ export function MergedTrainingForm({
           Invite-only (not shown on the public board)
         </Label>
       </div>
+
+      {canOfferTeamOnly && (
+        <div className="space-y-2">
+          <Label htmlFor="visibility">Who can see this on the board</Label>
+          <select
+            id="visibility"
+            name="visibility"
+            defaultValue={defaults?.visibility ?? "PUBLIC"}
+            className={nativeSelectClassName}
+          >
+            <option value="PUBLIC">Public — anyone on Facilit8</option>
+            <option value="TEAM_ONLY">Team only — your org's members (Facilitators can still bid)</option>
+          </select>
+        </div>
+      )}
 
       {isInviteOnly &&
         inviteGroups?.map((group) =>

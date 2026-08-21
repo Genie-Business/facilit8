@@ -18,6 +18,7 @@ import {
 } from "@/lib/validation/merged-training";
 import { ActionState, firstFieldErrors } from "@/lib/actions/shared";
 import { siteUrl } from "@/lib/site";
+import { resolveEventVisibility } from "@/lib/services/organization.service";
 
 function daysBetween(start: Date, end: Date): number {
   const ms = end.getTime() - start.getTime();
@@ -68,9 +69,14 @@ export async function createMergedTrainingAction(_prev: ActionState, formData: F
     async (candidate) => (await prisma.mergedTrainingEvent.findUnique({ where: { slug: candidate } })) !== null
   );
 
+  // Visibility scoping only — see the schema comment on MergedTrainingEvent.organizationId.
+  const { organizationId, visibility } = await resolveEventVisibility(session.user.id, data.visibility);
+
   const mergedEvent = await prisma.mergedTrainingEvent.create({
     data: {
       initiatorId: session.user.id,
+      organizationId,
+      visibility,
       title: data.title,
       description: data.description || null,
       startDate: new Date(data.startDate),
@@ -145,10 +151,12 @@ export async function updateMergedTrainingAction(_prev: ActionState, formData: F
     return { fieldErrors: firstFieldErrors(parsed.error.flatten().fieldErrors) };
   }
   const data = parsed.data;
+  const { visibility } = await resolveEventVisibility(session.user.id, data.visibility);
 
   await prisma.mergedTrainingEvent.update({
     where: { id: existing.id },
     data: {
+      visibility,
       title: data.title,
       description: data.description || null,
       startDate: new Date(data.startDate),

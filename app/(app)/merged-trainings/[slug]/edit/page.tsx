@@ -5,6 +5,7 @@ import { prisma } from "@/lib/db";
 import { updateMergedTrainingAction } from "@/lib/actions/merged-training.actions";
 import { getInviteGroupsForInitiator } from "@/lib/services/merged-training-invite-candidates";
 import { MergedTrainingForm } from "@/components/merged-training/merged-training-form";
+import { canManageOrganization } from "@/lib/services/organization.service";
 
 export default async function EditMergedTrainingPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
@@ -25,6 +26,9 @@ export default async function EditMergedTrainingPage({ params }: { params: Promi
     session.user.role as "EVENT_MANAGER" | "PROFESSIONAL" | "FACILITATOR",
     session.user.id
   );
+  const canOfferTeamOnly = mergedEvent.organizationId
+    ? await canManageOrganization(session.user.id, mergedEvent.organizationId)
+    : false;
 
   return (
     <div className="space-y-6">
@@ -34,6 +38,7 @@ export default async function EditMergedTrainingPage({ params }: { params: Promi
         submitLabel="Save changes"
         inviteGroups={inviteGroups}
         hideInitiatorDelegates={session.user.role === "FACILITATOR"}
+        canOfferTeamOnly={canOfferTeamOnly}
         defaults={{
           slug: mergedEvent.slug,
           title: mergedEvent.title,
@@ -48,6 +53,7 @@ export default async function EditMergedTrainingPage({ params }: { params: Promi
           pricePerDelegate: mergedEvent.pricePerDelegate.toString(),
           deadline: mergedEvent.deadline,
           isInviteOnly: mergedEvent.isInviteOnly,
+          visibility: mergedEvent.visibility,
         }}
       />
     </div>

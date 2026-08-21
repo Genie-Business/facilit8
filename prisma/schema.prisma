@@ -572,6 +572,13 @@ model MergedTrainingEvent {
   id                String              @id @default(cuid())
   initiatorId       String
   initiator         User                @relation("Initiator", fields: [initiatorId], references: [id], onDelete: Cascade)
+  // Same visibility-scoping pattern as TrainingEvent (see there for the full rationale):
+  // purely a listing tag, resolved via resolveEventVisibility. Doesn't touch isInviteOnly/
+  // isPostedToBoard (who can fund/join, already a separate mechanism) or funding/payout —
+  // just whether it shows up on the general board to non-Facilitators outside the org.
+  organizationId    String?
+  organization      Organization?       @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  visibility        EventVisibility     @default(PUBLIC)
   title             String
   description       String?
   startDate         DateTime
@@ -609,6 +616,7 @@ model MergedTrainingEvent {
 
   @@index([initiatorId])
   @@index([isPostedToBoard, isFullyFunded])
+  @@index([organizationId])
 }
 
 // Facilitator-initiated sessions only — the initiating facilitator can invite fellow
@@ -845,6 +853,7 @@ model Organization {
   trainingHistory OrganizationTrainingHistory[]
   invites         OrganizationInvite[]
   events          TrainingEvent[]
+  mergedEvents    MergedTrainingEvent[]
 }
 
 enum BusinessRegistrationType {

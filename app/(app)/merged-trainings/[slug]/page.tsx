@@ -83,6 +83,7 @@ export default async function MergedTrainingDetailPage({ params }: { params: Pro
           {!mergedEvent.cancelled && mergedEvent.isFullyFunded && <span className="tag t-active">Fully funded</span>}
           {!mergedEvent.cancelled && !mergedEvent.isFullyFunded && <span className="tag t-old">Funding</span>}
           {mergedEvent.isCompleted && <span className="tag t-info">Completed</span>}
+          {mergedEvent.visibility === "TEAM_ONLY" && <span className="tag t-info">Team only</span>}
         </div>
       </section>
 
