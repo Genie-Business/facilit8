@@ -23,13 +23,23 @@ import {
   deleteProfessionalDevelopment,
 } from "@/lib/services/professional-development.service";
 import { upsertFacilitatorProfile, setFacilitationSkillRatings } from "@/lib/services/facilitator-profile.service";
-import { upsertOrganizationProfile } from "@/lib/services/organization-profile.service";
-import { getUserOrganizationMembership } from "@/lib/services/organization.service";
+import {
+  upsertOrganizationProfile,
+  upsertTeamDirection,
+  markTeamGoalsAchieved,
+} from "@/lib/services/organization-profile.service";
+import { getUserOrganizationMembership, isBusinessEventManager } from "@/lib/services/organization.service";
+import {
+  createOrganizationTrainingHistory,
+  deleteOrganizationTrainingHistory,
+} from "@/lib/services/organization-training-history.service";
 import {
   professionalProfileSchema,
   employmentHistoryFormSchema,
   educationHistoryFormSchema,
   professionalDevelopmentFormSchema,
+  organizationTrainingHistoryFormSchema,
+  teamDirectionSchema,
   careerDirectionSchema,
   learningPreferencesSchema,
   facilitatorProfileSchema,
@@ -94,7 +104,8 @@ export async function updateProfessionalProfileAction(_prev: ActionState, formDa
 
   await advanceStep(user.id, 1);
   revalidatePath("/onboarding");
-  redirect("/onboarding/background");
+  const isBusiness = user.role === "EVENT_MANAGER" && (await isBusinessEventManager(user.id));
+  redirect(isBusiness ? "/onboarding/team-training" : "/onboarding/background");
 }
 
 export async function addEmploymentHistoryAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
@@ -184,6 +195,67 @@ export async function continueFromBackgroundAction(): Promise<void> {
   const user = await requireUser();
   await advanceStep(user.id, 2);
   redirect("/onboarding/career-direction");
+}
+
+// ---------- Business Event Manager fork: team training history + team direction ----------
+// Replaces employment-history/career-direction (above) for an EM who filled a company name
+// at signup (see isBusinessEventManager) — the org itself has no personal employment
+// history or career, so this is the org's shared history/goals instead.
+
+async function requireOrganizationId(userId: string): Promise<string> {
+  const membership = await getUserOrganizationMembership(userId);
+  if (!membership) throw new Error("No organization found for this account.");
+  return membership.organizationId;
+}
+
+export async function addOrganizationTrainingHistoryAction(
+  _prev: ActionState,
+  formData: FormData
+): Promise<ActionState> {
+  const user = await requireUser();
+  const organizationId = await requireOrganizationId(user.id);
+
+  const parsed = organizationTrainingHistoryFormSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return { fieldErrors: firstFieldErrors(parsed.error.flatten().fieldErrors) };
+
+  await createOrganizationTrainingHistory(organizationId, user.id, parsed.data);
+  revalidatePath("/onboarding/team-training");
+  return { success: "Record added." };
+}
+
+export async function deleteOrganizationTrainingHistoryAction(id: string): Promise<void> {
+  const user = await requireUser();
+  const organizationId = await requireOrganizationId(user.id);
+  await deleteOrganizationTrainingHistory(id, organizationId, user.id);
+  revalidatePath("/onboarding/team-training");
+}
+
+export async function continueFromTeamTrainingAction(): Promise<void> {
+  const user = await requireUser();
+  await advanceStep(user.id, 2);
+  redirect("/onboarding/team-direction");
+}
+
+export async function updateTeamDirectionAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const user = await requireUser();
+  const organizationId = await requireOrganizationId(user.id);
+
+  const parsed = teamDirectionSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return { fieldErrors: firstFieldErrors(parsed.error.flatten().fieldErrors) };
+
+  await upsertTeamDirection(organizationId, parsed.data);
+
+  await advanceStep(user.id, 3);
+  revalidatePath("/onboarding");
+  redirect("/onboarding/learning-preferences");
+}
+
+export async function markTeamGoalsAchievedAction(): Promise<void> {
+  const user = await requireUser();
+  const organizationId = await requireOrganizationId(user.id);
+  await markTeamGoalsAchieved(organizationId);
+  revalidatePath("/onboarding/team-direction");
+  revalidatePath("/organization/members");
 }
 
 export async function updateCareerDirectionAction(_prev: ActionState, formData: FormData): Promise<ActionState> {

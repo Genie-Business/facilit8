@@ -52,7 +52,7 @@ const SINGLE_HOST_MODE = APP_HOSTNAME === new URL(siteUrl).hostname;
 // group), but need the same strict treatment as the authenticated app — they collect
 // credentials, PII, and bank details. (auth)/layout.tsx forces all four dynamic for exactly
 // this reason (see the comment there).
-const AUTH_PATH_PREFIXES = ["/login", "/signup", "/forgot-password", "/reset-password", "/recover-account"];
+const AUTH_PATH_PREFIXES = ["/login", "/signup", "/forgot-password", "/reset-password", "/recover-account", "/invite"];
 
 // Whether a request needs the strict, nonce'd script-src. Next.js can only thread a fresh
 // per-request nonce onto its own <script> tags when the route is actually dynamically

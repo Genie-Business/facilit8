@@ -80,3 +80,27 @@ export async function upsertOrganizationProfile(organizationId: string, input: U
     update: definedFields,
   });
 }
+
+export interface UpsertTeamDirectionInput {
+  teamGoals?: string | null;
+  teamGoalTimeline?: string | null;
+}
+
+/** Replaces the personal "Career Direction" onboarding step for a business Event Manager. */
+export async function upsertTeamDirection(organizationId: string, input: UpsertTeamDirectionInput) {
+  return prisma.organizationProfile.upsert({
+    where: { organizationId },
+    create: { organizationId, ...input },
+    update: { ...input, teamGoalsAchievedAt: null }, // setting new goals clears any prior "achieved" mark
+  });
+}
+
+/** Explicit action, not just an edit — marks the *current* goals as done; the next edit to
+ * teamGoals (above) clears this again, so there's no separate history model to maintain. */
+export async function markTeamGoalsAchieved(organizationId: string) {
+  return prisma.organizationProfile.upsert({
+    where: { organizationId },
+    create: { organizationId, teamGoalsAchievedAt: new Date() },
+    update: { teamGoalsAchievedAt: new Date() },
+  });
+}

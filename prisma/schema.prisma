@@ -808,9 +808,11 @@ model Organization {
   verificationStatus       OrgVerificationStatus     @default(UNVERIFIED)
   verificationFailedReason String?
 
-  memberships OrganizationMembership[]
-  documents   OrganizationDocument[]
-  profile     OrganizationProfile?
+  memberships    OrganizationMembership[]
+  documents      OrganizationDocument[]
+  profile        OrganizationProfile?
+  trainingHistory OrganizationTrainingHistory[]
+  invites        OrganizationInvite[]
 }
 
 enum BusinessRegistrationType {
@@ -873,6 +875,26 @@ model OrganizationMembership {
   @@unique([organizationId, userId])
   @@index([organizationId, status])
   @@index([userId])
+}
+
+// Owner/manager-initiated invite, distinct from the request-then-approve flow
+// (OrganizationMembership above) — inviting *is* the approval, so redemption creates an
+// already-APPROVED membership directly. Same hashed-token/expiry/single-use shape as
+// PasswordResetToken/AccountRecoveryToken; email isn't tied to a userId up front since the
+// invitee may not have an account yet (see redeemOrgInvite's two branches).
+model OrganizationInvite {
+  id             String        @id @default(cuid())
+  organizationId String
+  organization   Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  invitedByUserId String
+  email          String
+  role           OrgMemberRole @default(MEMBER)
+  tokenHash      String        @unique
+  expiresAt      DateTime
+  usedAt         DateTime?
+  createdAt      DateTime      @default(now())
+
+  @@index([organizationId])
 }
 
 // ---------- Skills (admin-managed taxonomy for Facilitator profiles) ----------
@@ -1221,8 +1243,35 @@ model OrganizationProfile {
   learningCulture       String?
   participationBarriers String[]
 
+  // Team Direction — replaces the personal "Career Direction" onboarding step for a
+  // business Event Manager (org itself has no individual career, so this is the org's own
+  // goals instead). teamGoalsAchievedAt is set by an explicit "mark achieved" action, not
+  // just editing the text — OWNER/MANAGER can then set new goals; no separate history model,
+  // just the current goals plus when the current ones were achieved (if at all).
+  teamGoals           String?
+  teamGoalTimeline    String?
+  teamGoalsAchievedAt DateTime?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+// Trainings the organization has already run for its own staff — replaces the personal
+// "Employment History" onboarding step for a business Event Manager, since the org itself
+// has no employment history (that belongs to individual employees, who add their own when
+// they join via invite). Deliberately simpler than ProfessionalDevelopment: no type/source
+// distinction, just a plain log any OWNER/MANAGER can add to or remove from.
+model OrganizationTrainingHistory {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  title          String
+  provider       String?
+  dateCompleted  DateTime
+  notes          String?
+  createdAt      DateTime     @default(now())
+
+  @@index([organizationId])
 }
 
 // Tracks the last successful run of each background job, so a silently-stopped cron (e.g.

@@ -5,11 +5,16 @@ import { usePathname } from "next/navigation";
 
 import type { Role } from "@/lib/generated/prisma/client";
 
-const COMMON_STEPS = [
-  { href: "/onboarding/professional-profile", label: "Professional Profile" },
+const INDIVIDUAL_STEPS_1_2 = [
   { href: "/onboarding/background", label: "Your Background" },
   { href: "/onboarding/career-direction", label: "Career Direction" },
-  { href: "/onboarding/learning-preferences", label: "Learning Preferences" },
+];
+
+// Business Event Manager (filled a company name at signup): the org has no personal
+// employment history or career, so these two slots become the org's own history/goals.
+const BUSINESS_EM_STEPS_1_2 = [
+  { href: "/onboarding/team-training", label: "Team Training" },
+  { href: "/onboarding/team-direction", label: "Team Direction" },
 ];
 
 const ROLE_STEP: Record<string, { href: string; label: string } | null> = {
@@ -18,10 +23,22 @@ const ROLE_STEP: Record<string, { href: string; label: string } | null> = {
   PROFESSIONAL: null,
 };
 
-export function OnboardingProgress({ role }: { role: Role }) {
+export function OnboardingProgress({
+  role,
+  isBusinessEventManager = false,
+}: {
+  role: Role;
+  isBusinessEventManager?: boolean;
+}) {
   const pathname = usePathname();
   const roleStep = ROLE_STEP[role];
-  const STEPS = [...COMMON_STEPS, ...(roleStep ? [roleStep] : []), { href: "/onboarding/meet-awe", label: "Meet Awé" }];
+  const STEPS = [
+    { href: "/onboarding/professional-profile", label: "Professional Profile" },
+    ...(isBusinessEventManager ? BUSINESS_EM_STEPS_1_2 : INDIVIDUAL_STEPS_1_2),
+    { href: "/onboarding/learning-preferences", label: "Learning Preferences" },
+    ...(roleStep ? [roleStep] : []),
+    { href: "/onboarding/meet-awe", label: "Meet Awé" },
+  ];
   const currentIndex = STEPS.findIndex((s) => s.href === pathname);
 
   return (

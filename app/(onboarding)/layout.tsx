@@ -7,6 +7,7 @@ import { auth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { OnboardingProgress } from "@/components/onboarding/onboarding-progress";
 import { skipOnboardingAction } from "@/lib/actions/onboarding.actions";
+import { isBusinessEventManager } from "@/lib/services/organization.service";
 
 export const metadata: Metadata = {
   title: "Set up your profile",
@@ -19,6 +20,8 @@ export const dynamic = "force-dynamic";
 export default async function OnboardingLayout({ children }: { children: React.ReactNode }) {
   const session = await auth();
   if (!session) redirect("/login");
+
+  const isBusiness = session.user.role === "EVENT_MANAGER" && (await isBusinessEventManager(session.user.id));
 
   return (
     <div className="min-h-screen bg-muted/30">
@@ -35,7 +38,7 @@ export default async function OnboardingLayout({ children }: { children: React.R
         </div>
       </header>
       <div className="mx-auto max-w-3xl px-4 py-8">
-        <OnboardingProgress role={session.user.role} />
+        <OnboardingProgress role={session.user.role} isBusinessEventManager={isBusiness} />
         <div className="mt-6">{children}</div>
       </div>
     </div>

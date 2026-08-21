@@ -104,6 +104,15 @@ export async function respondToMembershipRequest(
   });
 }
 
+/** "Business" vs "individual" Event Manager, for the onboarding fork — determined purely
+ * by whether they filled a company name at signup (User.organization), per the user's own
+ * instruction: no company name means treat them as an individual with the normal flow.
+ * Not derived from current OrganizationMembership state. */
+export async function isBusinessEventManager(userId: string): Promise<boolean> {
+  const user = await prisma.user.findUnique({ where: { id: userId }, select: { organization: true } });
+  return !!user?.organization;
+}
+
 /** The current user's own affiliation status, for their dashboard/profile. */
 export async function getUserOrganizationMembership(userId: string) {
   return prisma.organizationMembership.findFirst({

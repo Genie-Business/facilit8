@@ -10,9 +10,9 @@ export default async function OnboardingIndexPage() {
 
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
-    select: { onboardingStep: true, onboardingCompletedAt: true },
+    select: { onboardingStep: true, onboardingCompletedAt: true, organization: true },
   });
 
   if (user?.onboardingCompletedAt) redirect("/dashboard");
-  redirect(resolveOnboardingRoute(user?.onboardingStep ?? 0, session.user.role));
+  redirect(resolveOnboardingRoute(user?.onboardingStep ?? 0, session.user.role, !!user?.organization));
 }

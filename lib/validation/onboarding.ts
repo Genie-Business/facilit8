@@ -104,6 +104,20 @@ export const professionalDevelopmentFormSchema = z.object({
 });
 export type ProfessionalDevelopmentFormInput = z.infer<typeof professionalDevelopmentFormSchema>;
 
+export const organizationTrainingHistoryFormSchema = z.object({
+  title: z.string().trim().min(1, "Title is required."),
+  provider: optionalTrimmed,
+  dateCompleted: requiredDate,
+  notes: optionalTrimmed,
+});
+export type OrganizationTrainingHistoryFormInput = z.infer<typeof organizationTrainingHistoryFormSchema>;
+
+export const teamDirectionSchema = z.object({
+  teamGoals: optionalTrimmed,
+  teamGoalTimeline: optionalTrimmed,
+});
+export type TeamDirectionInput = z.infer<typeof teamDirectionSchema>;
+
 export const careerDirectionSchema = z.object({
   targetRole: optionalTrimmed,
   targetIndustry: optionalTrimmed,

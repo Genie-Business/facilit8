@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { InviteForm } from "@/components/organization/invite-form";
 
 export const metadata: Metadata = {
   title: "Team Members",
@@ -38,6 +39,7 @@ export default async function OrganizationMembersPage() {
   }
 
   const isOwner = ownMembership.role === "OWNER";
+  const canInvite = isOwner || ownMembership.role === "MANAGER";
   const members = await listOrganizationMembers(ownMembership.organizationId);
 
   return (
@@ -46,6 +48,18 @@ export default async function OrganizationMembersPage() {
         <h1 className="text-2xl font-semibold">Team members</h1>
         <p className="text-muted-foreground">{ownMembership.organization.name}</p>
       </div>
+
+      {canInvite && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Invite a teammate</CardTitle>
+            <CardDescription>They join immediately — no separate approval step.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <InviteForm organizationId={ownMembership.organizationId} />
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>

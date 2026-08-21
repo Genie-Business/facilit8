@@ -33,6 +33,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         onboardingStep: true,
         onboardingCompletedAt: true,
         onboardingSkippedAt: true,
+        organization: true,
       },
     }),
     prisma.notification.findMany({
@@ -50,7 +51,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     !user.onboardingCompletedAt &&
     !user.onboardingSkippedAt
   ) {
-    redirect(resolveOnboardingRoute(user.onboardingStep, session.user.role));
+    redirect(resolveOnboardingRoute(user.onboardingStep, session.user.role, !!user.organization));
   }
 
   const name = user ? `${user.firstName} ${user.lastName}` : (session.user.name ?? session.user.email ?? "");
