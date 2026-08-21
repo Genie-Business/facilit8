@@ -10,6 +10,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
+const nativeSelectClassName =
+  "flex h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30";
+
 const initialState: ActionState = {};
 
 function toDateInputValue(date?: Date | string): string {
@@ -36,16 +39,21 @@ export interface EventFormDefaults {
   eventDetails?: string | null;
   trainingMaterials?: boolean;
   trainingBudget?: number | string;
+  visibility?: "PUBLIC" | "TEAM_ONLY";
 }
 
 export function EventForm({
   action,
   defaults,
   submitLabel,
+  canOfferTeamOnly = false,
 }: {
   action: (prevState: ActionState, formData: FormData) => Promise<ActionState>;
   defaults?: EventFormDefaults;
   submitLabel: string;
+  /** Only an OWNER/MANAGER of an org can restrict an event to their own team — everyone
+   * else's events (individual EMs, plain org MEMBERs) always stay PUBLIC. */
+  canOfferTeamOnly?: boolean;
 }) {
   const [state, formAction, pending] = useActionState(action, initialState);
 
@@ -207,6 +215,21 @@ export function EventForm({
           Training materials provided
         </Label>
       </div>
+
+      {canOfferTeamOnly && (
+        <div className="space-y-2">
+          <Label htmlFor="visibility">Who can see this event</Label>
+          <select
+            id="visibility"
+            name="visibility"
+            defaultValue={defaults?.visibility ?? "PUBLIC"}
+            className={nativeSelectClassName}
+          >
+            <option value="PUBLIC">Public — anyone on Facilit8</option>
+            <option value="TEAM_ONLY">Team only — your org's members (Facilitators can still bid)</option>
+          </select>
+        </div>
+      )}
 
       <Button type="submit" disabled={pending}>
         {pending ? "Saving..." : submitLabel}

@@ -4,6 +4,7 @@ import { Plus, MapPin, Calendar } from "lucide-react";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { eventStatus, mergedEventStatus } from "@/lib/utils/event-status";
+import { getApprovedOrganizationId } from "@/lib/services/organization.service";
 
 const STATUS_TAG: Record<string, string> = {
   default: "t-info",
@@ -26,6 +27,7 @@ interface BrowseItem {
   bidCount: number;
   isOwner: boolean;
   hasApplied: boolean;
+  isTeamOnly: boolean;
   createdAt: Date;
 }
 
@@ -33,8 +35,18 @@ export default async function EventsPage() {
   const session = await auth();
   if (!session) return null;
 
+  // Facilitators (and admins) need to see every event regardless of visibility, to bid on
+  // it — TEAM_ONLY only restricts Professionals/Event Managers outside the owning org, per
+  // the multi-tenancy plan. No filter existed here at all before this.
+  const seesEverything = session.user.role === "FACILITATOR" || session.user.role === "ADMIN";
+  const ownOrgId = seesEverything ? null : await getApprovedOrganizationId(session.user.id);
+  const trainingEventWhere = seesEverything
+    ? {}
+    : { OR: [{ visibility: "PUBLIC" as const }, ...(ownOrgId ? [{ organizationId: ownOrgId }] : [])] };
+
   const [trainingEvents, mergedEvents] = await Promise.all([
     prisma.trainingEvent.findMany({
+      where: trainingEventWhere,
       orderBy: { createdAt: "desc" },
       take: 60,
       include: {
@@ -73,6 +85,7 @@ export default async function EventsPage() {
         bidCount: event._count.applications,
         isOwner: event.companyId === session.user.id,
         hasApplied: event.applications.length > 0,
+        isTeamOnly: event.visibility === "TEAM_ONLY",
         createdAt: event.createdAt,
       };
     }),
@@ -93,6 +106,7 @@ export default async function EventsPage() {
         bidCount: event._count.applications,
         isOwner: event.initiatorId === session.user.id,
         hasApplied: event.applications.length > 0,
+        isTeamOnly: false,
         createdAt: event.createdAt,
       };
     }),
@@ -158,6 +172,7 @@ export default async function EventsPage() {
                 </span>
                 {item.isOwner && <span className="tag t-active">Yours</span>}
                 {!item.isOwner && item.hasApplied && <span className="tag t-old">Applied</span>}
+                {item.isTeamOnly && <span className="tag t-info">Team only</span>}
               </div>
             </Link>
           ))}

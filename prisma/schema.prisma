@@ -130,21 +130,21 @@ enum AweMessageRole {
 // ---------- Auth / Wallet ----------
 
 model User {
-  id                 String  @id @default(cuid())
-  email              String  @unique
+  id                 String     @id @default(cuid())
+  email              String     @unique
   passwordHash       String
   role               Role
   adminTier          AdminTier? @default(SUPER_ADMIN)
   firstName          String
   lastName           String
   middleName         String?
-  slug               String  @unique
-  mobilePhone        String  @unique
+  slug               String     @unique
+  mobilePhone        String     @unique
   organization       String?
-  rcNumber           String? @unique
+  rcNumber           String?    @unique
   specialization     String?
   qualification      String?
-  travel             Boolean @default(false)
+  travel             Boolean    @default(false)
   experience         String?
   profileDescription String?
   state              String?
@@ -198,13 +198,14 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  virtualAccount      VirtualAccount?
+  virtualAccount        VirtualAccount?
   passwordResetTokens   PasswordResetToken[]
   accountRecoveryTokens AccountRecoveryToken[]
-  transactions        Transaction[]
+  transactions          Transaction[]
 
   eventsAsCompany          TrainingEvent[]   @relation("CompanyEvents")
   eventsSelectedAsTrainer  TrainingEvent[]   @relation("SelectedTrainer")
+  eventInterests           EventInterest[]
   applications             Application[]     @relation("TrainerApplications")
   notifications            Notification[]
   reviewsGiven             Review[]          @relation("ReviewsGiven")
@@ -219,8 +220,8 @@ model User {
   facilitatorAccessAsUser        FacilitatorAccess[] @relation("AccessAsUser")
   facilitatorAccessAsFacilitator FacilitatorAccess[] @relation("AccessAsFacilitator")
 
-  mergedTrainingEventsInitiated   MergedTrainingEvent[]       @relation("Initiator")
-  mergedTrainingSelectedAsTrainer MergedTrainingEvent[]       @relation("SelectedTrainerMerged")
+  mergedTrainingEventsInitiated   MergedTrainingEvent[]         @relation("Initiator")
+  mergedTrainingSelectedAsTrainer MergedTrainingEvent[]         @relation("SelectedTrainerMerged")
   mergedTrainingInvites           MergedTrainingInvite[]
   mergedTrainingParticipations    MergedTrainingParticipant[]
   mergerApplications              MergerApplication[]
@@ -337,6 +338,14 @@ model TrainingEvent {
   id                     String              @id @default(cuid())
   companyId              String
   company                User                @relation("CompanyEvents", fields: [companyId], references: [id], onDelete: Cascade)
+  // Visibility scoping only — funding/ownership stays entirely on companyId above, exactly
+  // as before. organizationId is auto-set from the creator's OWNER/MANAGER org membership
+  // at creation time (null for an individual Event Manager); TEAM_ONLY can only be chosen
+  // when it's set. Organization has no wallet of its own (see anchor-provisioning.service.ts
+  // and event-funding.service.ts) — deliberately not touched here, see the plan.
+  organizationId         String?
+  organization           Organization?       @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  visibility             EventVisibility     @default(PUBLIC)
   title                  String
   startDate              DateTime
   endDate                DateTime
@@ -373,9 +382,31 @@ model TrainingEvent {
   payments     TrainingPayment[] @relation("TrainingEventPayments")
   disputes     Dispute[]         @relation("TrainingEventDisputes")
   milestones   Milestone[]
+  interests    EventInterest[]
 
   @@index([companyId])
   @@index([approval, isAvailable])
+  @@index([organizationId])
+}
+
+enum EventVisibility {
+  PUBLIC
+  TEAM_ONLY
+}
+
+// Lightweight "I'm interested" signal for an org's own team members on a TEAM_ONLY event —
+// deliberately not a bid: no budget/course-breakdown fields, unlike Application below (which
+// stays the only mechanism Facilitators use, on every event regardless of visibility).
+model EventInterest {
+  id              String        @id @default(cuid())
+  trainingEventId String
+  trainingEvent   TrainingEvent @relation(fields: [trainingEventId], references: [id], onDelete: Cascade)
+  userId          String
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expressedAt     DateTime      @default(now())
+
+  @@unique([trainingEventId, userId])
+  @@index([trainingEventId])
 }
 
 model Application {
@@ -808,11 +839,12 @@ model Organization {
   verificationStatus       OrgVerificationStatus     @default(UNVERIFIED)
   verificationFailedReason String?
 
-  memberships    OrganizationMembership[]
-  documents      OrganizationDocument[]
-  profile        OrganizationProfile?
+  memberships     OrganizationMembership[]
+  documents       OrganizationDocument[]
+  profile         OrganizationProfile?
   trainingHistory OrganizationTrainingHistory[]
-  invites        OrganizationInvite[]
+  invites         OrganizationInvite[]
+  events          TrainingEvent[]
 }
 
 enum BusinessRegistrationType {
@@ -883,16 +915,16 @@ model OrganizationMembership {
 // PasswordResetToken/AccountRecoveryToken; email isn't tied to a userId up front since the
 // invitee may not have an account yet (see redeemOrgInvite's two branches).
 model OrganizationInvite {
-  id             String        @id @default(cuid())
-  organizationId String
-  organization   Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  id              String        @id @default(cuid())
+  organizationId  String
+  organization    Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   invitedByUserId String
-  email          String
-  role           OrgMemberRole @default(MEMBER)
-  tokenHash      String        @unique
-  expiresAt      DateTime
-  usedAt         DateTime?
-  createdAt      DateTime      @default(now())
+  email           String
+  role            OrgMemberRole @default(MEMBER)
+  tokenHash       String        @unique
+  expiresAt       DateTime
+  usedAt          DateTime?
+  createdAt       DateTime      @default(now())
 
   @@index([organizationId])
 }
@@ -991,9 +1023,9 @@ model AweMessage {
 // incrementally updatable across conversations, per the product brief's "Awe should
 // remember professional context" requirement.
 model AweCareerProfile {
-  id                     String   @id @default(cuid())
-  userId                 String   @unique
-  user                   User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                     String  @id @default(cuid())
+  userId                 String  @unique
+  user                   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   currentRole            String?
   industry               String?
   yearsExperience        Int?
@@ -1007,13 +1039,13 @@ model AweCareerProfile {
 
   // Onboarding wizard's "Professional Profile" step — quick-answer fields, distinct from
   // the detailed dated records in EducationHistory/ProfessionalDevelopment.
-  highestEducationLevel  String?
+  highestEducationLevel   String?
   professionalMemberships String[]
   certifications          String[]
   languagesSpoken         String[]
 
   // "Career Direction" step.
-  careerGoalTags   String[]
+  careerGoalTags    String[]
   targetCareerLevel String?
   targetTimeline    String?
   longTermAmbition  String?
@@ -1025,16 +1057,16 @@ model AweCareerProfile {
   challengeOther    String?
 
   // "Learning Preferences" step.
-  learningFormats     String[]
+  learningFormats       String[]
   availableLearningTime String?
-  preferredSchedule   String[]
-  preferredDelivery   String?
+  preferredSchedule     String[]
+  preferredDelivery     String?
 
   // "Meet Awe" step — free text the structured fields above can't anticipate.
   tellAweText String?
 
-  createdAt              DateTime @default(now())
-  updatedAt              DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   skills AweCareerProfileSkill[]
 }
@@ -1123,19 +1155,19 @@ enum ProfessionalDevelopmentSource {
 // MANUAL rows are entered by the user (onboarding or later); FACILIT8_AUTO rows are
 // created automatically when a Facilitator completes a delivery on the platform (Stage 2).
 model ProfessionalDevelopment {
-  id                            String                         @id @default(cuid())
-  userId                        String
-  user                          User                           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  type                          ProfessionalDevelopmentType
-  title                         String
-  provider                      String?
-  dateCompleted                 DateTime
-  skillsAcquired                String[]
-  expiryDate                    DateTime?
-  source                        ProfessionalDevelopmentSource @default(MANUAL)
-  relatedTrainingEventId        String?
-  relatedMergedTrainingEventId  String?
-  createdAt                     DateTime                       @default(now())
+  id                           String                        @id @default(cuid())
+  userId                       String
+  user                         User                          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type                         ProfessionalDevelopmentType
+  title                        String
+  provider                     String?
+  dateCompleted                DateTime
+  skillsAcquired               String[]
+  expiryDate                   DateTime?
+  source                       ProfessionalDevelopmentSource @default(MANUAL)
+  relatedTrainingEventId       String?
+  relatedMergedTrainingEventId String?
+  createdAt                    DateTime                      @default(now())
 
   @@index([userId])
 }
@@ -1230,7 +1262,7 @@ model OrganizationProfile {
   typicalDuration   String?
   typicalClassSize  String?
   budgetRange       String?
-  budgetCurrency    String  @default("NGN")
+  budgetCurrency    String   @default("NGN")
   typicalAudience   String?
 
   // Strategic priorities — biggestChallenge is the single most valuable input to Awe's

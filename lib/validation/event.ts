@@ -18,6 +18,9 @@ export const eventFormSchema = z
     eventDetails: z.string().trim().optional().or(z.literal("")),
     trainingMaterials: z.coerce.boolean().optional(),
     trainingBudget: z.coerce.number().positive("Budget must be a positive number."),
+    // Only meaningful for an org-affiliated Event Manager — createEventAction ignores this
+    // entirely for an individual EM (no org to restrict visibility to).
+    visibility: z.enum(["PUBLIC", "TEAM_ONLY"]).optional(),
   })
   .refine((data) => new Date(data.endDate) >= new Date(data.startDate), {
     message: "End date must be on or after the start date.",

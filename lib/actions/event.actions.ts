@@ -9,6 +9,7 @@ import { generateUniqueSlug } from "@/lib/utils/slug";
 import { eventFormSchema } from "@/lib/validation/event";
 import { ActionState, firstFieldErrors } from "@/lib/actions/shared";
 import { siteUrl } from "@/lib/site";
+import { resolveEventVisibility } from "@/lib/services/organization.service";
 
 function daysBetween(start: Date, end: Date): number {
   const ms = end.getTime() - start.getTime();
@@ -38,9 +39,14 @@ export async function createEventAction(_prev: ActionState, formData: FormData):
     async (candidate) => (await prisma.trainingEvent.findUnique({ where: { slug: candidate } })) !== null
   );
 
+  // Visibility scoping only — funding/ownership stays entirely on companyId below.
+  const { organizationId, visibility } = await resolveEventVisibility(session.user.id, data.visibility);
+
   const event = await prisma.trainingEvent.create({
     data: {
       companyId: session.user.id,
+      organizationId,
+      visibility,
       title: data.title,
       startDate,
       endDate,
@@ -97,9 +103,14 @@ export async function updateEventAction(_prev: ActionState, formData: FormData):
   const startDate = new Date(data.startDate);
   const endDate = new Date(data.endDate);
 
+  // Same rule as creation, resolved against the editor's own membership — an org's
+  // organizationId tag never changes on edit, only who's allowed to flip visibility.
+  const { visibility } = await resolveEventVisibility(session.user.id, data.visibility);
+
   await prisma.trainingEvent.update({
     where: { id: event.id },
     data: {
+      visibility,
       title: data.title,
       startDate,
       endDate,
@@ -138,4 +149,39 @@ export async function deleteEventAction(formData: FormData): Promise<void> {
   await prisma.trainingEvent.delete({ where: { id: event.id } });
   revalidatePath("/events");
   redirect("/events");
+}
+
+/** Lightweight "I'm interested" signal for a TEAM_ONLY event — open to any APPROVED member
+ * of the event's own org (not just OWNER/MANAGER), unlike creating/editing the event itself.
+ * Deliberately not a bid: no budget/course-breakdown fields, that's Application below. */
+export async function expressInterestAction(slug: string): Promise<void> {
+  const session = await auth();
+  if (!session) redirect(`${siteUrl}/login`);
+
+  const event = await prisma.trainingEvent.findUnique({ where: { slug } });
+  if (!event || event.visibility !== "TEAM_ONLY" || !event.organizationId) redirect(`/events/${slug}`);
+
+  const membership = await prisma.organizationMembership.findFirst({
+    where: { userId: session.user.id, organizationId: event.organizationId, status: "APPROVED" },
+  });
+  if (!membership) redirect(`/events/${slug}`);
+
+  await prisma.eventInterest.upsert({
+    where: { trainingEventId_userId: { trainingEventId: event.id, userId: session.user.id } },
+    create: { trainingEventId: event.id, userId: session.user.id },
+    update: {},
+  });
+
+  revalidatePath(`/events/${slug}`);
+}
+
+export async function withdrawInterestAction(slug: string): Promise<void> {
+  const session = await auth();
+  if (!session) redirect(`${siteUrl}/login`);
+
+  const event = await prisma.trainingEvent.findUnique({ where: { slug } });
+  if (!event) redirect("/events");
+
+  await prisma.eventInterest.deleteMany({ where: { trainingEventId: event.id, userId: session.user.id } });
+  revalidatePath(`/events/${slug}`);
 }

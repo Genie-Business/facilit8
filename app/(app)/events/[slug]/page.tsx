@@ -4,12 +4,13 @@ import { Send } from "lucide-react";
 
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { deleteEventAction } from "@/lib/actions/event.actions";
+import { deleteEventAction, expressInterestAction, withdrawInterestAction } from "@/lib/actions/event.actions";
 import { completeEventAction } from "@/lib/actions/event-funding.actions";
 import { FundEventButton } from "@/components/events/fund-event-button";
 import { RaiseDisputeForm } from "@/components/events/raise-dispute-form";
 import { MilestonesSection } from "@/components/events/milestones-section";
 import { eventStatus } from "@/lib/utils/event-status";
+import { canManageOrganization } from "@/lib/services/organization.service";
 
 const STATUS_TAG: Record<string, string> = {
   default: "t-info",
@@ -42,6 +43,7 @@ export default async function EventDetailPage({ params }: { params: Promise<{ sl
         select: { id: true, status: true },
       },
       milestones: { orderBy: { order: "asc" } },
+      interests: { include: { user: { select: { firstName: true, lastName: true, email: true } } } },
     },
   });
   if (!event) notFound();
@@ -50,6 +52,19 @@ export default async function EventDetailPage({ params }: { params: Promise<{ sl
   const isFacilitator = session.user.role === "FACILITATOR";
   const myApplication = event.applications[0];
   const status = eventStatus(event);
+
+  // Interest list is visible to anyone who manages the event's org (not just the literal
+  // creator) — matches the same OWNER/MANAGER authorization level used everywhere else for
+  // org-scoped actions. The "express interest" toggle is for everyone ELSE on that team.
+  const canManageOrg = event.organizationId ? await canManageOrganization(session.user.id, event.organizationId) : false;
+  const isTeamOnly = event.visibility === "TEAM_ONLY";
+  const myMembership =
+    !isOwner && isTeamOnly && event.organizationId
+      ? await prisma.organizationMembership.findFirst({
+          where: { userId: session.user.id, organizationId: event.organizationId, status: "APPROVED" },
+        })
+      : null;
+  const myInterest = event.interests.find((i) => i.userId === session.user.id);
 
   return (
     <>
@@ -172,8 +187,48 @@ export default async function EventDetailPage({ params }: { params: Promise<{ sl
                 )}
               </>
             )}
+
+            {myMembership &&
+              (myInterest ? (
+                <form action={withdrawInterestAction.bind(null, event.slug)}>
+                  <button type="submit" className="btn btn--secondary">
+                    Interested ✓ (withdraw)
+                  </button>
+                </form>
+              ) : (
+                <form action={expressInterestAction.bind(null, event.slug)}>
+                  <button type="submit" className="btn btn--primary">
+                    Express interest
+                  </button>
+                </form>
+              ))}
           </div>
         </section>
+
+        {canManageOrg && isTeamOnly && (
+          <section className="col-6 card">
+            <div className="card-head">
+              <div className="card-title-wrap">
+                <span className="eyebrow">Team only</span>
+                <h2 className="card-title">Interested team members</h2>
+              </div>
+            </div>
+            {event.interests.length === 0 ? (
+              <p style={{ color: "var(--t-muted)", fontSize: 13 }}>No one has expressed interest yet.</p>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 8, fontSize: 13 }}>
+                {event.interests.map((interest) => (
+                  <div key={interest.id} style={{ display: "flex", justifyContent: "space-between" }}>
+                    <span style={{ color: "var(--t-base)" }}>
+                      {interest.user.firstName} {interest.user.lastName}
+                    </span>
+                    <span style={{ color: "var(--t-muted)" }}>{interest.expressedAt.toLocaleDateString()}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+        )}
 
         {isOwner && event.paymentConfirmed && !event.isCompleted && (
           <section className="col-6 card">

@@ -113,6 +113,45 @@ export async function isBusinessEventManager(userId: string): Promise<boolean> {
   return !!user?.organization;
 }
 
+/** For event visibility: the org a user can see/create TEAM_ONLY events for, or null if
+ * they don't have an APPROVED membership anywhere. Unlike getUserOrganizationMembership
+ * (any status, most-recent-first, for dashboard display), this only ever returns an org the
+ * user is genuinely an approved part of. */
+export async function getApprovedOrganizationId(userId: string): Promise<string | null> {
+  const membership = await prisma.organizationMembership.findFirst({
+    where: { userId, status: "APPROVED" },
+    select: { organizationId: true },
+  });
+  return membership?.organizationId ?? null;
+}
+
+/** OWNER/MANAGER only — same authorization level as other org-scoped writes (invites,
+ * training history, role changes). Used to gate creating a TEAM_ONLY event. */
+export async function canManageOrganization(userId: string, organizationId: string): Promise<boolean> {
+  const membership = await prisma.organizationMembership.findFirst({
+    where: { userId, organizationId, role: { in: ["OWNER", "MANAGER"] }, status: "APPROVED" },
+  });
+  return !!membership;
+}
+
+/**
+ * Single source of truth for the event-visibility rule, shared by createEventAction and
+ * updateEventAction: organizationId tags ANY org-affiliated creator's event (so it's
+ * attributable to their org even as a plain MEMBER), but TEAM_ONLY visibility is only ever
+ * honored when the creator is OWNER/MANAGER of that org — an individual EM (no org) or a
+ * plain MEMBER always gets PUBLIC regardless of what the form requested. Funding/ownership
+ * is untouched by any of this — see the plan's note on Organization having no wallet.
+ */
+export async function resolveEventVisibility(
+  userId: string,
+  requestedVisibility: "PUBLIC" | "TEAM_ONLY" | undefined
+): Promise<{ organizationId: string | null; visibility: "PUBLIC" | "TEAM_ONLY" }> {
+  const organizationId = await getApprovedOrganizationId(userId);
+  const canManage = organizationId ? await canManageOrganization(userId, organizationId) : false;
+  const visibility = organizationId && canManage && requestedVisibility === "TEAM_ONLY" ? "TEAM_ONLY" : "PUBLIC";
+  return { organizationId, visibility };
+}
+
 /** The current user's own affiliation status, for their dashboard/profile. */
 export async function getUserOrganizationMembership(userId: string) {
   return prisma.organizationMembership.findFirst({
