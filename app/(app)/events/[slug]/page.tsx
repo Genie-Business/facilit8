@@ -11,6 +11,7 @@ import { RaiseDisputeForm } from "@/components/events/raise-dispute-form";
 import { MilestonesSection } from "@/components/events/milestones-section";
 import { eventStatus } from "@/lib/utils/event-status";
 import { canManageOrganization } from "@/lib/services/organization.service";
+import { VerifiedBadge } from "@/components/shared/verified-badge";
 
 const STATUS_TAG: Record<string, string> = {
   default: "t-info",
@@ -36,6 +37,7 @@ export default async function EventDetailPage({ params }: { params: Promise<{ sl
     where: { slug },
     include: {
       company: { select: { firstName: true, lastName: true, organization: true } },
+      organization: { select: { verificationStatus: true } },
       selectedTrainer: { select: { firstName: true, lastName: true, slug: true } },
       _count: { select: { applications: true } },
       applications: {
@@ -72,8 +74,9 @@ export default async function EventDetailPage({ params }: { params: Promise<{ sl
         <div className="hero-text">
           <span className="eyebrow">Training Ecosystem</span>
           <h1 className="hero-title">{event.title}</h1>
-          <p className="hero-sub">
+          <p className="hero-sub" style={{ display: "flex", alignItems: "center", gap: 8 }}>
             Posted by {event.company.organization || `${event.company.firstName} ${event.company.lastName}`}
+            <VerifiedBadge verified={event.organization?.verificationStatus === "VERIFIED"} />
           </p>
         </div>
         <div className="hero-actions">

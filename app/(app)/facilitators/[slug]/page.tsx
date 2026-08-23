@@ -5,6 +5,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { startConversationAction } from "@/lib/actions/chat.actions";
 import { ReviewForm } from "@/components/reviews/review-form";
+import { VerifiedBadge } from "@/components/shared/verified-badge";
 
 export default async function FacilitatorDetailPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
@@ -23,6 +24,7 @@ export default async function FacilitatorDetailPage({ params }: { params: Promis
       profileDescription: true,
       profileImageUrl: true,
       state: true,
+      kycVerified: true,
       facilitatorSkills: { include: { skill: true } },
     },
   });
@@ -79,8 +81,9 @@ export default async function FacilitatorDetailPage({ params }: { params: Promis
           )}
           <div>
             <span className="eyebrow">Training Ecosystem</span>
-            <h1 className="hero-title">
+            <h1 className="hero-title" style={{ display: "flex", alignItems: "center", gap: 10 }}>
               {facilitator.firstName} {facilitator.lastName}
+              <VerifiedBadge verified={facilitator.kycVerified} />
             </h1>
             <p className="hero-sub" style={{ display: "flex", alignItems: "center", gap: 10 }}>
               {avgRating !== null ? (

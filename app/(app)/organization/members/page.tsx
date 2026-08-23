@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { InviteForm } from "@/components/organization/invite-form";
+import { VerifiedBadge } from "@/components/shared/verified-badge";
 
 export const metadata: Metadata = {
   title: "Team Members",
@@ -46,7 +47,10 @@ export default async function OrganizationMembersPage() {
     <div className="max-w-3xl space-y-6">
       <div>
         <h1 className="text-2xl font-semibold">Team members</h1>
-        <p className="text-muted-foreground">{ownMembership.organization.name}</p>
+        <p className="text-muted-foreground flex items-center gap-2">
+          {ownMembership.organization.name}
+          <VerifiedBadge verified={ownMembership.organization.verificationStatus === "VERIFIED"} />
+        </p>
       </div>
 
       {canInvite && (

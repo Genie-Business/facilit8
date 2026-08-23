@@ -14,6 +14,7 @@ import { PayShareForm } from "@/components/merged-training/pay-share-form";
 import { StageTracker } from "@/components/merged-training/stage-tracker";
 import { RaiseDisputeForm } from "@/components/events/raise-dispute-form";
 import { mergedTrainingProgress } from "@/lib/utils/merged-training-stages";
+import { VerifiedBadge } from "@/components/shared/verified-badge";
 
 function DetailRow({ label, value }: { label: string; value: React.ReactNode }) {
   return (
@@ -33,6 +34,7 @@ export default async function MergedTrainingDetailPage({ params }: { params: Pro
     where: { slug },
     include: {
       initiator: { select: { firstName: true, lastName: true, organization: true, role: true } },
+      organization: { select: { verificationStatus: true } },
       selectedTrainer: { select: { firstName: true, lastName: true, slug: true } },
       participants: { include: { company: { select: { firstName: true, lastName: true, organization: true } } } },
       invites: { include: { company: { select: { id: true, firstName: true, lastName: true, role: true } } } },
@@ -72,9 +74,10 @@ export default async function MergedTrainingDetailPage({ params }: { params: Pro
         <div className="hero-text">
           <span className="eyebrow">Training Ecosystem</span>
           <h1 className="hero-title">{mergedEvent.title}</h1>
-          <p className="hero-sub">
+          <p className="hero-sub" style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
             Initiated by{" "}
             {mergedEvent.initiator.organization || `${mergedEvent.initiator.firstName} ${mergedEvent.initiator.lastName}`}
+            <VerifiedBadge verified={mergedEvent.organization?.verificationStatus === "VERIFIED"} />
             {mergedEvent.description ? ` · ${mergedEvent.description}` : ""}
           </p>
         </div>

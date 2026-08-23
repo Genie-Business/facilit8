@@ -5,6 +5,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { eventStatus, mergedEventStatus } from "@/lib/utils/event-status";
 import { getApprovedOrganizationId } from "@/lib/services/organization.service";
+import { VerifiedBadge } from "@/components/shared/verified-badge";
 
 const STATUS_TAG: Record<string, string> = {
   default: "t-info",
@@ -28,6 +29,7 @@ interface BrowseItem {
   isOwner: boolean;
   hasApplied: boolean;
   isTeamOnly: boolean;
+  postedByVerified: boolean;
   createdAt: Date;
 }
 
@@ -53,6 +55,7 @@ export default async function EventsPage() {
       take: 60,
       include: {
         company: { select: { firstName: true, lastName: true, organization: true } },
+        organization: { select: { verificationStatus: true } },
         _count: { select: { applications: true } },
         applications: { where: { trainerId: session.user.id }, select: { id: true } },
       },
@@ -63,6 +66,7 @@ export default async function EventsPage() {
       take: 60,
       include: {
         initiator: { select: { firstName: true, lastName: true, organization: true } },
+        organization: { select: { verificationStatus: true } },
         _count: { select: { applications: true } },
         applications: { where: { trainerId: session.user.id }, select: { id: true } },
       },
@@ -88,6 +92,7 @@ export default async function EventsPage() {
         isOwner: event.companyId === session.user.id,
         hasApplied: event.applications.length > 0,
         isTeamOnly: event.visibility === "TEAM_ONLY",
+        postedByVerified: event.organization?.verificationStatus === "VERIFIED",
         createdAt: event.createdAt,
       };
     }),
@@ -109,6 +114,7 @@ export default async function EventsPage() {
         isOwner: event.initiatorId === session.user.id,
         hasApplied: event.applications.length > 0,
         isTeamOnly: event.visibility === "TEAM_ONLY",
+        postedByVerified: event.organization?.verificationStatus === "VERIFIED",
         createdAt: event.createdAt,
       };
     }),
@@ -151,7 +157,10 @@ export default async function EventsPage() {
                 <div style={{ fontWeight: 700, fontSize: 15.5, color: "var(--t-base)", marginBottom: 2 }}>
                   {item.title}
                 </div>
-                <div style={{ fontSize: 12.5, color: "var(--t-muted)" }}>Posted by {item.postedBy}</div>
+                <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12.5, color: "var(--t-muted)" }}>
+                  Posted by {item.postedBy}
+                  <VerifiedBadge verified={item.postedByVerified} />
+                </div>
               </div>
 
               <div style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: 12.5, color: "var(--t-muted)" }}>

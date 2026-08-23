@@ -4,6 +4,7 @@ import { Star, MessageCircle } from "lucide-react";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { startConversationAction } from "@/lib/actions/chat.actions";
+import { VerifiedBadge } from "@/components/shared/verified-badge";
 
 export default async function FacilitatorsPage() {
   const session = await auth();
@@ -21,6 +22,7 @@ export default async function FacilitatorsPage() {
       specialization: true,
       state: true,
       profileImageUrl: true,
+      kycVerified: true,
       facilitatorSkills: { include: { skill: true }, take: 3 },
     },
   });
@@ -95,8 +97,9 @@ export default async function FacilitatorsPage() {
                     </div>
                   )}
                   <div style={{ minWidth: 0 }}>
-                    <div style={{ fontWeight: 700, fontSize: 16, color: "var(--t-base)" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, fontWeight: 700, fontSize: 16, color: "var(--t-base)" }}>
                       {facilitator.firstName} {facilitator.lastName}
+                      <VerifiedBadge verified={facilitator.kycVerified} />
                     </div>
                     {facilitator.specialization && (
                       <div style={{ fontSize: 12.5, color: "var(--t-muted)" }}>{facilitator.specialization}</div>

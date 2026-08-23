@@ -27,6 +27,7 @@ import {
   History,
   UserCog,
   ArrowLeftRight,
+  Percent,
 } from "lucide-react";
 
 import { useShell } from "./shell-root";
@@ -83,6 +84,7 @@ const ADMIN_BASE_LINKS: (Omit<NavItem, "crossDomain"> & { superAdminOnly?: boole
   { href: "/admin/skills", label: "Skills", icon: Tags },
   { href: "/admin/awe-subscriptions", label: "Awé Subscriptions", icon: Repeat, superAdminOnly: true },
   { href: "/admin/awe-pricing", label: "Awé Pricing", icon: Sparkles, superAdminOnly: true },
+  { href: "/admin/fees", label: "Platform Fees", icon: Percent, superAdminOnly: true },
   { href: "/admin/admins", label: "Admin Management", icon: UserCog, superAdminOnly: true },
 ];
 
