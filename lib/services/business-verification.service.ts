@@ -5,6 +5,7 @@ import {
   uploadBusinessDocument,
 } from "@/lib/anchor/business";
 import type { BusinessVerificationInput } from "@/lib/validation/business";
+import { describeAnchorError } from "@/lib/anchor/types";
 
 interface Result {
   success: boolean;
@@ -96,7 +97,7 @@ export async function submitBusinessVerification(
     await triggerAnchorKyb(customerId);
     return { success: true };
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Business verification failed to start.";
+    const message = describeAnchorError(err);
     await prisma.organization.update({
       where: { id: organizationId },
       data: { verificationFailedReason: message },
@@ -129,7 +130,6 @@ export async function uploadOrganizationDocument(
     });
     return { success: true };
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Upload failed.";
-    return { success: false, error: message };
+    return { success: false, error: describeAnchorError(err) };
   }
 }

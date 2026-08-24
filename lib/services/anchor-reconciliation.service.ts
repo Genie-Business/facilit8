@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db";
 import { getIndividualCustomer } from "@/lib/anchor/customers";
 import { createDepositAccount, fetchUnmaskedAccountNumber } from "@/lib/anchor/accounts";
+import { describeAnchorError } from "@/lib/anchor/types";
 
 interface ReconciliationResult {
   success: boolean;
@@ -79,7 +80,7 @@ export async function syncWalletFromAnchor(userId: string): Promise<Reconciliati
       depositAccountId = await createDepositAccount(user.anchorCustomerId);
       await prisma.user.update({ where: { id: userId }, data: { depositAccountId } });
     } catch (err) {
-      return { success: false, error: err instanceof Error ? err.message : "Failed to create deposit account." };
+      return { success: false, error: describeAnchorError(err) };
     }
   }
 

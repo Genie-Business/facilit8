@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
 import { bookTransfer, verifyTransfer } from "@/lib/anchor/transfers";
+import { describeAnchorError } from "@/lib/anchor/types";
 import { calculateFee } from "./fee.service";
 import { createNotification } from "./notification.service";
 import { getConfirmedCoFacilitators } from "./merged-training-co-facilitator.service";
@@ -123,7 +124,7 @@ export async function payFacilitatorForEvent(eventId: string, requesterId: strin
         html: `<p>Your payment attempt for "${event.title}" failed. Please contact support.</p>`,
       },
     });
-    return { success: false, error: err instanceof Error ? err.message : "Payout failed." };
+    return { success: false, error: describeAnchorError(err) };
   }
 }
 
@@ -252,7 +253,7 @@ export async function payFacilitatorForMilestone(milestoneId: string, requesterI
         html: `<p>Your payment attempt for the "${milestone.title}" milestone of "${event.title}" failed. Please contact support.</p>`,
       },
     });
-    return { success: false, error: err instanceof Error ? err.message : "Payout failed." };
+    return { success: false, error: describeAnchorError(err) };
   }
 }
 
@@ -382,7 +383,7 @@ export async function payFacilitatorForMergedTrainingEvent(
           html: `<p>Your payment for "${session.title}" failed. Please contact support.</p>`,
         },
       });
-      results.push({ payee, amount, success: false, error: err instanceof Error ? err.message : "Payout failed." });
+      results.push({ payee, amount, success: false, error: describeAnchorError(err) });
     }
   }
 

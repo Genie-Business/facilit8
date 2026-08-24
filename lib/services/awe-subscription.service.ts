@@ -3,6 +3,7 @@ import { getAccountBalance } from "@/lib/anchor/accounts";
 import { bookTransfer, verifyTransfer } from "@/lib/anchor/transfers";
 import { createNotification } from "@/lib/services/notification.service";
 import { getActiveAwePricing } from "@/lib/services/awe-pricing.service";
+import { describeAnchorError } from "@/lib/anchor/types";
 import type { AwePricing } from "@/lib/generated/prisma/client";
 
 interface AweChargeResult {
@@ -114,7 +115,7 @@ export async function chargeAweSubscriptionPeriod(userId: string, pricing: AwePr
         description: "Awe subscription charge failed",
       },
     });
-    return { success: false, error: err instanceof Error ? err.message : "Payment failed." };
+    return { success: false, error: describeAnchorError(err) };
   }
 }
 

@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db";
 import { processAnchorWebhook } from "@/lib/anchor/webhooks";
 import { provisionAnchorCustomer } from "@/lib/services/anchor-provisioning.service";
+import { describeAnchorError } from "@/lib/anchor/types";
 
 const MAX_EVENTS_PER_RUN = 50;
 const MAX_USERS_PER_RUN = 25;
@@ -28,7 +29,7 @@ export async function reconcileAnchorWebhooks(): Promise<{ eventsRetried: number
       });
       fixed += 1;
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Unknown error";
+      const message = describeAnchorError(err);
       await prisma.anchorWebhookEvent.update({ where: { id: event.id }, data: { processingError: message } });
     }
   }

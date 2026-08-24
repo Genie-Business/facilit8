@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/db";
 import { submitIndividualVerification } from "@/lib/anchor/customers";
-import { AnchorApiError } from "@/lib/anchor/types";
+import { AnchorApiError, describeAnchorError } from "@/lib/anchor/types";
 import { createDepositAccount } from "@/lib/anchor/accounts";
 
 interface KycResult {
@@ -57,7 +57,7 @@ export async function submitKyc(
 
       return { success: true };
     }
-    const message = err instanceof Error ? err.message : "KYC submission failed.";
+    const message = describeAnchorError(err);
     await prisma.user.update({ where: { id: userId }, data: { kycFailedReason: message } });
     return { success: false, error: message };
   }

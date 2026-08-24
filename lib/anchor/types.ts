@@ -38,3 +38,21 @@ export class AnchorApiError extends Error {
     this.body = body;
   }
 }
+
+/**
+ * The real, human-readable reason an Anchor call failed. AnchorApiError.message is only ever
+ * the generic "Anchor API error (STATUS) for METHOD PATH" wrapper set at the fetch call site
+ * (see client.ts) — the actual detail (e.g. "Account number does not match account name")
+ * lives in .body.errors[].detail. Every catch block that stores/logs/surfaces an Anchor
+ * failure should use this instead of `err.message`, or every future failure ends up as an
+ * indistinguishable generic string, the exact gap that made several production incidents
+ * this session harder to diagnose than they needed to be.
+ */
+export function describeAnchorError(err: unknown): string {
+  if (err instanceof AnchorApiError) {
+    const body = err.body as AnchorErrorResponse | undefined;
+    const details = body?.errors?.map((e) => e.detail || e.title).filter((v): v is string => !!v);
+    if (details && details.length > 0) return details.join("; ");
+  }
+  return err instanceof Error ? err.message : "Unknown error";
+}

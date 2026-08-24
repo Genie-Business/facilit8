@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/db";
-import { AnchorApiError } from "@/lib/anchor/types";
+import { AnchorApiError, describeAnchorError } from "@/lib/anchor/types";
 import { createCounterParty, createIndividualCustomer } from "@/lib/anchor/customers";
 
 /**
@@ -31,9 +31,7 @@ export async function provisionAnchorCustomer(userId: string): Promise<void> {
       const alreadyExists = err instanceof AnchorApiError && /already exist/i.test(JSON.stringify(err.body));
       const message = alreadyExists
         ? "A customer with this email already exists in Anchor for this organization. Needs manual reconciliation."
-        : err instanceof Error
-          ? err.message
-          : "Unknown provisioning error";
+        : describeAnchorError(err);
       console.error(`Anchor customer creation failed for user ${userId}:`, err);
       await prisma.user.update({ where: { id: userId }, data: { vaCreationFailed: true, vaFailureReason: message } });
       return; // Can't create the counterparty without a customer to attach it to.
@@ -52,7 +50,7 @@ export async function provisionAnchorCustomer(userId: string): Promise<void> {
         data: { anchorCounterpartyId: counterpartyId, vaCreationFailed: false, vaFailureReason: null },
       });
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Unknown provisioning error";
+      const message = describeAnchorError(err);
       console.error(`Anchor counterparty creation failed for user ${userId}:`, err);
       await prisma.user.update({ where: { id: userId }, data: { vaCreationFailed: true, vaFailureReason: message } });
     }
@@ -102,6 +100,6 @@ export async function updateLinkedBankAccount(
     return { success: true };
   } catch (err) {
     console.error(`Failed to link bank account for user ${userId}:`, err);
-    return { success: false, error: err instanceof Error ? err.message : "Couldn't link this account." };
+    return { success: false, error: describeAnchorError(err) };
   }
 }

@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db";
 import { getAccountBalance } from "@/lib/anchor/accounts";
 import { bookTransfer, verifyTransfer } from "@/lib/anchor/transfers";
+import { describeAnchorError } from "@/lib/anchor/types";
 import { createNotification } from "@/lib/services/notification.service";
 import { checkAndUpdateFundingStatus } from "@/lib/services/merged-training-funding.service";
 
@@ -93,6 +94,6 @@ export async function payMergedTrainingShare(
         description: `Failed to fund share of "${session.title}"`,
       },
     });
-    return { success: false, error: err instanceof Error ? err.message : "Payment failed." };
+    return { success: false, error: describeAnchorError(err) };
   }
 }

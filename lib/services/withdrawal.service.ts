@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/db";
 import { getAccountBalance } from "@/lib/anchor/accounts";
 import { nipTransfer, verifyTransfer } from "@/lib/anchor/transfers";
+import { describeAnchorError } from "@/lib/anchor/types";
 import { calculateFee } from "./fee.service";
 
 interface WithdrawResult {
@@ -76,6 +77,6 @@ export async function withdrawFunds(
         description: "Withdrawal failed",
       },
     });
-    return { success: false, error: err instanceof Error ? err.message : "Withdrawal failed." };
+    return { success: false, error: describeAnchorError(err) };
   }
 }

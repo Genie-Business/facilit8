@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db";
 import { getAccountBalance } from "@/lib/anchor/accounts";
 import { bookTransfer, verifyTransfer } from "@/lib/anchor/transfers";
+import { describeAnchorError } from "@/lib/anchor/types";
 
 interface FundResult {
   success: boolean;
@@ -84,6 +85,6 @@ export async function fundTrainingEvent(eventId: string, userId: string): Promis
         description: `Failed to fund event "${event.title}"`,
       },
     });
-    return { success: false, error: err instanceof Error ? err.message : "Funding failed." };
+    return { success: false, error: describeAnchorError(err) };
   }
 }

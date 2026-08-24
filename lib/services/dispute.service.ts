@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
 import { bookTransfer, verifyTransfer } from "@/lib/anchor/transfers";
+import { describeAnchorError } from "@/lib/anchor/types";
 import { createNotification } from "./notification.service";
 
 interface DisputeResult {
@@ -210,7 +211,7 @@ export async function resolveDispute(input: ResolveDisputeInput): Promise<Disput
 
       refundedAmount = amount;
     } catch (err) {
-      return { success: false, error: err instanceof Error ? err.message : "Refund transfer failed." };
+      return { success: false, error: describeAnchorError(err) };
     }
   }
 
