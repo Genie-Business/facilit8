@@ -141,6 +141,7 @@ export default async function DashboardPage() {
           className="card"
           style={{
             display: "flex",
+            flexDirection: "row",
             alignItems: "center",
             justifyContent: "space-between",
             gap: 16,
