@@ -26,9 +26,16 @@ export async function createDepositAccount(anchorCustomerId: string): Promise<st
   return result.data.id;
 }
 
-interface BalanceAttrs {
-  availableBalance: number;
-  ledgerBalance?: number;
+// Unlike every other Anchor endpoint this app calls, /accounts/balance/{id} does NOT use the
+// JSON:API "data.attributes.X" shape -- it returns the fields flat, directly on `data`.
+// Confirmed against a real production response: { "data": { "availableBalance": 99500, ... } },
+// no `attributes` wrapper at all. Reading result.data.attributes.availableBalance always threw
+// (attributes is undefined), silently caught and returned as an indistinguishable ₦0.
+interface BalanceResponse {
+  data: {
+    availableBalance: number;
+    ledgerBalance?: number;
+  };
 }
 
 /** Mirrors webapp/utils.py::get_user_account_balance. Returns 0 on any failure -- but logs
@@ -36,8 +43,8 @@ interface BalanceAttrs {
  * logs instead of needing an ad-hoc script to tell a hidden failure apart from a real zero. */
 export async function getAccountBalance(depositAccountId: string): Promise<number> {
   try {
-    const result = await anchorRequest<AnchorDocument<BalanceAttrs>>(`/accounts/balance/${depositAccountId}`);
-    return koboToNaira(Number(result.data.attributes.availableBalance));
+    const result = await anchorRequest<BalanceResponse>(`/accounts/balance/${depositAccountId}`);
+    return koboToNaira(Number(result.data.availableBalance));
   } catch (err) {
     console.error(`getAccountBalance failed for deposit account ${depositAccountId}:`, err);
     return 0;
