@@ -1,5 +1,7 @@
 import { prisma } from "@/lib/db";
 import { submitIndividualVerification } from "@/lib/anchor/customers";
+import { AnchorApiError } from "@/lib/anchor/types";
+import { createDepositAccount } from "@/lib/anchor/accounts";
 
 interface KycResult {
   success: boolean;
@@ -32,9 +34,27 @@ export async function submitKyc(
     return { success: true };
   } catch (err) {
     // Already-verified is treated as success, matching Django's recovery path in
-    // payment/views.py::kyc_verification_view.
-    if (err instanceof Error && /already.*verif/i.test(err.message)) {
+    // payment/views.py::kyc_verification_view. Checked against err.body, not err.message —
+    // AnchorApiError.message is just the generic "Anchor API error (STATUS) for METHOD PATH"
+    // wrapper text set in client.ts; the actual detail (e.g. "Kyc information already
+    // submitted") only ever lives in .body. Matches both "already submitted" and "already
+    // verified" phrasing, since Anchor's exact wording differs by endpoint.
+    const alreadyVerified = err instanceof AnchorApiError && /already.*(verif|submit)/i.test(JSON.stringify(err.body));
+    if (alreadyVerified) {
       await prisma.user.update({ where: { id: userId }, data: { kycVerified: true } });
+
+      // A customer verified before this local row got linked to it never got the normal
+      // customer.identification.approved webhook that creates the wallet — trigger it here
+      // too, same as webhooks.ts does, so "already verified" doesn't leave someone walletless.
+      if (!user.depositAccountId) {
+        try {
+          const accountId = await createDepositAccount(user.anchorCustomerId);
+          await prisma.user.update({ where: { id: userId }, data: { depositAccountId: accountId } });
+        } catch (depositErr) {
+          console.error(`Failed to trigger account opening for user ${userId}:`, depositErr);
+        }
+      }
+
       return { success: true };
     }
     const message = err instanceof Error ? err.message : "KYC submission failed.";
