@@ -87,6 +87,17 @@ async function resolveUser(payload: WebhookPayload) {
     if (user) return user;
   }
 
+  // Payment events (payment.received/payment.settled) carry neither `included` nor
+  // `relationships` at all -- confirmed from a real payload, just a flat
+  // attributes.payment object. The only identifying field in it is the receiving deposit
+  // account's own ID, under attributes.payment.settlementAccount.accountId.
+  const settlementAccountId = (dataBlock.attributes?.payment as { settlementAccount?: { accountId?: string } } | undefined)
+    ?.settlementAccount?.accountId;
+  if (settlementAccountId) {
+    const user = await prisma.user.findUnique({ where: { depositAccountId: settlementAccountId } });
+    if (user) return user;
+  }
+
   return null;
 }
 
@@ -364,6 +375,12 @@ export async function processAnchorWebhook(payload: WebhookPayload, eventType: s
       return "va_synced";
     }
 
+    // Anchor fires both payment.received and payment.settled for the same inbound transfer,
+    // milliseconds apart, with identical payloads -- notify on settled only (funds are
+    // actually final/available then), or every deposit would double-notify.
+    case "payment.received":
+      return user ? "payment_received_no_notify" : "no_user_matched";
+
     case "payment.settled": {
       if (user) {
         const paymentAttr = (dataBlock.attributes?.payment ?? {}) as { amount?: number };
@@ -373,8 +390,9 @@ export async function processAnchorWebhook(payload: WebhookPayload, eventType: s
           notificationType: "PAYMENT_CONFIRMED",
           message: `₦${amount.toLocaleString()} received.`,
         });
+        return "payment_settled";
       }
-      return "payment_settled";
+      return "no_user_matched";
     }
 
     default:
