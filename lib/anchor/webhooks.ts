@@ -2,7 +2,7 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 
 import { prisma } from "@/lib/db";
 import { createNotification } from "@/lib/services/notification.service";
-import { createDepositAccount } from "./accounts";
+import { createDepositAccount, fetchUnmaskedAccountNumber } from "./accounts";
 import { uploadBusinessDocument } from "./business";
 
 const TEXT_ONLY_DOCUMENT_TYPES = ["RC_NUMBER", "TIN"];
@@ -294,12 +294,21 @@ export async function processAnchorWebhook(payload: WebhookPayload, eventType: s
       const included = payload.included ?? [];
       const accountDetails = included.find((item) => item.type === "AccountNumber" || item.type === "VirtualNuban");
       const attrs = accountDetails?.attributes ?? dataBlock.attributes ?? {};
-      const accountNumber = attrs.accountNumber;
-      if (!isUnmasked(accountNumber)) return "received_but_masked";
+      let accountNumber = attrs.accountNumber as string | undefined;
+      let bankName = ((attrs.bank as { name?: string } | undefined)?.name ?? (attrs.bankName as string | undefined) ?? null);
+      let accountName = attrs.accountName as string | undefined;
 
-      const bank = attrs.bank as { name?: string } | undefined;
-      const bankName = bank?.name ?? (attrs.bankName as string | undefined) ?? null;
-      const accountName = attrs.accountName as string | undefined;
+      // Anchor never actually sends the unmasked number over a webhook (confirmed against
+      // docs/account-numbers) -- always fetch it directly rather than waiting forever for a
+      // follow-up event that won't come.
+      if (!isUnmasked(accountNumber) && user.depositAccountId) {
+        const fetched = await fetchUnmaskedAccountNumber(user.depositAccountId);
+        if (!fetched) return "received_but_masked";
+        accountNumber = fetched.accountNumber;
+        accountName = fetched.accountName ?? accountName;
+        bankName = fetched.bankName ?? bankName;
+      }
+      if (!isUnmasked(accountNumber)) return "received_but_masked";
 
       await prisma.user.update({
         where: { id: user.id },
@@ -314,23 +323,35 @@ export async function processAnchorWebhook(payload: WebhookPayload, eventType: s
     }
 
     case "virtualNuban.opened":
-    case "account.created": {
+    case "account.created":
+    case "account.opened": {
       if (!user) return "no_user_matched";
       const attrs = dataBlock.attributes ?? {};
-      const accountNumber = attrs.accountNumber;
-      if (!isUnmasked(accountNumber)) return "received_but_masked";
-
+      const depositAccountId = toOneRef(dataBlock.relationships?.account?.data)?.id ?? dataBlock.id;
+      let accountNumber = attrs.accountNumber as string | undefined;
       const bankRaw = attrs.bank;
-      const bankName =
+      let bankName =
         typeof bankRaw === "object" && bankRaw !== null
           ? ((bankRaw as { name?: string }).name ?? null)
           : ((bankRaw as string | undefined) ?? (attrs.bankName as string | undefined) ?? null);
+      let accountName = attrs.accountName as string | undefined;
+
+      // Same as accountNumber.created above -- the webhook's own number is always masked,
+      // so fetch the real one directly instead of giving up.
+      if (!isUnmasked(accountNumber) && depositAccountId) {
+        const fetched = await fetchUnmaskedAccountNumber(depositAccountId);
+        if (!fetched) return "received_but_masked";
+        accountNumber = fetched.accountNumber;
+        accountName = fetched.accountName ?? accountName;
+        bankName = fetched.bankName ?? bankName;
+      }
+      if (!isUnmasked(accountNumber)) return "received_but_masked";
 
       await prisma.user.update({
         where: { id: user.id },
         data: {
           vaAccountNumber: accountNumber,
-          vaAccountName: attrs.accountName as string | undefined,
+          vaAccountName: accountName,
           vaBankName: bankName,
           anchorVaId: dataBlock.id,
         },

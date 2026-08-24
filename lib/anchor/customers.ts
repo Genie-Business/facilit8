@@ -14,6 +14,30 @@ interface CustomerAttrs {
 }
 
 /**
+ * Fetches an existing IndividualCustomer by ID. Used for manual reconciliation when
+ * createIndividualCustomer fails because a customer with this email already exists at
+ * Anchor (e.g. from before a local row lost its anchorCustomerId link) — an admin who's
+ * confirmed the right customer ID via Anchor's own dashboard can link it back up without
+ * ever needing direct API access themselves. Returns null on any failure (not found, wrong
+ * credentials, etc.) rather than throwing, so callers can show a clean error.
+ */
+export async function getIndividualCustomer(
+  customerId: string
+): Promise<{ id: string; email: string | null; firstName: string | null; lastName: string | null } | null> {
+  try {
+    const result = await anchorRequest<AnchorDocument<CustomerAttrs>>(`/customers/${customerId}`);
+    return {
+      id: result.data.id,
+      email: result.data.attributes.email ?? null,
+      firstName: result.data.attributes.fullName?.firstName ?? null,
+      lastName: result.data.attributes.fullName?.lastName ?? null,
+    };
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Creates an Anchor IndividualCustomer for a new user. `externalReference` and the
  * `my_customerID` metadata field are both confirmed conventions from
  * payment/webhooks.py::resolve_user, which looks up the internal User by either.
