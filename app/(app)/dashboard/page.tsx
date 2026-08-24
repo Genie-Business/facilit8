@@ -146,6 +146,7 @@ export default async function DashboardPage() {
             justifyContent: "space-between",
             gap: 16,
             flexWrap: "wrap",
+            marginBottom: 20,
             borderLeft: "3px solid var(--primary)",
           }}
         >
