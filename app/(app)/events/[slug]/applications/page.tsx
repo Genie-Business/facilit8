@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { selectApplicationAction } from "@/lib/actions/application.actions";
+import { VerifiedBadge } from "@/components/shared/verified-badge";
 
 export default async function EventApplicationsPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
@@ -18,7 +19,19 @@ export default async function EventApplicationsPage({ params }: { params: Promis
     include: {
       applications: {
         orderBy: { appliedAt: "desc" },
-        include: { trainer: { select: { firstName: true, lastName: true, slug: true, specialization: true } } },
+        include: {
+          trainer: {
+            select: {
+              firstName: true,
+              lastName: true,
+              slug: true,
+              specialization: true,
+              qualification: true,
+              experience: true,
+              kycVerified: true,
+            },
+          },
+        },
       },
     },
   });
@@ -36,9 +49,12 @@ export default async function EventApplicationsPage({ params }: { params: Promis
           <Card key={application.id}>
             <CardHeader>
               <CardTitle className="flex items-center justify-between text-base">
-                <Link href={`/facilitators/${application.trainer.slug}`} className="hover:underline">
-                  {application.trainer.firstName} {application.trainer.lastName}
-                </Link>
+                <div className="flex items-center gap-2">
+                  <Link href={`/facilitators/${application.trainer.slug}`} className="hover:underline">
+                    {application.trainer.firstName} {application.trainer.lastName}
+                  </Link>
+                  <VerifiedBadge verified={application.trainer.kycVerified} />
+                </div>
                 <Badge
                   variant={
                     application.status === "ACCEPTED"
@@ -51,19 +67,38 @@ export default async function EventApplicationsPage({ params }: { params: Promis
                   {application.status}
                 </Badge>
               </CardTitle>
+              {(application.trainer.specialization || application.trainer.qualification || application.trainer.experience) && (
+                <p className="text-sm text-muted-foreground">
+                  {[application.trainer.specialization, application.trainer.qualification, application.trainer.experience]
+                    .filter(Boolean)
+                    .join(" · ")}
+                </p>
+              )}
             </CardHeader>
-            <CardContent className="space-y-3 text-sm">
-              <p>Budget per delegate: ₦{Number(application.budgetPerDelegate).toLocaleString()}</p>
-              {application.courseBreakdown && (
-                <p>
-                  <span className="text-muted-foreground">Course breakdown:</span> {application.courseBreakdown}
-                </p>
-              )}
-              {application.objective && (
-                <p>
-                  <span className="text-muted-foreground">Objective:</span> {application.objective}
-                </p>
-              )}
+            <CardContent className="space-y-4 text-sm">
+              <div className="space-y-3 rounded-lg border p-4">
+                <div>
+                  <p className="font-medium text-foreground">Activities</p>
+                  <p className="mt-0.5 text-muted-foreground">{application.classActivities || "Not provided."}</p>
+                </div>
+                <div>
+                  <p className="font-medium text-foreground">Expected outcomes</p>
+                  <p className="mt-0.5 text-muted-foreground">{application.objective || "Not provided."}</p>
+                </div>
+                {application.courseBreakdown && (
+                  <div>
+                    <p className="font-medium text-foreground">Course breakdown</p>
+                    <p className="mt-0.5 text-muted-foreground">{application.courseBreakdown}</p>
+                  </div>
+                )}
+                {/* Historical applications from before prices were dropped from bids. */}
+                {application.budgetPerDelegate && (
+                  <p className="text-xs text-muted-foreground">
+                    Budget per delegate (legacy field): ₦{Number(application.budgetPerDelegate).toLocaleString()}
+                  </p>
+                )}
+              </div>
+
               {event.isAvailable && (
                 <form action={selectApplicationAction}>
                   <input type="hidden" name="applicationSlug" value={application.slug} />

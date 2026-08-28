@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { voteForBidAction } from "@/lib/actions/merged-training.actions";
 import { eligibleVoterIds } from "@/lib/services/merged-training-voting.service";
+import { VerifiedBadge } from "@/components/shared/verified-badge";
 
 export default async function MergedTrainingApplicationsPage({
   params,
@@ -26,7 +27,17 @@ export default async function MergedTrainingApplicationsPage({
       applications: {
         orderBy: { appliedAt: "desc" },
         include: {
-          trainer: { select: { firstName: true, lastName: true, slug: true } },
+          trainer: {
+            select: {
+              firstName: true,
+              lastName: true,
+              slug: true,
+              specialization: true,
+              qualification: true,
+              experience: true,
+              kycVerified: true,
+            },
+          },
           votes: true,
         },
       },
@@ -60,9 +71,12 @@ export default async function MergedTrainingApplicationsPage({
             <Card key={application.id}>
               <CardHeader>
                 <CardTitle className="flex items-center justify-between text-base">
-                  <Link href={`/facilitators/${application.trainer.slug}`} className="hover:underline">
-                    {application.trainer.firstName} {application.trainer.lastName}
-                  </Link>
+                  <div className="flex items-center gap-2">
+                    <Link href={`/facilitators/${application.trainer.slug}`} className="hover:underline">
+                      {application.trainer.firstName} {application.trainer.lastName}
+                    </Link>
+                    <VerifiedBadge verified={application.trainer.kycVerified} />
+                  </div>
                   <Badge
                     variant={
                       application.status === "ACCEPTED"
@@ -75,14 +89,36 @@ export default async function MergedTrainingApplicationsPage({
                     {application.status}
                   </Badge>
                 </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3 text-sm">
-                <p>Budget per delegate: ₦{Number(application.budgetPerDelegate).toLocaleString()}</p>
-                {application.courseBreakdown && (
-                  <p>
-                    <span className="text-muted-foreground">Course breakdown:</span> {application.courseBreakdown}
+                {(application.trainer.specialization || application.trainer.qualification || application.trainer.experience) && (
+                  <p className="text-sm text-muted-foreground">
+                    {[application.trainer.specialization, application.trainer.qualification, application.trainer.experience]
+                      .filter(Boolean)
+                      .join(" · ")}
                   </p>
                 )}
+              </CardHeader>
+              <CardContent className="space-y-4 text-sm">
+                <div className="space-y-3 rounded-lg border p-4">
+                  <div>
+                    <p className="font-medium text-foreground">Activities</p>
+                    <p className="mt-0.5 text-muted-foreground">{application.classActivities || "Not provided."}</p>
+                  </div>
+                  <div>
+                    <p className="font-medium text-foreground">Expected outcomes</p>
+                    <p className="mt-0.5 text-muted-foreground">{application.objective || "Not provided."}</p>
+                  </div>
+                  {application.courseBreakdown && (
+                    <div>
+                      <p className="font-medium text-foreground">Course breakdown</p>
+                      <p className="mt-0.5 text-muted-foreground">{application.courseBreakdown}</p>
+                    </div>
+                  )}
+                  {application.budgetPerDelegate && (
+                    <p className="text-xs text-muted-foreground">
+                      Budget per delegate (legacy field): ₦{Number(application.budgetPerDelegate).toLocaleString()}
+                    </p>
+                  )}
+                </div>
                 <p className="text-muted-foreground">
                   {application.votes.length}/{totalVoters} votes
                 </p>

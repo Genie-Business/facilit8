@@ -1,10 +1,9 @@
 import { z } from "zod";
 
 export const applicationFormSchema = z.object({
+  classActivities: z.string().trim().min(1, "Describe the activities you'll run."),
+  objective: z.string().trim().min(1, "Describe the expected outcomes."),
   courseBreakdown: z.string().trim().optional().or(z.literal("")),
-  objective: z.string().trim().optional().or(z.literal("")),
-  classActivities: z.string().trim().optional().or(z.literal("")),
-  budgetPerDelegate: z.coerce.number().positive("Budget per delegate must be a positive number."),
 });
 
 export type ApplicationFormInput = z.infer<typeof applicationFormSchema>;

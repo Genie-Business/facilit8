@@ -416,10 +416,16 @@ model Application {
   trainingEventId   String
   trainingEvent     TrainingEvent     @relation(fields: [trainingEventId], references: [id], onDelete: Cascade)
   appliedAt         DateTime          @default(now())
-  courseBreakdown   String?
-  objective         String?
+  // Required: what the facilitator is proposing to actually run — replaces price as the
+  // basis for comparing bids, since the event's budget is already fixed by the Event
+  // Manager at creation (see TrainingEvent.trainingBudget) and facilitators were never paid
+  // based on this figure anyway (payout.service.ts pays out the event's own budget, not
+  // this field). budgetPerDelegate kept nullable rather than dropped, purely to preserve
+  // historical applications that already have a value.
   classActivities   String?
-  budgetPerDelegate Decimal           @db.Decimal(14, 2)
+  objective         String?
+  courseBreakdown   String?
+  budgetPerDelegate Decimal?          @db.Decimal(14, 2)
   status            ApplicationStatus @default(PENDING)
   isSelected        Boolean           @default(false)
   slug              String            @unique
@@ -673,10 +679,13 @@ model MergerApplication {
   mergedTrainingEventId String
   mergedTrainingEvent   MergedTrainingEvent @relation(fields: [mergedTrainingEventId], references: [id], onDelete: Cascade)
   appliedAt             DateTime            @default(now())
-  courseBreakdown       String?
-  objective             String?
+  // Same reasoning as Application above: pricePerDelegate is already fixed by the
+  // initiator, and payout.service.ts pays out participants' actual amountPaid, never this
+  // field. Kept nullable rather than dropped, to preserve historical applications.
   classActivities       String?
-  budgetPerDelegate     Decimal             @db.Decimal(14, 2)
+  objective             String?
+  courseBreakdown       String?
+  budgetPerDelegate     Decimal?            @db.Decimal(14, 2)
   status                ApplicationStatus   @default(PENDING)
   isSelected            Boolean             @default(false)
   slug                  String              @unique

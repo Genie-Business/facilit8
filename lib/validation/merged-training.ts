@@ -39,8 +39,7 @@ export const joinMergedTrainingFormSchema = z.object({
 });
 
 export const mergerApplicationFormSchema = z.object({
+  classActivities: z.string().trim().min(1, "Describe the activities you'll run."),
+  objective: z.string().trim().min(1, "Describe the expected outcomes."),
   courseBreakdown: z.string().trim().optional().or(z.literal("")),
-  objective: z.string().trim().optional().or(z.literal("")),
-  classActivities: z.string().trim().optional().or(z.literal("")),
-  budgetPerDelegate: z.coerce.number().positive("Budget per delegate must be a positive number."),
 });

@@ -5,7 +5,6 @@ import { useActionState } from "react";
 import { applyToEventAction } from "@/lib/actions/application.actions";
 import type { ActionState } from "@/lib/actions/shared";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -26,26 +25,24 @@ export function ApplicationForm({ eventSlug }: { eventSlug: string }) {
       )}
 
       <div className="space-y-2">
-        <Label htmlFor="budgetPerDelegate">Your budget per delegate (₦)</Label>
-        <Input id="budgetPerDelegate" name="budgetPerDelegate" type="number" min={0} step="0.01" required />
-        {state.fieldErrors?.budgetPerDelegate && (
-          <p className="text-sm text-destructive">{state.fieldErrors.budgetPerDelegate}</p>
+        <Label htmlFor="classActivities">Activities</Label>
+        <p className="text-sm text-muted-foreground">What you&apos;ll actually run in the room — exercises, discussions, group work.</p>
+        <Textarea id="classActivities" name="classActivities" rows={4} required />
+        {state.fieldErrors?.classActivities && (
+          <p className="text-sm text-destructive">{state.fieldErrors.classActivities}</p>
         )}
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="courseBreakdown">Course breakdown</Label>
+        <Label htmlFor="objective">Expected outcomes</Label>
+        <p className="text-sm text-muted-foreground">What delegates should be able to do differently by the end.</p>
+        <Textarea id="objective" name="objective" rows={3} required />
+        {state.fieldErrors?.objective && <p className="text-sm text-destructive">{state.fieldErrors.objective}</p>}
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="courseBreakdown">Course breakdown (optional)</Label>
         <Textarea id="courseBreakdown" name="courseBreakdown" rows={4} />
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="objective">Objective</Label>
-        <Textarea id="objective" name="objective" rows={3} />
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="classActivities">Class activities</Label>
-        <Textarea id="classActivities" name="classActivities" rows={3} />
       </div>
 
       <Button type="submit" disabled={pending}>

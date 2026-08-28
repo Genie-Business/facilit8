@@ -44,10 +44,9 @@ export async function applyToEventAction(_prev: ActionState, formData: FormData)
     data: {
       trainerId: session.user.id,
       trainingEventId: event.id,
+      classActivities: parsed.data.classActivities,
+      objective: parsed.data.objective,
       courseBreakdown: parsed.data.courseBreakdown || null,
-      objective: parsed.data.objective || null,
-      classActivities: parsed.data.classActivities || null,
-      budgetPerDelegate: parsed.data.budgetPerDelegate,
       slug,
     },
   });

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 
 import { Hero } from "@/components/marketing/hero";
 import { ThreeAudiences } from "@/components/marketing/three-audiences";
+import { OpportunitiesPreview } from "@/components/marketing/opportunities-preview";
 import { VideoShowcase } from "@/components/marketing/video-showcase";
 import { ServicesGrid } from "@/components/marketing/services-grid";
 import { MissionSection } from "@/components/marketing/mission-section";
@@ -20,6 +21,7 @@ export default async function HomePage() {
     <>
       <Hero content={content.hero} />
       <ThreeAudiences eyebrow={content.audiencesEyebrow} title={content.audiencesTitle} audiences={content.audiences} />
+      <OpportunitiesPreview />
       <VideoShowcase />
       <ServicesGrid eyebrow={content.servicesEyebrow} title={content.servicesTitle} services={content.services} />
       <MissionSection eyebrow={content.missionEyebrow} title={content.missionTitle} body={content.missionBody} />

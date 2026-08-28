@@ -278,10 +278,9 @@ export async function applyToMergedEventAction(_prev: ActionState, formData: For
     data: {
       trainerId: session.user.id,
       mergedTrainingEventId: mergedEvent.id,
+      classActivities: parsed.data.classActivities,
+      objective: parsed.data.objective,
       courseBreakdown: parsed.data.courseBreakdown || null,
-      objective: parsed.data.objective || null,
-      classActivities: parsed.data.classActivities || null,
-      budgetPerDelegate: parsed.data.budgetPerDelegate,
       slug: applicationSlug,
     },
   });
