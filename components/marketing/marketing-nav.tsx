@@ -9,6 +9,7 @@ import { HoverRollButton } from "./hover-roll-button";
 
 const LINKS = [
   { href: "/", label: "Home" },
+  { href: "/opportunities", label: "Opportunities" },
   { href: "/services", label: "How it works" },
   { href: "/about", label: "About" },
   { href: "/careers", label: "Careers" },
