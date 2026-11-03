@@ -14,6 +14,32 @@ interface CustomerAttrs {
 }
 
 /**
+ * Updates an IndividualCustomer's phone number (PUT /customers/update/{id}, per
+ * https://docs.getanchor.co/docs/manage-individual — body mirrors create, so the name goes
+ * along too). Anchor rejects this once the customer's KYC information has been submitted
+ * ("Kyc information already submitted"), which is why callers only use it before verification;
+ * after that the number is locked in, and BVN verification compares it against the BVN's phone.
+ */
+export async function updateIndividualCustomerPhone(
+  customerId: string,
+  params: { firstName: string; lastName: string; phoneNumber: string }
+): Promise<void> {
+  await anchorRequest<unknown>(`/customers/update/${customerId}`, {
+    method: "PUT",
+    body: {
+      data: {
+        type: "IndividualCustomer",
+        attributes: {
+          fullName: { firstName: params.firstName, lastName: params.lastName },
+          // Anchor rejects a leading "+" — same rule as createIndividualCustomer.
+          phoneNumber: params.phoneNumber.replace(/^\+/, ""),
+        },
+      },
+    },
+  });
+}
+
+/**
  * Fetches an existing IndividualCustomer by ID. Used for manual reconciliation when
  * createIndividualCustomer fails because a customer with this email already exists at
  * Anchor (e.g. from before a local row lost its anchorCustomerId link) — an admin who's

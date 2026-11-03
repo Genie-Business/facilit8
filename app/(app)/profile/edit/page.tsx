@@ -35,8 +35,27 @@ export default async function ProfileEditPage() {
       </section>
 
       <div className="card" style={{ maxWidth: 640 }}>
+        {/* An explicit object, not the whole row — everything passed to a client component is
+            serialized into the page payload, and the row includes passwordHash, BVN, Anchor IDs. */}
         <ProfileEditForm
-          user={user}
+          user={{
+            role: user.role,
+            mobilePhone: user.mobilePhone,
+            phoneLocked: user.kycVerified,
+            hasPaymentProfile: !!user.anchorCustomerId,
+            profileImageUrl: user.profileImageUrl,
+            profileDescription: user.profileDescription,
+            organization: user.organization,
+            state: user.state,
+            localGovt: user.localGovt,
+            address: user.address,
+            specialization: user.specialization,
+            qualification: user.qualification,
+            experience: user.experience,
+            travel: user.travel,
+            cvUrl: user.cvUrl,
+            certificateUrl: user.certificateUrl,
+          }}
           skills={skills}
           selectedSkillIds={user.facilitatorSkills.map((fs) => fs.skillId)}
         />

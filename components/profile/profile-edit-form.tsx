@@ -23,6 +23,11 @@ const initialState: ActionState = {};
 
 interface ProfileEditUser {
   role: string;
+  mobilePhone: string;
+  /** Verified identity — Anchor won't update a completed-KYC customer, so the number is locked. */
+  phoneLocked: boolean;
+  /** Has an Anchor customer record, so a phone change gets synced there (and should match the BVN). */
+  hasPaymentProfile: boolean;
   profileImageUrl: string | null;
   profileDescription: string | null;
   organization: string | null;
@@ -79,6 +84,31 @@ export function ProfileEditForm({
           <p className="text-sm text-destructive">{state.fieldErrors.profileDescription}</p>
         )}
       </div>
+
+      {/* Admins only have a placeholder here (see admin-management.service.ts) — nothing to edit. */}
+      {user.role !== "ADMIN" && (
+        <div className="space-y-2">
+          <Label htmlFor="mobilePhone">Phone number</Label>
+          <Input
+            id="mobilePhone"
+            name="mobilePhone"
+            type="tel"
+            defaultValue={user.mobilePhone}
+            disabled={user.phoneLocked}
+            required={!user.phoneLocked}
+          />
+          {state.fieldErrors?.mobilePhone && (
+            <p className="text-sm text-destructive">{state.fieldErrors.mobilePhone}</p>
+          )}
+          <p className="text-sm text-muted-foreground">
+            {user.phoneLocked
+              ? "Locked — your phone number is part of your verified identity."
+              : user.hasPaymentProfile
+                ? "Also updated on your payment profile, so it should match the number registered to your BVN."
+                : "A Nigerian mobile number, e.g. 0810 123 4567."}
+          </p>
+        </div>
+      )}
 
       {user.role === "EVENT_MANAGER" && (
         <div className="space-y-2">
