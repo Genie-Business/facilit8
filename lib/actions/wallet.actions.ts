@@ -24,7 +24,14 @@ export async function withdrawAction(_prev: ActionState, formData: FormData): Pr
 
   revalidatePath("/wallet");
   revalidatePath("/wallet/transactions");
-  return { success: "Withdrawal initiated." };
+
+  const naira = (value: number) => `₦${value.toLocaleString("en-NG")}`;
+  const arrival = result.pending ? "will reach your bank shortly" : "is on its way to your bank";
+  return {
+    success: result.feeAmount
+      ? `Withdrawal initiated: ${naira(result.netAmount ?? 0)} ${arrival}, after a ${naira(result.feeAmount)} withdrawal fee.`
+      : "Withdrawal initiated.",
+  };
 }
 
 export async function updateLinkedBankAccountAction(_prev: ActionState, formData: FormData): Promise<ActionState> {

@@ -28,11 +28,11 @@ export interface RankedItem {
 
 export type UserRoleKey = "FACILITATOR" | "EVENT_MANAGER" | "PROFESSIONAL";
 export type EventKindKey = "standard" | "merged";
-export type RevenueSourceKey = "payout_fees" | "chat" | "awe";
+export type RevenueSourceKey = "payout_fees" | "withdrawal_fees" | "chat" | "awe";
 
 export const USER_ROLE_KEYS: readonly UserRoleKey[] = ["FACILITATOR", "EVENT_MANAGER", "PROFESSIONAL"];
 export const EVENT_KIND_KEYS: readonly EventKindKey[] = ["standard", "merged"];
-export const REVENUE_SOURCE_KEYS: readonly RevenueSourceKey[] = ["payout_fees", "chat", "awe"];
+export const REVENUE_SOURCE_KEYS: readonly RevenueSourceKey[] = ["payout_fees", "withdrawal_fees", "chat", "awe"];
 
 export interface MoneyAnalytics {
   revenue: Metric;
@@ -44,7 +44,14 @@ export interface MoneyAnalytics {
   payouts: { count: Metric; gross: Metric; fees: Metric; net: Metric };
   chat: { count: Metric };
   awe: { count: Metric };
-  withdrawals: { count: Metric; volume: Metric };
+  withdrawals: {
+    count: Metric;
+    volume: Metric;
+    /** Fees actually taken from users' wallets and deposited to the settlement account. */
+    fees: Metric;
+    /** Withdrawals that paid out but whose fee failed to collect (or got stuck): a person has to look. All time. */
+    feesNeedingAttention: { count: number; amount: number };
+  };
 }
 
 export interface PlatformAnalytics {
@@ -365,7 +372,14 @@ async function moneyAnalytics(range: ResolvedRange): Promise<MoneyAnalytics> {
     createdAt: within(w),
   });
 
-  const [funding, refunds, payouts, chat, awe, withdrawals, revenueRows] = await Promise.all([
+  const collectedFee = (w: DateWindow) => ({
+    type: "WITHDRAWAL" as const,
+    status: "SUCCESS" as const,
+    createdAt: within(w),
+    metadata: { path: ["fee", "status"], equals: "COLLECTED" },
+  });
+
+  const [funding, refunds, payouts, chat, awe, withdrawals, withdrawalFees, feesNeedingAttention, revenueRows] = await Promise.all([
     forWindows(range, (w) => prisma.transaction.aggregate({ where: successful("FUNDING", w), _sum: { amount: true }, _count: { _all: true } })),
     forWindows(range, (w) => prisma.transaction.aggregate({ where: successful("REFUND", w), _sum: { amount: true } })),
     forWindows(range, (w) =>
@@ -378,18 +392,35 @@ async function moneyAnalytics(range: ResolvedRange): Promise<MoneyAnalytics> {
     forWindows(range, (w) => prisma.transaction.aggregate({ where: successful("CHAT_PAYMENT", w), _sum: { amount: true }, _count: { _all: true } })),
     forWindows(range, (w) => prisma.transaction.aggregate({ where: successful("AWE_SUBSCRIPTION", w), _sum: { amount: true }, _count: { _all: true } })),
     forWindows(range, (w) => prisma.transaction.aggregate({ where: successful("WITHDRAWAL", w), _sum: { amount: true }, _count: { _all: true } })),
+    forWindows(range, (w) => prisma.transaction.aggregate({ where: collectedFee(w), _sum: { feeAmount: true } })),
+    prisma.transaction.aggregate({
+      where: {
+        type: "WITHDRAWAL",
+        status: "SUCCESS",
+        OR: [
+          { metadata: { path: ["fee", "status"], equals: "FAILED" } },
+          { metadata: { path: ["fee", "status"], equals: "COLLECTING" } },
+        ],
+      },
+      _sum: { feeAmount: true },
+      _count: { _all: true },
+    }),
     prisma.$queryRaw<{ bucket: string; amount: number }[]>(Prisma.sql`
       SELECT ${bucketExpr("createdAt", range.granularity)} AS bucket, SUM(amount)::float8 AS amount FROM (
         SELECT "createdAt", "feeAmount" AS amount FROM "TrainingPayment" WHERE status = 'SUCCESS'
         UNION ALL
         SELECT "createdAt", amount FROM "Transaction"
         WHERE status = 'SUCCESS' AND type IN ('CHAT_PAYMENT', 'AWE_SUBSCRIPTION')
+        UNION ALL
+        SELECT "createdAt", "feeAmount" FROM "Transaction"
+        WHERE type = 'WITHDRAWAL' AND status = 'SUCCESS' AND metadata->'fee'->>'status' = 'COLLECTED'
       ) revenue
       WHERE "createdAt" >= ${asTimestamp(range.from)} AND "createdAt" < ${asTimestamp(range.to)}
       GROUP BY 1`),
   ]);
 
   const payoutFees = pick(payouts, (value) => num(value._sum.feeAmount));
+  const withdrawalFeeRevenue = pick(withdrawalFees, (value) => num(value._sum.feeAmount));
   const chatRevenue = pick(chat, (value) => num(value._sum.amount));
   const aweRevenue = pick(awe, (value) => num(value._sum.amount));
   const add = (...metrics: Metric[]): Metric => ({
@@ -401,12 +432,13 @@ async function moneyAnalytics(range: ResolvedRange): Promise<MoneyAnalytics> {
 
   const sources: [RevenueSourceKey, string, Metric][] = [
     ["payout_fees", "Facilitator payout fees", payoutFees],
+    ["withdrawal_fees", "Withdrawal fees", withdrawalFeeRevenue],
     ["chat", "Chat unlocks", chatRevenue],
     ["awe", "Awé subscriptions", aweRevenue],
   ];
 
   return {
-    revenue: add(payoutFees, chatRevenue, aweRevenue),
+    revenue: add(payoutFees, withdrawalFeeRevenue, chatRevenue, aweRevenue),
     revenueSeries: fillSeries(
       range,
       ["total"] as const,
@@ -429,6 +461,8 @@ async function moneyAnalytics(range: ResolvedRange): Promise<MoneyAnalytics> {
     withdrawals: {
       count: pick(withdrawals, (value) => value._count._all),
       volume: pick(withdrawals, (value) => num(value._sum.amount)),
+      fees: withdrawalFeeRevenue,
+      feesNeedingAttention: { count: feesNeedingAttention._count._all, amount: num(feesNeedingAttention._sum.feeAmount) },
     },
   };
 }

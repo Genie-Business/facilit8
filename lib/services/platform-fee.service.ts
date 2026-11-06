@@ -32,14 +32,15 @@ export async function getActiveFeesByScope(): Promise<Map<PlatformFeeScope, Plat
 }
 
 /**
- * Sets the active percentage for a scope. Deactivates any other active row for that scope
- * first so calculateFee's "most recent active row" lookup is always unambiguous, while
- * keeping every past row around (isActive: false) as an audit trail of fee changes over time.
+ * Sets the active percentage (and optional naira ceiling) for a scope. Deactivates any other
+ * active row for that scope first so calculateFee's "most recent active row" lookup is always
+ * unambiguous, while keeping every past row around (isActive: false) as an audit trail of fee
+ * changes over time. `maxAmount` null means no cap.
  */
-export async function setPlatformFee(scope: PlatformFeeScope, percentage: number): Promise<void> {
+export async function setPlatformFee(scope: PlatformFeeScope, percentage: number, maxAmount: number | null = null): Promise<void> {
   await prisma.$transaction([
     prisma.platformFee.updateMany({ where: { scope, isActive: true }, data: { isActive: false } }),
-    prisma.platformFee.create({ data: { scope, percentage, isActive: true } }),
+    prisma.platformFee.create({ data: { scope, percentage, maxAmount, isActive: true } }),
   ]);
 }
 

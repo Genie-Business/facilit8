@@ -159,15 +159,19 @@ export async function buildExportCsv(dataset: ExportDataset, window: { from: Dat
             reference: true,
             relatedTrainingEventId: true,
             createdAt: true,
+            // Only for the fee state below — the rest of the metadata is never exported.
+            metadata: true,
           },
           ...pageArgs(cursor),
         })
       );
+      const feeState = (metadata: unknown) =>
+        (metadata && typeof metadata === "object" ? (metadata as { fee?: { status?: string } }).fee?.status : undefined) ?? null;
       return {
         rows: transactions.length,
         csv: toCsv(
-          ["transaction_id", "user_id", "type", "status", "amount_ngn", "fee_ngn", "net_ngn", "currency", "reference", "related_event_id", "created_at"],
-          transactions.map((t) => [t.id, t.userId, t.type, t.status, num(t.amount), num(t.feeAmount), num(t.netAmount), t.currency, t.reference, t.relatedTrainingEventId, t.createdAt])
+          ["transaction_id", "user_id", "type", "status", "amount_ngn", "fee_ngn", "net_ngn", "withdrawal_fee_status", "currency", "reference", "related_event_id", "created_at"],
+          transactions.map((t) => [t.id, t.userId, t.type, t.status, num(t.amount), num(t.feeAmount), num(t.netAmount), feeState(t.metadata), t.currency, t.reference, t.relatedTrainingEventId, t.createdAt])
         ),
       };
     }

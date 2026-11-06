@@ -151,7 +151,8 @@ export function AnalyticsReport({ data, isSuperAdmin }: { data: PlatformAnalytic
         <section className="viz-section">
           <h2>Money</h2>
           <p className="viz-section-note">
-            Revenue is the fee kept on facilitator payouts, plus chat unlocks and Awé subscriptions. Only successful payments count.
+            Revenue is the fee kept on facilitator payouts, withdrawal fees, chat unlocks and Awé subscriptions. Only successful payments
+            count. Withdrawal fees are shown before Anchor&apos;s own transfer charge, which comes out of the same fee.
           </p>
           <div className="viz-cols-wide">
             <TimeSeriesChart
@@ -168,6 +169,15 @@ export function AnalyticsReport({ data, isSuperAdmin }: { data: PlatformAnalytic
             <StatTile label="Paid to facilitators" value={formatNaira(money.payouts.net.current)} current={money.payouts.net.current} previous={money.payouts.net.previous} note={`${formatCount(money.payouts.count.current)} payouts`} />
             <StatTile label="Fees kept on payouts" value={formatNaira(money.payouts.fees.current)} current={money.payouts.fees.current} previous={money.payouts.fees.previous} />
             <StatTile label="Withdrawn to banks" value={formatNaira(money.withdrawals.volume.current)} current={money.withdrawals.volume.current} previous={money.withdrawals.volume.previous} note={`${formatCount(money.withdrawals.count.current)} withdrawals`} />
+            <StatTile label="Withdrawal fees collected" value={formatNaira(money.withdrawals.fees.current)} current={money.withdrawals.fees.current} previous={money.withdrawals.fees.previous} />
+            {money.withdrawals.feesNeedingAttention.count > 0 && (
+              <StatTile
+                label="Withdrawal fees to review"
+                title="Withdrawals that reached the user's bank but whose fee could not be taken from their wallet (or got stuck part-way). They are not retried automatically, so a person has to check them."
+                value={formatNaira(money.withdrawals.feesNeedingAttention.amount)}
+                note={`${formatCount(money.withdrawals.feesNeedingAttention.count)} withdrawals, not collected`}
+              />
+            )}
             <StatTile label="Refunded" value={formatNaira(money.refunded.current)} current={money.refunded.current} previous={money.refunded.previous} upIsGood={false} />
           </div>
         </section>

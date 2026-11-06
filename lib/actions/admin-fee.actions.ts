@@ -18,9 +18,14 @@ export async function setPlatformFeeAction(_prev: ActionState, formData: FormDat
     return { fieldErrors: firstFieldErrors(parsed.error.flatten().fieldErrors) };
   }
 
-  await setPlatformFee(parsed.data.scope, parsed.data.percentage);
+  // Only the withdrawal fee has a ceiling in the product; for any other scope the field is ignored.
+  const cap = parsed.data.scope === "WITHDRAWAL" ? (parsed.data.maxAmount ?? null) : null;
+
+  await setPlatformFee(parsed.data.scope, parsed.data.percentage, cap);
   revalidatePath("/admin/fees");
-  return { success: `Fee updated to ${parsed.data.percentage}%.` };
+  return {
+    success: `Fee updated to ${parsed.data.percentage}%${cap !== null ? `, capped at ₦${cap.toLocaleString("en-NG")}` : ""}.`,
+  };
 }
 
 export async function setChatFeeAction(_prev: ActionState, formData: FormData): Promise<ActionState> {

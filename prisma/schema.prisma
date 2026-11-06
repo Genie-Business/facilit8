@@ -325,6 +325,9 @@ model PlatformFee {
   id            String           @id @default(cuid())
   scope         PlatformFeeScope
   percentage    Decimal          @db.Decimal(5, 2)
+  // Ceiling in naira for the percentage fee (null = uncapped). Only the WITHDRAWAL scope is
+  // given one in the admin UI; fee.service applies it to whichever scope has one set.
+  maxAmount     Decimal?         @db.Decimal(14, 2)
   isActive      Boolean          @default(true)
   effectiveFrom DateTime         @default(now())
   createdAt     DateTime         @default(now())

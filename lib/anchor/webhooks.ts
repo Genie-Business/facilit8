@@ -2,6 +2,7 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 
 import { prisma } from "@/lib/db";
 import { createNotification } from "@/lib/services/notification.service";
+import { settleWithdrawal } from "@/lib/services/withdrawal-settlement.service";
 import { createDepositAccount, fetchUnmaskedAccountNumber } from "./accounts";
 import { uploadBusinessDocument } from "./business";
 
@@ -53,6 +54,20 @@ interface WebhookPayload {
 function toOneRef(data: JsonApiRef | JsonApiRef[] | null | undefined): JsonApiRef | null {
   if (!data) return null;
   return Array.isArray(data) ? (data[0] ?? null) : data;
+}
+
+/**
+ * The transfer an nip.transfer.* event is about. Anchor links events to their resource under
+ * `relationships` (as transaction.created does with `transaction`), so the transfer is expected
+ * under `transfer`, falling back to an included transfer resource. NOT yet confirmed against a
+ * real nip.transfer payload: if it isn't found the event is a harmless no-op, and the scheduled
+ * reconciliation in withdrawal-settlement.service settles the withdrawal by asking Anchor instead.
+ */
+function transferIdFrom(payload: WebhookPayload): string | null {
+  const viaRelationship = toOneRef(payload.data?.relationships?.transfer?.data)?.id;
+  if (viaRelationship) return viaRelationship;
+  const included = (payload.included ?? []).find((item) => typeof item.type === "string" && /transfer/i.test(item.type));
+  return included?.id ?? null;
 }
 
 /** Normalizes a to-many relationship's `data` into an array regardless of how it arrived. */
@@ -393,6 +408,22 @@ export async function processAnchorWebhook(payload: WebhookPayload, eventType: s
         return "payment_settled";
       }
       return "no_user_matched";
+    }
+
+    // A withdrawal's bank payout reached a final state. The payload only says which transfer;
+    // settleWithdrawal asks Anchor for its real status rather than trusting the event, then
+    // marks the withdrawal and (on success) takes its fee.
+    case "nip.transfer.successful":
+    case "nip.transfer.failed":
+    case "nip.transfer.reversed": {
+      const transferId = transferIdFrom(payload);
+      if (!transferId) return "transfer_not_identified";
+      const withdrawal = await prisma.transaction.findFirst({
+        where: { type: "WITHDRAWAL", anchorTransferId: transferId },
+        select: { id: true },
+      });
+      if (!withdrawal) return "not_a_withdrawal";
+      return `withdrawal_${await settleWithdrawal(withdrawal.id)}`;
     }
 
     default:

@@ -51,6 +51,8 @@ export default async function AdminFeesPage() {
       {PLATFORM_FEE_SCOPES.map((scope) => {
         const fee = activeFees.get(scope);
         const currentPercentage = fee ? Number(fee.percentage) : 0;
+        const currentMax = fee?.maxAmount != null ? Number(fee.maxAmount) : null;
+        const isWithdrawal = scope === "WITHDRAWAL";
 
         return (
           <Card key={scope}>
@@ -58,12 +60,26 @@ export default async function AdminFeesPage() {
               <CardTitle className="text-base">{PLATFORM_FEE_SCOPE_LABELS[scope]}</CardTitle>
               <CardDescription>
                 {fee
-                  ? `Currently ${currentPercentage}%, active since ${fee.effectiveFrom.toLocaleDateString()}.`
+                  ? `Currently ${currentPercentage}%${currentMax !== null ? `, capped at ₦${currentMax.toLocaleString("en-NG")}` : ""}, active since ${fee.effectiveFrom.toLocaleDateString()}.`
                   : "Currently inactive — taking 0%."}
               </CardDescription>
+              {isWithdrawal && (
+                <CardDescription>
+                  Taken from the user&apos;s wallet when they withdraw: the bank receives the amount minus this fee, and the
+                  fee is deposited into the settlement account, where Anchor&apos;s own transfer charge comes out of it and
+                  the rest is Facilit8&apos;s. It&apos;s collected once the bank confirms the payout, so a failed withdrawal
+                  costs the user nothing. The maximum fee is the most any one withdrawal is charged, however large;
+                  leave it blank for no cap.
+                </CardDescription>
+              )}
             </CardHeader>
             <CardContent className="flex items-end justify-between gap-4">
-              <PlatformFeeForm scope={scope} currentPercentage={currentPercentage} />
+              <PlatformFeeForm
+                scope={scope}
+                currentPercentage={currentPercentage}
+                withMaxAmount={isWithdrawal}
+                currentMaxAmount={currentMax}
+              />
               {fee && (
                 <form
                   action={async () => {

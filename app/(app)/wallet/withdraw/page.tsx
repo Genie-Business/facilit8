@@ -6,14 +6,16 @@ import { WithdrawForm } from "@/components/wallet/withdraw-form";
 import { LinkBankAccountForm } from "@/components/wallet/link-bank-account-form";
 import { ChangeBankAccount } from "@/components/wallet/change-bank-account";
 import { getBankOptions } from "@/lib/services/bank-list.service";
+import { getFeeSchedule } from "@/lib/services/fee.service";
 
 export default async function WithdrawPage() {
   const session = await auth();
   if (!session) return null;
 
-  const [user, banks] = await Promise.all([
+  const [user, banks, feeSchedule] = await Promise.all([
     prisma.user.findUnique({ where: { id: session.user.id } }),
     getBankOptions(),
+    getFeeSchedule("WITHDRAWAL"),
   ]);
   if (!user) return null;
   // depositAccountId (the receiving wallet, tied to KYC) is a hard prerequisite — without
@@ -35,7 +37,7 @@ export default async function WithdrawPage() {
       ) : (
         <>
           <ChangeBankAccount banks={banks} currentLabel={bankLabel} />
-          <WithdrawForm bankLabel={bankLabel} />
+          <WithdrawForm bankLabel={bankLabel} feeSchedule={feeSchedule} />
         </>
       )}
     </div>
