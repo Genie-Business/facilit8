@@ -1,17 +1,19 @@
 import { prisma } from "@/lib/db";
 import type { PlatformFee, PlatformFeeScope } from "@/lib/generated/prisma/client";
 
+// The percentage-based fees. CHAT_ACCESS is deliberately not here: chat is a flat naira fee
+// (ChatPricing, set via chat-pricing.service.ts), and nothing ever applied a percentage to it.
+// The enum value stays in the schema only because dropping it would need a migration.
 export const PLATFORM_FEE_SCOPES: PlatformFeeScope[] = [
   "FACILITATOR_PAYOUT",
   "MERGED_TRAINING_PAYOUT",
-  "CHAT_ACCESS",
   "WITHDRAWAL",
 ];
 
 export const PLATFORM_FEE_SCOPE_LABELS: Record<PlatformFeeScope, string> = {
   FACILITATOR_PAYOUT: "Facilitator payout (standard events)",
   MERGED_TRAINING_PAYOUT: "Facilitator payout (merged trainings)",
-  CHAT_ACCESS: "Chat access",
+  CHAT_ACCESS: "Chat access (flat fee — see ChatPricing)",
   WITHDRAWAL: "Wallet withdrawal",
 };
 
