@@ -1,0 +1,125 @@
+/* Admin analytics. Chrome (ink, grid, surfaces) follows the Adminator shell's theme tokens so the
+   light/dark toggle works; data colours are the validated dataviz palette and have their own
+   dark steps. Scoped under .viz so nothing leaks into the rest of the admin. */
+
+.viz {
+  --series-1: #2a78d6; /* blue   */
+  --series-2: #eb6834; /* orange */
+  --series-3: #1baf7a; /* aqua   */
+  --viz-ink: var(--t-base);
+  --viz-ink-2: var(--t-muted);
+  --viz-muted: var(--t-light);
+  --viz-grid: var(--border-soft);
+  --viz-axis: var(--border);
+  --viz-wash: rgba(100, 116, 139, 0.1);
+  --viz-good: #0ca30c;
+  --viz-bad: #d03b3b;
+}
+.adminator-shell[data-theme="dark"] .viz {
+  --series-1: #3987e5;
+  --series-2: #d95926;
+  --series-3: #199e70;
+  --viz-wash: rgba(148, 163, 184, 0.14);
+}
+
+.viz-page { display: flex; flex-direction: column; gap: 28px; max-width: 1200px; }
+.viz-header { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 16px; }
+.viz-header h1 { font-size: 24px; font-weight: 600; line-height: 1.2; margin: 0; }
+.viz-header p { margin: 4px 0 0; color: var(--viz-ink-2); }
+
+/* Date range: one row above everything it scopes. */
+.viz-tabs { display: flex; flex-wrap: wrap; gap: 2px; padding: 3px; border: 1px solid var(--border); border-radius: 10px; background: var(--bg-card); }
+.viz-tab { padding: 6px 12px; border-radius: 7px; font-size: 13px; color: var(--viz-ink-2); text-decoration: none; white-space: nowrap; }
+.viz-tab:hover { background: var(--bg-hover); color: var(--viz-ink); }
+.viz-tab:focus-visible { outline: 2px solid var(--primary); outline-offset: 1px; }
+.viz-tab[aria-current="page"] { background: var(--primary-soft); color: var(--viz-ink); font-weight: 600; }
+
+.viz-section { display: flex; flex-direction: column; gap: 14px; }
+.viz-section > h2 { font-size: 15px; font-weight: 600; margin: 0; }
+.viz-section > .viz-section-note { margin: -8px 0 0; font-size: 13px; color: var(--viz-ink-2); }
+
+.viz-kpis { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr)); }
+.viz-cols { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); }
+.viz-cols-wide { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 460px), 1fr)); }
+.viz-cols > *, .viz-cols-wide > *, .viz-kpis > * { min-width: 0; }
+
+.viz-card { gap: 12px; }
+.viz-card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.viz-card-title { font-size: 14px; font-weight: 600; margin: 0; }
+.viz-card-sub { font-size: 12px; color: var(--viz-ink-2); margin: 2px 0 0; }
+
+/* Stat tile */
+.viz-tile { gap: 4px; padding: 16px 18px; }
+.viz-tile-label { font-size: 13px; color: var(--viz-ink-2); }
+.viz-tile-value { font-size: 28px; font-weight: 600; line-height: 1.15; color: var(--viz-ink); letter-spacing: -0.01em; }
+.viz-tile-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 12px; color: var(--viz-ink-2); min-height: 18px; }
+.viz-delta { display: inline-flex; align-items: center; gap: 4px; }
+.viz-delta svg { width: 10px; height: 10px; flex: none; }
+.viz-delta[data-tone="good"] svg { color: var(--viz-good); }
+.viz-delta[data-tone="bad"] svg { color: var(--viz-bad); }
+.viz-delta[data-tone="neutral"] svg { color: var(--viz-muted); }
+
+/* Charts */
+.viz-chart { position: relative; }
+.viz-chart:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; border-radius: 6px; }
+.viz-chart svg { display: block; overflow: visible; }
+.viz-axis-text { fill: var(--viz-muted); font-size: 11px; font-family: inherit; }
+.viz-gridline { stroke: var(--viz-grid); stroke-width: 1; }
+.viz-baseline { stroke: var(--viz-axis); stroke-width: 1; }
+.viz-crosshair { stroke: var(--viz-axis); stroke-width: 1; }
+.viz-hover-wash { fill: var(--viz-wash); }
+.viz-s1 { fill: var(--series-1); }
+.viz-s2 { fill: var(--series-2); }
+.viz-s3 { fill: var(--series-3); }
+
+.viz-tooltip { position: absolute; z-index: 5; top: 4px; min-width: 150px; max-width: 240px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 10px; background: var(--bg-card); box-shadow: var(--shadow-lg); font-size: 12px; pointer-events: none; }
+.viz-tooltip-head { color: var(--viz-ink-2); margin-bottom: 4px; }
+.viz-tooltip-row { display: flex; align-items: center; gap: 8px; line-height: 1.7; }
+.viz-tooltip-key { width: 10px; height: 3px; border-radius: 2px; flex: none; }
+.viz-tooltip-row strong { color: var(--viz-ink); font-weight: 600; font-variant-numeric: tabular-nums; }
+.viz-tooltip-row span { color: var(--viz-ink-2); }
+.viz-tooltip-total { margin-top: 3px; padding-top: 3px; border-top: 1px solid var(--border-soft); }
+
+.viz-legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 12px; color: var(--viz-ink-2); }
+.viz-legend-item { display: inline-flex; align-items: center; gap: 6px; }
+.viz-swatch { width: 10px; height: 10px; border-radius: 2px; flex: none; }
+
+.viz-empty { padding: 36px 0; text-align: center; font-size: 13px; color: var(--viz-ink-2); }
+.viz-link-button { font: inherit; font-size: 12px; color: var(--viz-ink-2); background: none; border: 0; padding: 2px 4px; border-radius: 4px; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; white-space: nowrap; }
+.viz-link-button:hover { color: var(--viz-ink); }
+.viz-link-button:focus-visible { outline: 2px solid var(--primary); }
+
+.viz-table-wrap { max-height: 280px; overflow: auto; border: 1px solid var(--border-soft); border-radius: 8px; }
+.viz-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.viz-table th, .viz-table td { padding: 6px 10px; text-align: right; border-bottom: 1px solid var(--border-soft); font-variant-numeric: tabular-nums; }
+.viz-table th:first-child, .viz-table td:first-child { text-align: left; }
+.viz-table th { position: sticky; top: 0; background: var(--bg-card); color: var(--viz-ink-2); font-weight: 500; }
+
+/* Ranked + funnel bars */
+.viz-rank { display: flex; flex-direction: column; gap: 10px; margin: 0; padding: 0; list-style: none; }
+.viz-rank-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 12px; align-items: baseline; font-size: 13px; }
+.viz-rank-label { color: var(--viz-ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.viz-rank-value { color: var(--viz-ink); font-weight: 600; font-variant-numeric: tabular-nums; }
+.viz-rank-value small { font-weight: 400; color: var(--viz-ink-2); margin-left: 6px; font-size: 12px; }
+.viz-rank-track { grid-column: 1 / -1; height: 8px; }
+.viz-rank-bar { height: 100%; min-width: 2px; background: var(--series-1); border-radius: 0 4px 4px 0; }
+.viz-rank-note { grid-column: 1 / -1; font-size: 12px; color: var(--viz-ink-2); margin-top: -2px; }
+
+.viz-footnote { font-size: 12px; color: var(--viz-ink-2); line-height: 1.6; max-width: 80ch; }
+.viz-footnote strong { color: var(--viz-ink); font-weight: 600; }
+
+.viz-exports { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); }
+.viz-export { display: flex; flex-direction: column; gap: 8px; padding: 14px 16px; border: 1px solid var(--border); border-radius: 12px; background: var(--bg-card); }
+.viz-export p { margin: 0; font-size: 12px; color: var(--viz-ink-2); }
+.viz-export strong { font-size: 14px; }
+.viz-export a { align-self: flex-start; font-size: 13px; font-weight: 500; color: var(--viz-ink); padding: 5px 12px; border: 1px solid var(--border); border-radius: 8px; text-decoration: none; }
+.viz-export a:hover { background: var(--bg-hover); }
+.viz-export a:focus-visible { outline: 2px solid var(--primary); outline-offset: 1px; }
+
+@media (max-width: 520px) {
+  /* Two tiles to a row instead of one, so the headline numbers aren't a long scroll. */
+  .viz-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .viz-tile { padding: 14px; }
+  .viz-tile-value { font-size: 22px; }
+  .viz-tabs { width: 100%; }
+}

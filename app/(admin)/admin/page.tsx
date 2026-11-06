@@ -1,5 +1,6 @@
 import Link from "next/link";
 import {
+  ChartColumn,
   FileText,
   Activity,
   Repeat,
@@ -15,9 +16,14 @@ import {
 import { auth } from "@/lib/auth";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getCronRunStatus } from "@/lib/services/cron-run.service";
+import { getQuickStats } from "@/lib/services/admin-analytics.service";
+import { formatCount } from "@/lib/analytics/format";
+import { StatTile } from "@/components/admin/analytics/stat-tile";
+import "@/components/admin/analytics/analytics.css";
 
 // Accessible to both admin tiers — day-to-day tools.
 const SECTIONS = [
+  { href: "/admin/analytics", icon: ChartColumn, title: "Analytics", description: "New users, events, applications, revenue and engagement, with CSV exports." },
   { href: "/admin/content", icon: FileText, title: "Content", description: "FAQ, Privacy, Terms, and contact info." },
   { href: "/admin/activity", icon: Activity, title: "Activity", description: "Recent applications, reviews, and notifications." },
   { href: "/admin/disputes", icon: ShieldAlert, title: "Disputes", description: "Review refund requests for funded training." },
@@ -43,14 +49,28 @@ export default async function AdminHomePage() {
   const session = await auth();
   const sections = session?.user.adminTier === "SUPER_ADMIN" ? [...SECTIONS, ...SUPER_ADMIN_SECTIONS] : SECTIONS;
 
-  const cronStatuses = await Promise.all(
-    CRON_JOBS.map(async (job) => ({ ...job, ...(await getCronRunStatus(job.jobName, job.intervalMs)) }))
-  );
+  const [cronStatuses, stats] = await Promise.all([
+    Promise.all(CRON_JOBS.map(async (job) => ({ ...job, ...(await getCronRunStatus(job.jobName, job.intervalMs)) }))),
+    getQuickStats(),
+  ]);
 
   return (
-    <div>
+    <div className="viz">
       <h1 className="text-2xl font-semibold">Admin</h1>
       <p className="text-muted-foreground">Manage site content, subscriptions, and user activity.</p>
+
+      <div className="mt-6 flex items-baseline justify-between">
+        <h2 className="text-base font-semibold">Last 7 days</h2>
+        <Link href="/admin/analytics" className="text-sm text-muted-foreground underline underline-offset-4">
+          Full analytics
+        </Link>
+      </div>
+      <div className="viz-kpis mt-3">
+        <StatTile label="New users" value={formatCount(stats.newUsers.current)} current={stats.newUsers.current} previous={stats.newUsers.previous} />
+        <StatTile label="Active users" value={formatCount(stats.activeUsers.current)} current={stats.activeUsers.current} previous={stats.activeUsers.previous} title="People who applied, posted, paid, chatted or reviewed." />
+        <StatTile label="New events" value={formatCount(stats.newEvents.current)} current={stats.newEvents.current} previous={stats.newEvents.previous} />
+        <StatTile label="Applications" value={formatCount(stats.applications.current)} current={stats.applications.current} previous={stats.applications.previous} />
+      </div>
 
       <Card className="mt-6">
         <CardHeader>

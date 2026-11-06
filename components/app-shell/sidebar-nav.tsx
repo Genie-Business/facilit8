@@ -28,6 +28,7 @@ import {
   UserCog,
   ArrowLeftRight,
   Percent,
+  ChartColumn,
 } from "lucide-react";
 
 import { useShell } from "./shell-root";
@@ -77,6 +78,7 @@ const MISC_LINKS: NavItem[] = [
 // subdomain and admin lives on the apex.
 const ADMIN_BASE_LINKS: (Omit<NavItem, "crossDomain"> & { superAdminOnly?: boolean })[] = [
   { href: "/admin", label: "Admin Home", icon: LayoutGrid },
+  { href: "/admin/analytics", label: "Analytics", icon: ChartColumn },
   { href: "/admin/account-recovery", label: "Account Recovery", icon: LifeBuoy },
   { href: "/admin/content", label: "Content", icon: FileText },
   { href: "/admin/disputes", label: "Disputes", icon: ShieldAlert },
