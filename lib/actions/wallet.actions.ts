@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { auth } from "@/lib/auth";
 import { withdrawFunds } from "@/lib/services/withdrawal.service";
 import { updateLinkedBankAccount } from "@/lib/services/anchor-provisioning.service";
-import { getBankOptions } from "@/lib/services/bank-list.service";
+import { lookupBank } from "@/lib/services/bank-list.service";
 import { withdrawFormSchema, linkBankAccountSchema } from "@/lib/validation/wallet";
 import { ActionState, firstFieldErrors } from "@/lib/actions/shared";
 
@@ -43,10 +43,10 @@ export async function updateLinkedBankAccountAction(_prev: ActionState, formData
     return { fieldErrors: firstFieldErrors(parsed.error.flatten().fieldErrors) };
   }
 
-  const banks = await getBankOptions();
-  const bankName = banks.find((bank) => bank.code === parsed.data.bankCode)?.name ?? parsed.data.bankCode;
+  const bank = await lookupBank(parsed.data.bankCode);
+  if (!bank.ok) return { fieldErrors: { bankCode: bank.error } };
 
-  const result = await updateLinkedBankAccount(session.user.id, { ...parsed.data, bankName });
+  const result = await updateLinkedBankAccount(session.user.id, { ...parsed.data, bankName: bank.bank.name });
   if (!result.success) return { error: result.error };
 
   revalidatePath("/wallet/withdraw");

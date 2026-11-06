@@ -5,6 +5,7 @@ import { useActionState, useEffect, useState, useTransition } from "react";
 import { updateLinkedBankAccountAction } from "@/lib/actions/wallet.actions";
 import { resolveAccountNameAction } from "@/lib/actions/bank.actions";
 import type { ActionState } from "@/lib/actions/shared";
+import { BANK_LIST_UNAVAILABLE } from "@/lib/bank-messages";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -26,6 +27,7 @@ export function LinkBankAccountForm({
   const [accountName, setAccountName] = useState("");
   const [resolveMessage, setResolveMessage] = useState<string | null>(null);
   const [resolving, startResolve] = useTransition();
+  const bankListUnavailable = banks.length === 0;
 
   useEffect(() => {
     if (state.success) onSuccess?.();
@@ -56,7 +58,19 @@ export function LinkBankAccountForm({
 
       <div className="space-y-2">
         <Label htmlFor="link-bankCode">Bank</Label>
-        <select id="link-bankCode" name="bankCode" defaultValue="" required className={nativeSelectClassName}>
+        {bankListUnavailable && (
+          <Alert variant="destructive">
+            <AlertDescription>{BANK_LIST_UNAVAILABLE}</AlertDescription>
+          </Alert>
+        )}
+        <select
+          id="link-bankCode"
+          name="bankCode"
+          defaultValue=""
+          required
+          disabled={bankListUnavailable}
+          className={nativeSelectClassName}
+        >
           <option value="" disabled>
             Select your bank
           </option>
@@ -104,7 +118,7 @@ export function LinkBankAccountForm({
         </div>
       </div>
 
-      <Button type="submit" disabled={pending}>
+      <Button type="submit" disabled={pending || bankListUnavailable}>
         {pending ? "Saving..." : "Save account"}
       </Button>
     </form>

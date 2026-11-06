@@ -5,6 +5,7 @@ import Link from "next/link";
 
 import { signupAction, type ActionState } from "@/lib/actions/auth.actions";
 import { resolveAccountNameAction } from "@/lib/actions/bank.actions";
+import { BANK_LIST_UNAVAILABLE } from "@/lib/bank-messages";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -32,6 +33,7 @@ export function SignupForm({
   const [accountName, setAccountName] = useState("");
   const [resolveMessage, setResolveMessage] = useState<string | null>(null);
   const [resolving, startResolve] = useTransition();
+  const bankListUnavailable = banks.length === 0;
 
   function handleAccountNumberBlur(bankCode: string, accountNumber: string) {
     setResolveMessage(null);
@@ -214,7 +216,19 @@ export function SignupForm({
 
       <div className="space-y-2">
         <Label htmlFor="bankCode">Bank</Label>
-        <select id="bankCode" name="bankCode" defaultValue="" required className={nativeSelectClassName}>
+        {bankListUnavailable && (
+          <Alert variant="destructive">
+            <AlertDescription>{BANK_LIST_UNAVAILABLE}</AlertDescription>
+          </Alert>
+        )}
+        <select
+          id="bankCode"
+          name="bankCode"
+          defaultValue=""
+          required
+          disabled={bankListUnavailable}
+          className={nativeSelectClassName}
+        >
           <option value="" disabled>
             Select your bank
           </option>
@@ -285,7 +299,7 @@ export function SignupForm({
         )}
       </div>
 
-      <Button type="submit" className="w-full" disabled={pending}>
+      <Button type="submit" className="w-full" disabled={pending || bankListUnavailable}>
         {pending ? "Creating account..." : "Create account"}
       </Button>
 

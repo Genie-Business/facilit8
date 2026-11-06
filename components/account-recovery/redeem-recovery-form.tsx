@@ -6,6 +6,7 @@ import Link from "next/link";
 import { redeemAccountRecoveryAction } from "@/lib/actions/account-recovery.actions";
 import { resolveAccountNameAction } from "@/lib/actions/bank.actions";
 import type { ActionState } from "@/lib/actions/shared";
+import { BANK_LIST_UNAVAILABLE } from "@/lib/bank-messages";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -27,6 +28,7 @@ export function RedeemRecoveryForm({
   const [accountName, setAccountName] = useState("");
   const [resolveMessage, setResolveMessage] = useState<string | null>(null);
   const [resolving, startResolve] = useTransition();
+  const bankListUnavailable = banks.length === 0;
 
   if (state.success) {
     return (
@@ -68,7 +70,19 @@ export function RedeemRecoveryForm({
 
       <div className="space-y-2">
         <Label htmlFor="recover-bankCode">Bank</Label>
-        <select id="recover-bankCode" name="bankCode" defaultValue="" required className={nativeSelectClassName}>
+        {bankListUnavailable && (
+          <Alert variant="destructive">
+            <AlertDescription>{BANK_LIST_UNAVAILABLE}</AlertDescription>
+          </Alert>
+        )}
+        <select
+          id="recover-bankCode"
+          name="bankCode"
+          defaultValue=""
+          required
+          disabled={bankListUnavailable}
+          className={nativeSelectClassName}
+        >
           <option value="" disabled>
             Select your bank
           </option>
@@ -115,7 +129,7 @@ export function RedeemRecoveryForm({
         )}
       </div>
 
-      <Button type="submit" className="w-full" disabled={pending}>
+      <Button type="submit" className="w-full" disabled={pending || bankListUnavailable}>
         {pending ? "Setting up your wallet..." : "Confirm and set up my wallet"}
       </Button>
     </form>

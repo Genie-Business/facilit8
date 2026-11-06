@@ -11,7 +11,7 @@ import { signIn, signOut } from "@/lib/auth";
 import { sendEmail } from "@/lib/email/resend";
 import { generateUniqueSlug } from "@/lib/utils/slug";
 import { appUrl, siteUrl } from "@/lib/site";
-import { getBankOptions } from "@/lib/services/bank-list.service";
+import { lookupBank } from "@/lib/services/bank-list.service";
 import { provisionAnchorCustomer } from "@/lib/services/anchor-provisioning.service";
 import { joinOrCreateOrganization, requestOrganizationMembership } from "@/lib/services/organization.service";
 import { reactivateUser } from "@/lib/services/user-status.service";
@@ -56,17 +56,20 @@ export async function signupAction(_prev: ActionState, formData: FormData): Prom
   if (emailTaken) return { fieldErrors: { email: "An account with this email already exists." } };
   if (phoneTaken) return { fieldErrors: { mobilePhone: "An account with this phone number already exists." } };
 
+  // Checked before the account exists: a code Anchor doesn't know would otherwise be saved on the
+  // user and then fail at counterparty creation, leaving them with a wallet that can't be finished.
+  let bankName: string | null = null;
+  if (data.bankCode) {
+    const bank = await lookupBank(data.bankCode);
+    if (!bank.ok) return { fieldErrors: { bankCode: bank.error } };
+    bankName = bank.bank.name;
+  }
+
   const passwordHash = await bcrypt.hash(data.password, 12);
   const slug = await generateUniqueSlug(
     `${data.firstName}-${data.lastName}`,
     async (candidate) => (await prisma.user.findUnique({ where: { slug: candidate } })) !== null
   );
-
-  let bankName: string | null = null;
-  if (data.bankCode) {
-    const banks = await getBankOptions();
-    bankName = banks.find((bank) => bank.code === data.bankCode)?.name ?? null;
-  }
 
   const user = await prisma.user.create({
     data: {

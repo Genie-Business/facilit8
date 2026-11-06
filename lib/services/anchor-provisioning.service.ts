@@ -100,6 +100,14 @@ export async function updateLinkedBankAccount(
     return { success: true };
   } catch (err) {
     console.error(`Failed to link bank account for user ${userId}:`, err);
-    return { success: false, error: describeAnchorError(err) };
+    const detail = describeAnchorError(err);
+    // Anchor's wording is accurate but a dead end for the person reading it; the usual cause is
+    // a page that was rendered with a stale bank list.
+    return {
+      success: false,
+      error: /invalid bank code/i.test(detail)
+        ? "We couldn't match that bank. Please refresh the page and choose your bank again."
+        : detail,
+    };
   }
 }
