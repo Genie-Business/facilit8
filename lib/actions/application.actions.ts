@@ -51,9 +51,15 @@ export async function applyToEventAction(_prev: ActionState, formData: FormData)
     },
   });
 
+  // Current name from the row — session.user.name is frozen into the login token and goes
+  // stale if the facilitator has edited their name since signing in.
+  const applicant = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { firstName: true, lastName: true },
+  });
   await createNotification({
     userId: event.companyId,
-    message: `${session.user.name ?? "A facilitator"} applied to facilitate "${event.title}".`,
+    message: `${applicant ? `${applicant.firstName} ${applicant.lastName}` : "A facilitator"} applied to facilitate "${event.title}".`,
     notificationType: "BID_RECEIVED",
     link: `/events/${event.slug}/applications`,
   });

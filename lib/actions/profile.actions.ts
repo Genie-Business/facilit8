@@ -6,7 +6,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { setFacilitatorSkills } from "@/lib/services/skill.service";
-import { prepareProfilePhoneChange } from "@/lib/services/profile-phone.service";
+import { prepareProfileIdentityChange, type IdentityFields } from "@/lib/services/profile-identity.service";
 import { ActionState, firstFieldErrors } from "@/lib/actions/shared";
 import { profileUpdateSchema, type ProfileUpdateInput } from "@/lib/validation/profile";
 
@@ -25,14 +25,19 @@ export async function updateProfileAction(_prev: ActionState, formData: FormData
   }
   const data = parsed.data;
 
-  // Before anything is saved: if this is a real phone change it may need to go to Anchor
-  // first, and a refusal there should block the whole save, not leave profile and Anchor
-  // disagreeing. formData.has() distinguishes "field not on this form" from "cleared".
-  const phone = await prepareProfilePhoneChange(session.user.id, formData.has("mobilePhone") ? data.mobilePhone ?? "" : undefined);
-  if (!phone.ok) return { fieldErrors: { mobilePhone: phone.error } };
+  // Before anything is saved: a real name/phone change may need to go to Anchor first, and a
+  // refusal there should block the whole save, not leave profile and Anchor disagreeing.
+  // formData.has() distinguishes "field not on this form" from "cleared".
+  const field = (name: "firstName" | "lastName" | "mobilePhone") => (formData.has(name) ? data[name] ?? "" : undefined);
+  const identity = await prepareProfileIdentityChange(session.user.id, {
+    firstName: field("firstName"),
+    lastName: field("lastName"),
+    mobilePhone: field("mobilePhone"),
+  });
+  if (!identity.ok) return { error: identity.error, fieldErrors: identity.fieldErrors };
 
   try {
-    await saveProfile(session.user.id, data, phone.newPhone);
+    await saveProfile(session.user.id, data, identity.changes);
   } catch (err) {
     // Lost a race for the number between the uniqueness check and the write.
     if (err instanceof Error && "code" in err && err.code === "P2002") {
@@ -49,11 +54,11 @@ export async function updateProfileAction(_prev: ActionState, formData: FormData
   redirect("/profile");
 }
 
-async function saveProfile(userId: string, data: ProfileUpdateInput, newPhone: string | null) {
+async function saveProfile(userId: string, data: ProfileUpdateInput, identity: IdentityFields) {
   await prisma.user.update({
     where: { id: userId },
     data: {
-      ...(newPhone ? { mobilePhone: newPhone } : {}),
+      ...identity,
       profileImageUrl: data.profileImageUrl || null,
       profileDescription: data.profileDescription || null,
       organization: data.organization || null,

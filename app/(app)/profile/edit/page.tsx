@@ -40,9 +40,12 @@ export default async function ProfileEditPage() {
         <ProfileEditForm
           user={{
             role: user.role,
+            firstName: user.firstName,
+            lastName: user.lastName,
             mobilePhone: user.mobilePhone,
-            phoneLocked: user.kycVerified,
+            identityLocked: user.kycVerified,
             hasPaymentProfile: !!user.anchorCustomerId,
+            verificationRejected: !!user.kycFailedReason,
             profileImageUrl: user.profileImageUrl,
             profileDescription: user.profileDescription,
             organization: user.organization,

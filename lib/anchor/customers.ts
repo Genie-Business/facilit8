@@ -14,13 +14,14 @@ interface CustomerAttrs {
 }
 
 /**
- * Updates an IndividualCustomer's phone number (PUT /customers/update/{id}, per
- * https://docs.getanchor.co/docs/manage-individual — body mirrors create, so the name goes
- * along too). Anchor rejects this once the customer's KYC information has been submitted
+ * Updates an IndividualCustomer's name and phone number (PUT /customers/update/{id}, per
+ * https://docs.getanchor.co/docs/manage-individual — body mirrors create, so both are always
+ * sent together). Anchor rejects this once the customer's KYC information has been submitted
  * ("Kyc information already submitted"), which is why callers only use it before verification;
- * after that the number is locked in, and BVN verification compares it against the BVN's phone.
+ * after that the details are locked in, and BVN verification compares them against the BVN's
+ * name and phone.
  */
-export async function updateIndividualCustomerPhone(
+export async function updateIndividualCustomer(
   customerId: string,
   params: { firstName: string; lastName: string; phoneNumber: string }
 ): Promise<void> {

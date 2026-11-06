@@ -23,11 +23,15 @@ const initialState: ActionState = {};
 
 interface ProfileEditUser {
   role: string;
+  firstName: string;
+  lastName: string;
   mobilePhone: string;
-  /** Verified identity — Anchor won't update a completed-KYC customer, so the number is locked. */
-  phoneLocked: boolean;
-  /** Has an Anchor customer record, so a phone change gets synced there (and should match the BVN). */
+  /** Verified identity — Anchor won't update a completed-KYC customer, so name and phone are locked. */
+  identityLocked: boolean;
+  /** Has an Anchor customer record, so a name/phone change gets synced there (and should match the BVN). */
   hasPaymentProfile: boolean;
+  /** Last verification attempt was rejected — they'll need to resubmit it after correcting these. */
+  verificationRejected: boolean;
   profileImageUrl: string | null;
   profileDescription: string | null;
   organization: string | null;
@@ -85,29 +89,73 @@ export function ProfileEditForm({
         )}
       </div>
 
-      {/* Admins only have a placeholder here (see admin-management.service.ts) — nothing to edit. */}
+      {/* Admins only have a placeholder phone here (see admin-management.service.ts) and no
+          payment identity — nothing to edit. */}
       {user.role !== "ADMIN" && (
-        <div className="space-y-2">
-          <Label htmlFor="mobilePhone">Phone number</Label>
-          <Input
-            id="mobilePhone"
-            name="mobilePhone"
-            type="tel"
-            defaultValue={user.mobilePhone}
-            disabled={user.phoneLocked}
-            required={!user.phoneLocked}
-          />
-          {state.fieldErrors?.mobilePhone && (
-            <p className="text-sm text-destructive">{state.fieldErrors.mobilePhone}</p>
-          )}
-          <p className="text-sm text-muted-foreground">
-            {user.phoneLocked
-              ? "Locked — your phone number is part of your verified identity."
-              : user.hasPaymentProfile
-                ? "Also updated on your payment profile, so it should match the number registered to your BVN."
-                : "A Nigerian mobile number, e.g. 0810 123 4567."}
-          </p>
-        </div>
+        <>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+            <div className="space-y-2">
+              <Label htmlFor="firstName">First name</Label>
+              <Input
+                id="firstName"
+                name="firstName"
+                autoComplete="given-name"
+                defaultValue={user.firstName}
+                disabled={user.identityLocked}
+                required={!user.identityLocked}
+              />
+              {state.fieldErrors?.firstName && (
+                <p className="text-sm text-destructive">{state.fieldErrors.firstName}</p>
+              )}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="lastName">Last name</Label>
+              <Input
+                id="lastName"
+                name="lastName"
+                autoComplete="family-name"
+                defaultValue={user.lastName}
+                disabled={user.identityLocked}
+                required={!user.identityLocked}
+              />
+              {state.fieldErrors?.lastName && (
+                <p className="text-sm text-destructive">{state.fieldErrors.lastName}</p>
+              )}
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="mobilePhone">Phone number</Label>
+            <Input
+              id="mobilePhone"
+              name="mobilePhone"
+              type="tel"
+              defaultValue={user.mobilePhone}
+              disabled={user.identityLocked}
+              required={!user.identityLocked}
+            />
+            {state.fieldErrors?.mobilePhone && (
+              <p className="text-sm text-destructive">{state.fieldErrors.mobilePhone}</p>
+            )}
+            <p className="text-sm text-muted-foreground">
+              {user.identityLocked
+                ? "Locked — your name and phone number are part of your verified identity."
+                : user.hasPaymentProfile
+                  ? "Your name and phone number are also updated on your payment profile, and must match your BVN record exactly."
+                  : "Use your name exactly as it appears on your BVN. Phone: a Nigerian mobile number, e.g. 0810 123 4567."}
+              {user.verificationRejected && !user.identityLocked && (
+                <>
+                  {" "}
+                  Your last verification was rejected — after saving, resubmit it on the{" "}
+                  <Link href="/settings/kyc" className="underline underline-offset-4">
+                    Identity verification
+                  </Link>{" "}
+                  page.
+                </>
+              )}
+            </p>
+          </div>
+        </>
       )}
 
       {user.role === "EVENT_MANAGER" && (

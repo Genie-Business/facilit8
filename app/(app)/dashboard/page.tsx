@@ -109,11 +109,13 @@ export default async function DashboardPage() {
     isEventManager ? listPendingMembershipRequests(userId) : Promise.resolve([]),
     prisma.user.findUnique({
       where: { id: userId },
-      select: { onboardingSkippedAt: true, onboardingCompletedAt: true },
+      select: { firstName: true, onboardingSkippedAt: true, onboardingCompletedAt: true },
     }),
   ]);
 
-  const firstName = session.user.name?.split(" ")[0] ?? "there";
+  // From the row, not session.user.name: that's frozen into the login token, so a renamed
+  // user would keep being greeted by their old name until they signed in again.
+  const firstName = onboarding?.firstName ?? session.user.name?.split(" ")[0] ?? "there";
   const showOnboardingNudge = !!onboarding?.onboardingSkippedAt && !onboarding?.onboardingCompletedAt;
 
   return (
