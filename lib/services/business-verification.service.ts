@@ -33,12 +33,27 @@ export const DOCUMENT_LABELS: Record<string, string> = {
   PROOF_OF_ADDRESS: "Proof of business address (utility bill or bank statement)",
 };
 
+/**
+ * A refusal written for the person who triggered it. The actions show only these messages as they are;
+ * anything else that goes wrong (a database hiccup, say) is logged and answered with a generic line,
+ * so internal error text never reaches the screen.
+ */
+export class OrganizationAccessError extends Error {}
+
+// Room for a slow moment on the database connection: the defaults (2s to start, 5s to finish) are
+// tight enough that one slow round trip fails an upload that would otherwise have gone through.
+const TRANSACTION_OPTIONS = { maxWait: 10_000, timeout: 20_000 };
+
+function inTransaction<T>(run: (tx: Prisma.TransactionClient) => Promise<T>): Promise<T> {
+  return prisma.$transaction(run, TRANSACTION_OPTIONS);
+}
+
 async function requireApprovedMember(organizationId: string, userId: string, roles: ("OWNER" | "MANAGER")[]) {
   const membership = await prisma.organizationMembership.findUnique({
     where: { organizationId_userId: { organizationId, userId } },
   });
   if (!membership || membership.status !== "APPROVED" || !roles.includes(membership.role as "OWNER" | "MANAGER")) {
-    throw new Error(
+    throw new OrganizationAccessError(
       roles.length === 1 ? "Only the organization's owner can do this." : "Only the organization's owner or a manager can do this."
     );
   }
@@ -88,7 +103,7 @@ export async function submitBusinessVerification(
     };
   }
 
-  const submitted = await prisma.$transaction(async (tx) => {
+  const submitted = await inTransaction(async (tx) => {
     await lockOrganization(tx, organizationId);
     // Only a fresh or rejected organization can (re)submit; one that is already collecting documents
     // or in review keeps what it has.
@@ -141,7 +156,7 @@ export async function attachOrganizationDocument(
   // The URL comes from the browser, so only addresses that our own storage could have issued are taken.
   if (!isAllowedDocumentUrl(fileUrl)) return { success: false, error: "That upload couldn't be used. Please upload the file again." };
 
-  return prisma.$transaction(async (tx) => {
+  return inTransaction(async (tx) => {
     await lockOrganization(tx, organizationId);
 
     const organization = await tx.organization.findUnique({ where: { id: organizationId }, select: { verificationStatus: true } });
@@ -198,7 +213,7 @@ export async function countOrganizationsInReview(): Promise<number> {
 }
 
 export async function approveOrganization(organizationId: string, adminId: string): Promise<Result> {
-  const organization = await prisma.$transaction(async (tx) => {
+  const organization = await inTransaction(async (tx) => {
     await lockOrganization(tx, organizationId);
     const claimed = await tx.organization.updateMany({
       where: { id: organizationId, verificationStatus: "PENDING" },
@@ -225,7 +240,7 @@ export async function rejectOrganizationDocument(documentId: string, adminId: st
   });
   if (!document) return { success: false, error: "Document not found." };
 
-  const outcome = await prisma.$transaction(async (tx): Promise<"sent_back" | "not_in_review" | "not_uploaded"> => {
+  const outcome = await inTransaction(async (tx): Promise<"sent_back" | "not_in_review" | "not_uploaded"> => {
     await lockOrganization(tx, document.organizationId);
     // Checked under the lock, so a concurrent review of the same organization can't interleave.
     const current = await tx.organizationDocument.findUnique({ where: { id: documentId }, select: { status: true } });
@@ -251,7 +266,7 @@ export async function rejectOrganizationDocument(documentId: string, adminId: st
 
 /** Turns the organization down. The owner sees the reason and can correct the details and submit again. */
 export async function rejectOrganization(organizationId: string, adminId: string, reason: string): Promise<Result> {
-  const organization = await prisma.$transaction(async (tx) => {
+  const organization = await inTransaction(async (tx) => {
     await lockOrganization(tx, organizationId);
     const claimed = await tx.organization.updateMany({
       where: { id: organizationId, verificationStatus: "PENDING" },

@@ -125,7 +125,19 @@ export default async function OrganizationVerifyPage() {
               )}
             </CardHeader>
             <CardContent>
-              <BusinessVerificationForm organizationId={organization.id} />
+              <BusinessVerificationForm
+                organizationId={organization.id}
+                defaults={{
+                  cacNumber: organization.cacNumber,
+                  businessDescription: organization.description,
+                  industry: organization.industry,
+                  registrationType: organization.registrationType,
+                  dateOfRegistration: organization.dateOfRegistration?.toISOString().slice(0, 10),
+                  addressLine1: organization.addressLine1,
+                  city: organization.addressCity,
+                  state: organization.addressState,
+                }}
+              />
             </CardContent>
           </Card>
         ))}

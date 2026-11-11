@@ -75,7 +75,7 @@ export default async function AdminWalletsPage() {
               : "Paystack isn't configured on this deployment, so the real balance can't be read."}
           </CardDescription>
         </CardHeader>
-        <CardContent className="grid gap-3 sm:grid-cols-2">
+        <CardContent className="grid !grid-cols-1 !gap-3 sm:!grid-cols-2">
           <Figure label="Ledger says it should be" value={naira(summary.expectedPaystackBalance)} note="Money in minus money out." />
           <Figure
             label="Paystack says it is"
@@ -92,7 +92,7 @@ export default async function AdminWalletsPage() {
             {naira(summary.liabilities)} is owed to users and held on their behalf; the rest is Facilit8&apos;s.
           </CardDescription>
         </CardHeader>
-        <CardContent className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <CardContent className="grid !grid-cols-1 !gap-3 sm:!grid-cols-2 lg:!grid-cols-3">
           <Figure label="In user wallets" value={naira(summary.userWallets)} />
           <Figure label="In escrow" value={naira(summary.escrow)} note="Funded events and shares not yet paid out." />
           <Figure label="In withdrawals in flight" value={naira(summary.transfersPending)} note="Held until Paystack confirms or fails the transfer." />

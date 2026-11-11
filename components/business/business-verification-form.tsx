@@ -17,9 +17,28 @@ const nativeSelectClassName =
 
 const initialState: ActionState = {};
 
-export function BusinessVerificationForm({ organizationId }: { organizationId: string }) {
+/** What the organization submitted last time, so a rejected one corrects a detail instead of retyping everything. */
+export interface BusinessVerificationDefaults {
+  cacNumber?: string | null;
+  businessDescription?: string | null;
+  industry?: string | null;
+  registrationType?: string | null;
+  /** yyyy-mm-dd */
+  dateOfRegistration?: string | null;
+  addressLine1?: string | null;
+  city?: string | null;
+  state?: string | null;
+}
+
+export function BusinessVerificationForm({
+  organizationId,
+  defaults = {},
+}: {
+  organizationId: string;
+  defaults?: BusinessVerificationDefaults;
+}) {
   const [state, formAction, pending] = useActionState(submitBusinessVerificationAction, initialState);
-  const [selectedState, setSelectedState] = useState("");
+  const [selectedState, setSelectedState] = useState(defaults.state ?? "");
 
   return (
     <form action={formAction} className="max-w-md space-y-4">
@@ -38,13 +57,20 @@ export function BusinessVerificationForm({ organizationId }: { organizationId: s
 
       <div className="space-y-2">
         <Label htmlFor="cacNumber">CAC / RC number</Label>
-        <Input id="cacNumber" name="cacNumber" required />
+        <Input id="cacNumber" name="cacNumber" defaultValue={defaults.cacNumber ?? ""} required />
         {state.fieldErrors?.cacNumber && <p className="text-sm text-destructive">{state.fieldErrors.cacNumber}</p>}
       </div>
 
       <div className="space-y-2">
         <Label htmlFor="businessDescription">What does your business do?</Label>
-        <Textarea id="businessDescription" name="businessDescription" rows={3} maxLength={500} required />
+        <Textarea
+          id="businessDescription"
+          name="businessDescription"
+          rows={3}
+          maxLength={500}
+          defaultValue={defaults.businessDescription ?? ""}
+          required
+        />
         {state.fieldErrors?.businessDescription && (
           <p className="text-sm text-destructive">{state.fieldErrors.businessDescription}</p>
         )}
@@ -52,7 +78,7 @@ export function BusinessVerificationForm({ organizationId }: { organizationId: s
 
       <div className="space-y-2">
         <Label htmlFor="industry">Industry</Label>
-        <select id="industry" name="industry" defaultValue="" required className={nativeSelectClassName}>
+        <select id="industry" name="industry" defaultValue={defaults.industry ?? ""} required className={nativeSelectClassName}>
           <option value="" disabled>
             Select industry
           </option>
@@ -67,7 +93,13 @@ export function BusinessVerificationForm({ organizationId }: { organizationId: s
 
       <div className="space-y-2">
         <Label htmlFor="registrationType">Registration type</Label>
-        <select id="registrationType" name="registrationType" defaultValue="" required className={nativeSelectClassName}>
+        <select
+          id="registrationType"
+          name="registrationType"
+          defaultValue={defaults.registrationType ?? ""}
+          required
+          className={nativeSelectClassName}
+        >
           <option value="" disabled>
             Select registration type
           </option>
@@ -84,7 +116,7 @@ export function BusinessVerificationForm({ organizationId }: { organizationId: s
 
       <div className="space-y-2">
         <Label htmlFor="dateOfRegistration">Date of registration</Label>
-        <Input id="dateOfRegistration" name="dateOfRegistration" type="date" required />
+        <Input id="dateOfRegistration" name="dateOfRegistration" type="date" defaultValue={defaults.dateOfRegistration ?? ""} required />
         {state.fieldErrors?.dateOfRegistration && (
           <p className="text-sm text-destructive">{state.fieldErrors.dateOfRegistration}</p>
         )}
@@ -92,7 +124,7 @@ export function BusinessVerificationForm({ organizationId }: { organizationId: s
 
       <div className="space-y-2">
         <Label htmlFor="addressLine1">Business address</Label>
-        <Input id="addressLine1" name="addressLine1" required />
+        <Input id="addressLine1" name="addressLine1" defaultValue={defaults.addressLine1 ?? ""} required />
         {state.fieldErrors?.addressLine1 && (
           <p className="text-sm text-destructive">{state.fieldErrors.addressLine1}</p>
         )}
@@ -101,7 +133,7 @@ export function BusinessVerificationForm({ organizationId }: { organizationId: s
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
         <div className="space-y-2">
           <Label htmlFor="city">City</Label>
-          <Input id="city" name="city" required />
+          <Input id="city" name="city" defaultValue={defaults.city ?? ""} required />
           {state.fieldErrors?.city && <p className="text-sm text-destructive">{state.fieldErrors.city}</p>}
         </div>
         <div className="space-y-2">
@@ -109,7 +141,6 @@ export function BusinessVerificationForm({ organizationId }: { organizationId: s
           <select
             id="businessState"
             name="state"
-            defaultValue=""
             required
             className={nativeSelectClassName}
             onChange={(e) => setSelectedState(e.target.value)}

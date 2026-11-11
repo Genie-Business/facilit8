@@ -242,6 +242,9 @@ export async function getLedgerSummary(): Promise<LedgerSummary> {
   const rows = await prisma.walletAccount.groupBy({ by: ["kind"], _sum: { balance: true } });
   const sum = (kind: WalletAccountKind) => Number(rows.find((r) => r.kind === kind)?._sum.balance ?? 0);
 
+  // `0 - x` rather than `-x`: negating a zero total gives -0, which prints as "₦-0.00".
+  const negate = (value: number) => 0 - value;
+
   const userWallets = sum("USER");
   const escrow = sum("ESCROW");
   const transfersPending = sum("TRANSFERS_PENDING");
@@ -251,7 +254,7 @@ export async function getLedgerSummary(): Promise<LedgerSummary> {
     transfersPending,
     liabilities: userWallets + escrow + transfersPending,
     revenue: sum("REVENUE"),
-    paystackFeesAbsorbed: -sum("PAYSTACK_FEES"),
-    expectedPaystackBalance: -sum("EXTERNAL"),
+    paystackFeesAbsorbed: negate(sum("PAYSTACK_FEES")),
+    expectedPaystackBalance: negate(sum("EXTERNAL")),
   };
 }

@@ -3,7 +3,11 @@
 import { revalidatePath } from "next/cache";
 
 import { auth } from "@/lib/auth";
-import { attachOrganizationDocument, submitBusinessVerification } from "@/lib/services/business-verification.service";
+import {
+  attachOrganizationDocument,
+  OrganizationAccessError,
+  submitBusinessVerification,
+} from "@/lib/services/business-verification.service";
 import { businessVerificationSchema } from "@/lib/validation/business";
 import { ActionState, firstFieldErrors } from "@/lib/actions/shared";
 
@@ -28,7 +32,9 @@ export async function submitBusinessVerificationAction(
     const result = await submitBusinessVerification(organizationId, session.user.id, parsed.data);
     if (!result.success) return { error: result.error };
   } catch (err) {
-    return { error: err instanceof Error ? err.message : "Couldn't save your details. Please try again." };
+    if (err instanceof OrganizationAccessError) return { error: err.message };
+    console.error("Business verification submission failed:", err);
+    return { error: "Couldn't save your details. Please try again." };
   }
 
   revalidatePath("/organization/verify");
@@ -52,6 +58,8 @@ export async function attachOrganizationDocumentAction(
     revalidatePath("/organization/verify");
     return result.success ? { sentForReview: result.sentForReview } : { error: result.error };
   } catch (err) {
-    return { error: err instanceof Error ? err.message : "Couldn't save the document. Please try again." };
+    if (err instanceof OrganizationAccessError) return { error: err.message };
+    console.error("Attaching an organization document failed:", err);
+    return { error: "Couldn't save the document. Please try again." };
   }
 }

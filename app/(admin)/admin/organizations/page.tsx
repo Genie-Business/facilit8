@@ -66,7 +66,7 @@ export default async function AdminOrganizationsPage() {
                     </p>
                   </div>
 
-                  <dl className="grid gap-x-6 gap-y-1 text-sm sm:grid-cols-2">
+                  <dl className="grid !grid-cols-1 !gap-x-6 !gap-y-1 text-sm sm:!grid-cols-2">
                     <div>
                       <dt className="text-muted-foreground">CAC / RC number</dt>
                       <dd>{organization.cacNumber ?? "—"}</dd>
@@ -83,14 +83,14 @@ export default async function AdminOrganizationsPage() {
                       <dt className="text-muted-foreground">Industry</dt>
                       <dd>{organization.industry ? formatIndustryLabel(organization.industry) : "—"}</dd>
                     </div>
-                    <div className="sm:col-span-2">
+                    <div className="sm:!col-span-2">
                       <dt className="text-muted-foreground">Address</dt>
                       <dd>
                         {[organization.addressLine1, organization.addressCity, organization.addressState].filter(Boolean).join(", ") || "—"}
                       </dd>
                     </div>
                     {organization.description && (
-                      <div className="sm:col-span-2">
+                      <div className="sm:!col-span-2">
                         <dt className="text-muted-foreground">What they do</dt>
                         <dd>{organization.description}</dd>
                       </div>
@@ -132,7 +132,7 @@ export default async function AdminOrganizationsPage() {
                     ))}
                   </div>
 
-                  <div className="grid gap-4 border-t pt-4 sm:grid-cols-2">
+                  <div className="grid !grid-cols-1 !gap-4 border-t pt-4 sm:!grid-cols-2">
                     <ApproveOrganizationForm organizationId={organization.id} />
                     <RejectWithReasonForm
                       idField="organizationId"
