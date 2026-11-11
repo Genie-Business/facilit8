@@ -1,6 +1,7 @@
-// Static fallback list of major Nigerian banks (NIP codes), used for the signup bank
-// picker so account creation doesn't depend on a live Anchor /banks call. Mirrors the
-// "hardcoded fallback" behavior noted in the old Django app's fetch_banks view.
+// Static list of major Nigerian banks with the 3-digit codes Paystack uses (Access Bank "044"...).
+// Only a stand-in for local development with no Paystack key, so the bank pickers can be worked on.
+// Anywhere Paystack IS configured the live /bank list is used, and if that can't be fetched the
+// pickers say so rather than fall back to this (see lib/services/bank-list.service.ts).
 export const NIGERIAN_BANKS: { code: string; name: string }[] = [
   { code: "044", name: "Access Bank" },
   { code: "023", name: "Citibank Nigeria" },

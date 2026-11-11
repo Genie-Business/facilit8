@@ -44,7 +44,7 @@ export default async function ProfileEditPage() {
             lastName: user.lastName,
             mobilePhone: user.mobilePhone,
             identityLocked: user.kycVerified,
-            hasPaymentProfile: !!user.anchorCustomerId,
+            hasPaymentProfile: !!user.paystackCustomerCode,
             verificationRejected: !!user.kycFailedReason,
             profileImageUrl: user.profileImageUrl,
             profileDescription: user.profileDescription,

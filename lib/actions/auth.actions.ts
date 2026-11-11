@@ -12,7 +12,7 @@ import { sendEmail } from "@/lib/email/resend";
 import { generateUniqueSlug } from "@/lib/utils/slug";
 import { appUrl, siteUrl } from "@/lib/site";
 import { lookupBank } from "@/lib/services/bank-list.service";
-import { provisionAnchorCustomer } from "@/lib/services/anchor-provisioning.service";
+import { provisionWallet } from "@/lib/services/wallet-provisioning.service";
 import { joinOrCreateOrganization, requestOrganizationMembership } from "@/lib/services/organization.service";
 import { reactivateUser } from "@/lib/services/user-status.service";
 import { isRateLimited, RATE_LIMITS, RATE_LIMIT_MESSAGE } from "@/lib/rate-limit";
@@ -98,9 +98,9 @@ export async function signupAction(_prev: ActionState, formData: FormData): Prom
     await requestOrganizationMembership(user.id, data.organizationId);
   }
 
-  // Never let account creation fail because Anchor is slow/unreachable — provisioning
+  // Never let account creation fail because Paystack is slow/unreachable — provisioning
   // records its own failure state on the user row and can be retried later.
-  await provisionAnchorCustomer(user.id);
+  await provisionWallet(user.id);
 
   try {
     await signIn("credentials", {

@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import { auth } from "@/lib/auth";
 import { withdrawFunds } from "@/lib/services/withdrawal.service";
-import { updateLinkedBankAccount } from "@/lib/services/anchor-provisioning.service";
+import { updateLinkedBankAccount } from "@/lib/services/wallet-provisioning.service";
 import { lookupBank } from "@/lib/services/bank-list.service";
 import { withdrawFormSchema, linkBankAccountSchema } from "@/lib/validation/wallet";
 import { ActionState, firstFieldErrors } from "@/lib/actions/shared";

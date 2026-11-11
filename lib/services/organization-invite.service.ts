@@ -5,7 +5,7 @@ import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/db";
 import { sendEmail } from "@/lib/email/resend";
 import { generateUniqueSlug } from "@/lib/utils/slug";
-import { provisionAnchorCustomer } from "@/lib/services/anchor-provisioning.service";
+import { provisionWallet } from "@/lib/services/wallet-provisioning.service";
 import type { OrgMemberRole } from "@/lib/generated/prisma/client";
 
 const INVITE_TOKEN_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7d
@@ -150,7 +150,7 @@ export async function redeemOrgInviteForNewAccount(
 
   // Never let account creation fail because Anchor is slow/unreachable — provisioning
   // records its own failure state on the user row and can be retried later (same as signupAction).
-  await provisionAnchorCustomer(user.id);
+  await provisionWallet(user.id);
 
   return { success: true, userId: user.id };
 }

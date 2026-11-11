@@ -1,13 +1,10 @@
-import { prisma } from "@/lib/db";
-import { getAccountBalance } from "@/lib/anchor/accounts";
+import { getUserBalance } from "@/lib/ledger/ledger.service";
 
 /**
- * Live Anchor balance is the source of truth for spendable funds; local Transaction rows
- * are the audit trail. Fixes Django's `User.wallet_balance`, which referenced a relation
- * that never existed in that codebase.
+ * A user's spendable balance, from the ledger — the source of truth for everything in the app.
+ * Paystack only holds the pooled money; it has no idea whose share is whose. Someone with no
+ * wallet yet simply has ₦0.
  */
 export async function getWalletBalance(userId: string): Promise<number> {
-  const user = await prisma.user.findUnique({ where: { id: userId }, select: { depositAccountId: true } });
-  if (!user?.depositAccountId) return 0;
-  return getAccountBalance(user.depositAccountId);
+  return getUserBalance(userId);
 }

@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
 
 import { paystackTransferFee } from "../paystack/transfer-fees";
-import { quoteWithdrawal } from "./withdrawal-quote";
+import { quoteWithdrawal, type WithdrawalFeeSchedule } from "./withdrawal-quote";
 
-const FREE = { percentage: 0, maxAmount: null };
-const ONE_PERCENT_CAP_500 = { percentage: 1, maxAmount: 500 };
+const FREE: WithdrawalFeeSchedule = { percentage: 0, maxAmount: null };
+const ONE_PERCENT_CAP_500: WithdrawalFeeSchedule = { percentage: 1, maxAmount: 500 };
 
 const quote = (amount: number, schedule = FREE) => {
   const result = quoteWithdrawal(amount, schedule);
