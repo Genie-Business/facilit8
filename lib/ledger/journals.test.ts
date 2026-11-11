@@ -55,11 +55,22 @@ describe("every journal balances to exactly zero", () => {
 });
 
 describe("who ends up with what", () => {
-  it("a deposit credits the user with what they SENT, and Facilit8 absorbs Paystack's fee", () => {
+  it("a deposit credits the user with what reached Facilit8: what they sent, less Paystack's fee", () => {
     const legs = depositLegs({ userId: "u1", gross: 100_000, paystackFee: 300 });
-    expect(amountOn(legs, "user:u1")).toBe(100_000);
-    expect(amountOn(legs, "external")).toBe(-99_700); // what actually reached Paystack's balance
-    expect(amountOn(legs, "paystack_fees")).toBe(-300);
+    expect(amountOn(legs, "user:u1")).toBe(99_700);
+    expect(amountOn(legs, "external")).toBe(-99_700); // exactly what reached Paystack's balance
+    expect(amountOn(legs, "paystack_fees")).toBe(0); // Facilit8 carries no deposit cost
+  });
+
+  it("a deposit with no fee credits everything that was sent", () => {
+    const legs = depositLegs({ userId: "u1", gross: 5_000, paystackFee: 0 });
+    expect(amountOn(legs, "user:u1")).toBe(5_000);
+    expect(amountOn(legs, "external")).toBe(-5_000);
+  });
+
+  it("a deposit credits to the kobo, with no floating-point drift", () => {
+    const legs = depositLegs({ userId: "u1", gross: 333.33, paystackFee: 3.33 });
+    expect(Math.round(amountOn(legs, "user:u1") * 100)).toBe(33_000);
   });
 
   it("a payout moves the gross out of escrow: net to the payee, the fee to revenue", () => {

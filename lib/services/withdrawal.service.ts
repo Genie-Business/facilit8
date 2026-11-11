@@ -2,7 +2,7 @@ import bcrypt from "bcryptjs";
 
 import { prisma } from "@/lib/db";
 import { describeLedgerError } from "@/lib/ledger/errors";
-import { inLedgerTransaction, postJournal } from "@/lib/ledger/ledger.service";
+import { getUserBalance, inLedgerTransaction, postJournal } from "@/lib/ledger/ledger.service";
 import { withdrawalHoldLegs } from "@/lib/ledger/journals";
 import { initiateTransfer } from "@/lib/paystack/api";
 import { describePaystackError, isDefinitiveFailure, isPaystackConfigured } from "@/lib/paystack/client";
@@ -25,8 +25,12 @@ interface WithdrawResult {
 
 const UNAVAILABLE = "Withdrawals are temporarily unavailable. Please try again later.";
 
+const naira = (value: number) => `₦${value.toLocaleString("en-NG")}`;
+
 /**
  * Starts a withdrawal. Mirrors Django's webapp/views.py flow: password re-confirmation, then the money.
+ * The amount is what the user wants to RECEIVE; Facilit8's fee and Paystack's transfer fee are added
+ * on top, and if that total is more than their balance the withdrawal is refused.
  *
  * Order matters, and it is what keeps this safe:
  *  1. the whole debit (bank amount + Facilit8's fee + Paystack's fee) leaves the wallet in the SAME
@@ -55,12 +59,20 @@ export async function withdrawFunds(userId: string, params: { amount: number; pa
 
   const quoted = quoteWithdrawal(amount, await getFeeSchedule("WITHDRAWAL"));
   if (!quoted.ok) {
-    return {
-      success: false,
-      error: `That amount is too small once fees are taken: at least ₦${MIN_WITHDRAWAL_RECEIVE.toLocaleString("en-NG")} has to reach your bank. Try a larger amount.`,
-    };
+    return { success: false, error: `The smallest withdrawal is ${naira(MIN_WITHDRAWAL_RECEIVE)}.` };
   }
   const { quote } = quoted;
+
+  // The user bears every fee on top of the amount they asked for, so what they need is the amount
+  // PLUS the fees. If that's more than they have, they can't withdraw it. (The hold below enforces the
+  // same limit atomically; this check is what lets us say exactly how much would be needed.)
+  const balance = await getUserBalance(userId);
+  if (quote.debit > balance) {
+    return {
+      success: false,
+      error: `Your balance is too low. Withdrawing ${naira(quote.receive)} costs ${naira(quote.debit)} with fees (${naira(quote.facilit8Fee)} Facilit8 + ${naira(quote.transferFee)} bank transfer), and you have ${naira(balance)}.`,
+    };
+  }
 
   // 16-50 characters of lowercase letters, digits, "-" and "_" is Paystack's rule for a reference.
   const reference = `wd-${userId}-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 5)}`.toLowerCase();

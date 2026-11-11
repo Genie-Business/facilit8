@@ -64,11 +64,12 @@ export default async function AdminFeesPage() {
               </CardDescription>
               {isWithdrawal && (
                 <CardDescription>
-                  Facilit8&apos;s own fee on a withdrawal, all of it revenue. On top of it the user also pays Paystack&apos;s
-                  bank transfer fee (₦10 up to ₦5,000, ₦25 up to ₦50,000, ₦50 above, plus ₦50 stamp duty from ₦10,000),
-                  which is passed through and isn&apos;t revenue. Both are shown to the user before they confirm and are
-                  only kept once the bank confirms the payout, so a failed withdrawal costs the user nothing. The
-                  maximum fee is the most Facilit8&apos;s fee can be on any one withdrawal, however large; leave it
+                  Facilit8&apos;s own fee on a withdrawal, all of it revenue. It is worked out on the amount the user
+                  withdraws and added on top of it. The user also pays Paystack&apos;s bank transfer fee (₦10 up to ₦5,000,
+                  ₦25 up to ₦50,000, ₦50 above, plus ₦50 stamp duty from ₦10,000), which is passed through and isn&apos;t
+                  revenue. They see the total before confirming, and can&apos;t withdraw more than their balance covers.
+                  The fees are only kept once the bank confirms the payout, so a failed withdrawal costs the user nothing.
+                  The maximum fee is the most Facilit8&apos;s fee can be on any one withdrawal, however large; leave it
                   blank for no cap.
                 </CardDescription>
               )}

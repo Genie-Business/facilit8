@@ -4,7 +4,7 @@ import { useActionState, useState } from "react";
 
 import { withdrawAction } from "@/lib/actions/wallet.actions";
 import type { ActionState } from "@/lib/actions/shared";
-import { quoteWithdrawal, type WithdrawalFeeSchedule } from "@/lib/wallet/withdrawal-quote";
+import { maxWithdrawable, quoteWithdrawal, type WithdrawalFeeSchedule } from "@/lib/wallet/withdrawal-quote";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -27,11 +27,12 @@ export function WithdrawForm({
   const [state, formAction, pending] = useActionState(withdrawAction, initialState);
   const [amountText, setAmountText] = useState("");
 
-  // The very function the server charges with, so the figures shown can't differ from the real ones.
+  // The very functions the server charges with, so the figures shown can't differ from the real ones.
   const entered = Math.round(Number(amountText) * 100) / 100;
   const hasAmount = Number.isFinite(entered) && entered > 0;
   const quoted = hasAmount ? quoteWithdrawal(entered, feeSchedule) : null;
-  const overBalance = hasAmount && entered > balance;
+  const overBalance = quoted?.ok === true && quoted.quote.debit > balance;
+  const maximum = maxWithdrawable(balance, feeSchedule);
 
   if (state.success) {
     return (
@@ -52,7 +53,7 @@ export function WithdrawForm({
       )}
 
       <div className="space-y-2">
-        <Label htmlFor="amount">Amount (₦)</Label>
+        <Label htmlFor="amount">Amount to receive (₦)</Label>
         <Input
           id="amount"
           name="amount"
@@ -63,24 +64,33 @@ export function WithdrawForm({
           value={amountText}
           onChange={(event) => setAmountText(event.target.value)}
         />
-        <p className="text-sm text-muted-foreground">Your balance: {naira(balance)}</p>
+        <p className="text-sm text-muted-foreground">
+          Your balance: {naira(balance)}.{" "}
+          {maximum > 0 ? (
+            <button type="button" className="underline underline-offset-4" onClick={() => setAmountText(String(maximum))}>
+              Most you can withdraw: {naira(maximum)}
+            </button>
+          ) : (
+            "Not enough for a withdrawal once fees are added."
+          )}
+        </p>
         {state.fieldErrors?.amount && <p className="text-sm text-destructive">{state.fieldErrors.amount}</p>}
 
         <div className="space-y-1 text-sm text-muted-foreground" aria-live="polite">
-          {hasAmount && quoted?.ok && (
+          {quoted?.ok && (
             <>
               <p className="text-foreground">You&apos;ll receive {naira(quoted.quote.receive)} at your bank.</p>
               <p>
-                Fees: {naira(quoted.quote.transferFee)} bank transfer
-                {quoted.quote.facilit8Fee > 0 ? ` + ${naira(quoted.quote.facilit8Fee)} Facilit8` : ""}
-                {quoted.quote.debit < entered ? ` · ${naira(quoted.quote.debit)} leaves your wallet` : ""}.
+                Fees on top: {naira(quoted.quote.transferFee)} bank transfer
+                {quoted.quote.facilit8Fee > 0 ? ` + ${naira(quoted.quote.facilit8Fee)} Facilit8` : ""}.
+              </p>
+              <p className={overBalance ? "text-destructive" : "text-foreground"}>
+                Total from your wallet: {naira(quoted.quote.debit)}
+                {overBalance ? ` — more than your balance of ${naira(balance)}.` : "."}
               </p>
             </>
           )}
-          {hasAmount && quoted && !quoted.ok && (
-            <p className="text-destructive">That&apos;s too small once fees are taken. Try a larger amount.</p>
-          )}
-          {overBalance && <p className="text-destructive">That&apos;s more than your balance.</p>}
+          {hasAmount && quoted && !quoted.ok && <p className="text-destructive">The smallest withdrawal is ₦100.</p>}
           <p>Fees are only charged if the transfer goes through. If it fails, the full amount returns to your wallet.</p>
         </div>
       </div>
@@ -91,7 +101,7 @@ export function WithdrawForm({
         {state.fieldErrors?.password && <p className="text-sm text-destructive">{state.fieldErrors.password}</p>}
       </div>
 
-      <Button type="submit" disabled={pending || overBalance}>
+      <Button type="submit" disabled={pending || overBalance || (hasAmount && quoted?.ok === false)}>
         {pending ? "Processing..." : "Withdraw"}
       </Button>
     </form>

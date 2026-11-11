@@ -15,19 +15,19 @@ const positive = (name: string, value: number) => {
 };
 
 /**
- * Money arrived in a user's Paystack virtual account. The user is credited what they SENT
- * (`gross`); Paystack keeps its fee out of what reaches Facilit8's balance, so the pool only
- * receives `gross - paystackFee` and the difference is Facilit8's cost of taking deposits.
+ * Money arrived in a user's Paystack virtual account. Paystack keeps its fee out of what it passes
+ * on, and the user bears that fee: they are credited what actually reached Facilit8's balance,
+ * `gross - paystackFee`. The wallet and the pool receive the same amount, so Facilit8 is never out
+ * of pocket for taking a deposit. Returns the legs; the credited amount is the user's leg.
  */
 export function depositLegs(input: { userId: string; gross: number; paystackFee: number }): JournalLeg[] {
   positive("gross", input.gross);
   if (input.paystackFee < 0 || input.paystackFee >= input.gross) throw new RangeError("Paystack's fee must be between 0 and the deposit.");
-  const legs: JournalLeg[] = [
-    { account: "external", amount: -(input.gross - input.paystackFee) },
-    { account: `user:${input.userId}`, amount: input.gross },
+  const credited = (Math.round(input.gross * 100) - Math.round(input.paystackFee * 100)) / 100;
+  return [
+    { account: "external", amount: -credited },
+    { account: `user:${input.userId}`, amount: credited },
   ];
-  if (input.paystackFee > 0) legs.push({ account: "paystack_fees", amount: -input.paystackFee });
-  return legs;
 }
 
 /** An Event Manager (or a merged-training participant) pays into escrow. */

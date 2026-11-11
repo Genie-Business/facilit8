@@ -8,7 +8,7 @@ export interface DepositEvent {
   paystackTransactionId: string | number;
   /** What the sender paid, in kobo. */
   amountKobo: number;
-  /** Paystack's fee on it, in kobo (taken out of what reaches Facilit8, not out of the user's credit). */
+  /** Paystack's fee on it, in kobo. The user bears it: it comes out of what they are credited. */
   feesKobo: number;
   customerCode?: string | null;
   /** The virtual account number it was paid into — used if the customer code doesn't match anyone. */
@@ -16,12 +16,14 @@ export interface DepositEvent {
   senderName?: string | null;
 }
 
-export type DepositOutcome = "credited" | "duplicate" | "user_not_found";
+export type DepositOutcome = "credited" | "duplicate" | "user_not_found" | "nothing_to_credit";
+
+const naira = (value: number) => `₦${value.toLocaleString("en-NG")}`;
 
 /**
- * Credits a bank transfer into a user's Paystack virtual account to their wallet. The user gets what
- * they SENT; Paystack's fee on the deposit is Facilit8's cost, recorded as an expense so the
- * ledger still agrees with Paystack's own balance (which receives the amount minus that fee).
+ * Credits a bank transfer into a user's Paystack virtual account to their wallet. The user bears
+ * Paystack's fee on the deposit: they are credited what actually reached Facilit8's balance (what was
+ * sent minus the fee), so the wallet and Paystack's own balance always agree.
  *
  * Idempotent on Paystack's transaction id: a redelivered webhook credits nothing twice. Returns
  * "user_not_found" for money we can't attribute — the caller leaves that event unprocessed and
@@ -33,34 +35,44 @@ export async function creditDeposit(event: DepositEvent): Promise<DepositOutcome
     (event.receiverAccountNumber ? await prisma.user.findFirst({ where: { vaAccountNumber: event.receiverAccountNumber } }) : null);
   if (!user) return "user_not_found";
 
-  const gross = event.amountKobo / 100;
-  // A fee at or above the deposit itself can't be right; credit the user rather than reject real money.
-  const fee = event.feesKobo > 0 && event.feesKobo < event.amountKobo ? event.feesKobo / 100 : 0;
+  const sent = event.amountKobo / 100;
+  const fee = Math.max(event.feesKobo, 0) / 100;
+  const credited = (event.amountKobo - Math.max(event.feesKobo, 0)) / 100;
+  // A deposit that Paystack's fee swallows whole leaves nothing to credit (nothing reached the balance either).
+  if (!(credited > 0)) {
+    console.warn(`Deposit ${event.paystackTransactionId} of ${naira(sent)} was entirely consumed by Paystack's fee of ${naira(fee)}; nothing credited.`);
+    return "nothing_to_credit";
+  }
+
   const reference = `dep-${event.paystackTransactionId}`;
+  const description = `Deposit${event.senderName ? ` from ${event.senderName}` : ""}${fee > 0 ? ` (${naira(sent)} sent, ${naira(fee)} bank fee)` : ""}`;
 
   const created = await inLedgerTransaction(async (tx) => {
     const journal = await postJournal(
       {
         reference,
         type: "DEPOSIT",
-        description: `Deposit${event.senderName ? ` from ${event.senderName}` : ""}`,
-        metadata: { paystackTransactionId: String(event.paystackTransactionId), paystackFee: fee },
-        legs: depositLegs({ userId: user.id, gross, paystackFee: fee }),
+        description,
+        metadata: { paystackTransactionId: String(event.paystackTransactionId), sent, paystackFee: fee },
+        legs: depositLegs({ userId: user.id, gross: sent, paystackFee: fee }),
       },
       tx
     );
     if (!journal.created) return false;
 
+    // `amount` is how much the wallet moved, i.e. what was credited, the same way a withdrawal's is what left it.
     await tx.transaction.create({
       data: {
         userId: user.id,
         type: "DEPOSIT",
         status: "SUCCESS",
-        amount: gross,
+        amount: credited,
+        feeAmount: fee > 0 ? fee : undefined,
+        netAmount: credited,
         currency: "NGN",
         reference,
-        description: `Deposit${event.senderName ? ` from ${event.senderName}` : ""}`,
-        metadata: { paystackFee: fee },
+        description,
+        metadata: { sent, paystackFee: fee },
       },
     });
     return true;
@@ -70,7 +82,7 @@ export async function creditDeposit(event: DepositEvent): Promise<DepositOutcome
   await createNotification({
     userId: user.id,
     notificationType: "PAYMENT_CONFIRMED",
-    message: `₦${gross.toLocaleString("en-NG")} received.`,
+    message: fee > 0 ? `${naira(credited)} received (${naira(sent)} sent, less a ${naira(fee)} bank fee).` : `${naira(credited)} received.`,
     link: "/wallet",
   });
   return "credited";

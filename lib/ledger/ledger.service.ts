@@ -16,7 +16,8 @@ import type { LedgerJournalType, WalletAccountKind } from "@/lib/generated/prism
  *
  * Accounts (see WalletAccountKind): a wallet per user, plus ESCROW (event money awaiting payout),
  * REVENUE (Facilit8's income), TRANSFERS_PENDING (withdrawals Paystack hasn't confirmed),
- * PAYSTACK_FEES (deposit fees Facilit8 absorbs) and EXTERNAL (the outside world).
+ * PAYSTACK_FEES (unused today: users bear every Paystack fee, so Facilit8 books none; the account is
+ * kept so a cost Facilit8 does carry could be recorded without a migration) and EXTERNAL (the outside world).
  */
 
 export const SYSTEM_ACCOUNTS = {
@@ -232,8 +233,6 @@ export interface LedgerSummary {
   /** Everything Facilit8 owes people right now: wallets + escrow + withdrawals in flight. */
   liabilities: number;
   revenue: number;
-  /** Paystack's deposit fees Facilit8 has absorbed (a positive number here). */
-  paystackFeesAbsorbed: number;
   /** What Paystack's own balance should be, per the ledger: money in minus money out. */
   expectedPaystackBalance: number;
 }
@@ -254,7 +253,6 @@ export async function getLedgerSummary(): Promise<LedgerSummary> {
     transfersPending,
     liabilities: userWallets + escrow + transfersPending,
     revenue: sum("REVENUE"),
-    paystackFeesAbsorbed: negate(sum("PAYSTACK_FEES")),
     expectedPaystackBalance: negate(sum("EXTERNAL")),
   };
 }

@@ -97,7 +97,6 @@ export default async function AdminWalletsPage() {
           <Figure label="In escrow" value={naira(summary.escrow)} note="Funded events and shares not yet paid out." />
           <Figure label="In withdrawals in flight" value={naira(summary.transfersPending)} note="Held until Paystack confirms or fails the transfer." />
           <Figure label="Facilit8 revenue" value={naira(summary.revenue)} note="Payout, withdrawal, chat and Awé fees kept." />
-          <Figure label="Paystack deposit fees absorbed" value={naira(summary.paystackFeesAbsorbed)} note="What Facilit8 has paid Paystack on users' deposits." />
         </CardContent>
       </Card>
 
