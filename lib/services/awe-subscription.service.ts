@@ -1,9 +1,9 @@
 import { prisma } from "@/lib/db";
-import { getAccountBalance } from "@/lib/anchor/accounts";
-import { bookTransfer, verifyTransfer } from "@/lib/anchor/transfers";
+import { AlreadyDoneError, describeLedgerError } from "@/lib/ledger/errors";
+import { inLedgerTransaction, postJournal } from "@/lib/ledger/ledger.service";
+import { chargeLegs } from "@/lib/ledger/journals";
 import { createNotification } from "@/lib/services/notification.service";
 import { getActiveAwePricing } from "@/lib/services/awe-pricing.service";
-import { describeAnchorError } from "@/lib/anchor/types";
 import type { AwePricing } from "@/lib/generated/prisma/client";
 
 interface AweChargeResult {
@@ -20,11 +20,14 @@ export async function hasAweAccess(userId: string): Promise<boolean> {
 }
 
 /**
- * Charges one billing period against the user's Anchor wallet and rolls their
- * AweSubscription forward. Shared by the first-time subscribe flow and the billing
- * cron's renewal path, so the Anchor-charge mechanics exist exactly once. Mirrors
- * lib/services/chat-payment.service.ts::payForChatAccess's error-handling shape: never
- * throws, always records a Transaction row (SUCCESS or FAILED), returns {success,error}.
+ * Charges one billing period against the user's wallet and rolls their AweSubscription forward.
+ * Shared by the first-time subscribe flow and the billing cron's renewal path, so the charging
+ * mechanics exist exactly once. Never throws; returns {success, error}.
+ *
+ * The charge, the subscription update and the Transaction row commit together. And because two
+ * overlapping billing runs (or a double click) could otherwise both charge the same period, the
+ * subscription is re-read INSIDE the transaction: one that is already ACTIVE with time left has
+ * been paid for, so the second attempt is refused and nothing is charged.
  */
 export async function chargeAweSubscriptionPeriod(userId: string, pricing: AwePricing): Promise<AweChargeResult> {
   const payer = await prisma.user.findUnique({ where: { id: userId } });
@@ -32,67 +35,64 @@ export async function chargeAweSubscriptionPeriod(userId: string, pricing: AwePr
     return { success: false, error: "Your wallet isn't set up yet. Complete KYC first." };
   }
 
-  const settlementAccountId = process.env.ANCHOR_SETTLEMENT_ACCOUNT_ID;
-  if (!settlementAccountId) return { success: false, error: "Payments are not configured yet." };
-
   const amount = Number(pricing.monthlyPrice);
-  const balance = await getAccountBalance(payer.depositAccountId);
-  if (balance < amount) {
-    return { success: false, error: `Insufficient balance (₦${balance.toLocaleString()}).` };
-  }
-
-  const reference = `awesub_${userId.slice(0, 10)}_${Date.now()}`;
+  const reference = `awesub_${userId}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`;
 
   try {
-    const { transferId } = await bookTransfer({
-      sourceAccountId: payer.depositAccountId,
-      destinationAccountId: settlementAccountId,
-      amountNaira: amount,
-      reason: "Awe subscription via Facilit8",
-      reference,
-    });
-
-    const status = await verifyTransfer(transferId);
-    if (!["successful", "completed"].includes(status)) {
-      throw new Error(`Transfer not successful, status: ${status}`);
-    }
-
-    const now = new Date();
-    const periodEnd = new Date(now.getTime() + pricing.durationDays * 24 * 60 * 60 * 1000);
-
-    const subscription = await prisma.aweSubscription.upsert({
-      where: { userId },
-      create: {
-        userId,
-        status: "ACTIVE",
-        pricingId: pricing.id,
-        currentPeriodStart: now,
-        currentPeriodEnd: periodEnd,
-        nextBillingAt: periodEnd,
-      },
-      update: {
-        status: "ACTIVE",
+    await inLedgerTransaction(async (tx) => {
+      const now = new Date();
+      const periodEnd = new Date(now.getTime() + pricing.durationDays * 24 * 60 * 60 * 1000);
+      const period = {
+        status: "ACTIVE" as const,
         pricingId: pricing.id,
         currentPeriodStart: now,
         currentPeriodEnd: periodEnd,
         nextBillingAt: periodEnd,
         failedPaymentCount: 0,
         lastPaymentFailedAt: null,
-      },
-    });
+      };
 
-    await prisma.transaction.create({
-      data: {
-        userId,
-        type: "AWE_SUBSCRIPTION",
-        status: "SUCCESS",
-        amount,
-        currency: "NGN",
-        reference,
-        anchorTransferId: transferId,
-        relatedAweSubscriptionId: subscription.id,
-        description: "Awe subscription charge",
-      },
+      // CLAIM the period before any money moves. The conditional update is the lock: of several
+      // overlapping attempts only one can match "not active, or the period has run out" — the rest
+      // wait for it, re-check against the committed row and find it paid. (Checking first and
+      // charging after would let every attempt read the same stale row and all charge.)
+      const existing = await tx.aweSubscription.findUnique({ where: { userId } });
+      let subscriptionId: string;
+      if (existing) {
+        const claimed = await tx.aweSubscription.updateMany({
+          where: { id: existing.id, OR: [{ status: { not: "ACTIVE" } }, { currentPeriodEnd: { lte: now } }] },
+          data: period,
+        });
+        if (claimed.count !== 1) throw new AlreadyDoneError("Your Awé subscription is already active.");
+        subscriptionId = existing.id;
+      } else {
+        try {
+          subscriptionId = (await tx.aweSubscription.create({ data: { userId, ...period }, select: { id: true } })).id;
+        } catch (err) {
+          // Two first-time subscribe clicks: the unique userId index lets exactly one create it.
+          if (typeof err === "object" && err !== null && (err as { code?: string }).code === "P2002") {
+            throw new AlreadyDoneError("Your Awé subscription is already active.");
+          }
+          throw err;
+        }
+      }
+
+      await postJournal(
+        { reference, type: "AWE_SUBSCRIPTION", description: "Awé subscription charge", legs: chargeLegs(userId, amount) },
+        tx
+      );
+      await tx.transaction.create({
+        data: {
+          userId,
+          type: "AWE_SUBSCRIPTION",
+          status: "SUCCESS",
+          amount,
+          currency: "NGN",
+          reference,
+          relatedAweSubscriptionId: subscriptionId,
+          description: "Awe subscription charge",
+        },
+      });
     });
 
     await createNotification({
@@ -101,21 +101,9 @@ export async function chargeAweSubscriptionPeriod(userId: string, pricing: AwePr
       message: "Your Awé subscription is active.",
       link: "/awe",
     });
-
     return { success: true };
   } catch (err) {
-    await prisma.transaction.create({
-      data: {
-        userId,
-        type: "AWE_SUBSCRIPTION",
-        status: "FAILED",
-        amount,
-        currency: "NGN",
-        reference,
-        description: "Awe subscription charge failed",
-      },
-    });
-    return { success: false, error: describeAnchorError(err) };
+    return { success: false, error: describeLedgerError(err, "Payment failed. Please try again.") };
   }
 }
 

@@ -1,5 +1,6 @@
 import { creditDeposit } from "@/lib/services/deposit.service";
 import { activateWallet, rejectKyc } from "@/lib/services/wallet-activation.service";
+import { applyTransferOutcome } from "@/lib/services/withdrawal-settlement.service";
 
 export interface PaystackEvent {
   event: string;
@@ -68,6 +69,18 @@ export async function processPaystackEvent(payload: PaystackEvent): Promise<stri
     // Successful identification on its own changes nothing: the wallet is created by the assign event.
     case "customeridentification.success":
       return "noted";
+
+    // A withdrawal's bank transfer reached a final state. `data.reference` is the reference WE gave
+    // the transfer, so it finds the withdrawal directly. A transfer that isn't ours (sent from the
+    // dashboard, say) simply isn't found, which is fine.
+    case "transfer.success":
+    case "transfer.failed":
+    case "transfer.reversed": {
+      const reference = text(data.reference);
+      if (!reference) return "ignored_no_reference";
+      const outcome = event === "transfer.success" ? "SUCCESS" : event === "transfer.failed" ? "FAILED" : "REVERSED";
+      return `withdrawal_${await applyTransferOutcome(reference, outcome)}`;
+    }
 
     default:
       return "ignored";

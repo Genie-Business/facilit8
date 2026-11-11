@@ -2,7 +2,6 @@ import { prisma } from "@/lib/db";
 import { createNotification } from "@/lib/services/notification.service";
 import { getActiveAwePricing } from "@/lib/services/awe-pricing.service";
 import { chargeAweSubscriptionPeriod } from "@/lib/services/awe-subscription.service";
-import { describeAnchorError } from "@/lib/anchor/types";
 
 const FAILURE_THRESHOLD = 3;
 
@@ -73,7 +72,7 @@ export async function processDueAweBilling(): Promise<BillingResult> {
       }
     } catch (err) {
       failed += 1;
-      await recordFailedCharge(subscription, describeAnchorError(err));
+      await recordFailedCharge(subscription, err instanceof Error ? err.message : "Unknown error");
     }
   }
 

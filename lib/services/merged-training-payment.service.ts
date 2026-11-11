@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/db";
-import { getAccountBalance } from "@/lib/anchor/accounts";
-import { bookTransfer, verifyTransfer } from "@/lib/anchor/transfers";
-import { describeAnchorError } from "@/lib/anchor/types";
+import { AlreadyDoneError, describeLedgerError } from "@/lib/ledger/errors";
+import { inLedgerTransaction, postJournal } from "@/lib/ledger/ledger.service";
+import { fundingLegs } from "@/lib/ledger/journals";
 import { createNotification } from "@/lib/services/notification.service";
 import { checkAndUpdateFundingStatus } from "@/lib/services/merged-training-funding.service";
 
@@ -26,33 +26,24 @@ export async function payMergedTrainingShare(
   if (participant.hasPaid) return { success: false, error: "You've already paid your share." };
   if (!payer?.depositAccountId) return { success: false, error: "Your wallet isn't set up yet. Complete KYC first." };
 
-  const settlementAccountId = process.env.ANCHOR_SETTLEMENT_ACCOUNT_ID;
-  if (!settlementAccountId) return { success: false, error: "Payments are not configured yet." };
-
   const amount = participant.numDelegates * Number(session.pricePerDelegate);
-  const balance = await getAccountBalance(payer.depositAccountId);
-  if (balance < amount) {
-    return { success: false, error: `Insufficient balance (₦${balance.toLocaleString()}).` };
-  }
-
-  const reference = `mtpay_${participant.id.slice(0, 16)}`;
+  const reference = `mtpay_${participant.id}`;
 
   try {
-    const { transferId } = await bookTransfer({
-      sourceAccountId: payer.depositAccountId,
-      destinationAccountId: settlementAccountId,
-      amountNaira: amount,
-      reason: `Funding share for "${session.title}"`,
-      reference,
-    });
+    // The participant is claimed (hasPaid false -> true) in the same transaction as the money
+    // moving, so a double click can't take the share twice.
+    await inLedgerTransaction(async (tx) => {
+      const claimed = await tx.mergedTrainingParticipant.updateMany({
+        where: { id: participant.id, hasPaid: false },
+        data: { hasPaid: true, amountPaid: amount, paidAt: new Date() },
+      });
+      if (claimed.count !== 1) throw new AlreadyDoneError("You've already paid your share.");
 
-    const status = await verifyTransfer(transferId);
-    if (!["successful", "completed"].includes(status)) {
-      throw new Error(`Transfer not successful, status: ${status}`);
-    }
-
-    await prisma.$transaction([
-      prisma.transaction.create({
+      await postJournal(
+        { reference, type: "MERGED_FUNDING", description: `Funded share of "${session.title}"`, legs: fundingLegs(participantUserId, amount) },
+        tx
+      );
+      await tx.transaction.create({
         data: {
           userId: participantUserId,
           type: "FUNDING",
@@ -60,40 +51,23 @@ export async function payMergedTrainingShare(
           amount,
           currency: "NGN",
           reference,
-          anchorTransferId: transferId,
           relatedMergedTrainingEventId: session.id,
           description: `Funded share of "${session.title}"`,
         },
-      }),
-      prisma.mergedTrainingParticipant.update({
-        where: { id: participant.id },
-        data: { hasPaid: true, amountPaid: amount, paidAt: new Date() },
-      }),
-    ]);
-
-    await createNotification({
-      userId: session.initiatorId,
-      notificationType: "PAYMENT_CONFIRMED",
-      message: `A participant paid their share for "${session.title}".`,
-      link: `/merged-trainings/${session.slug}`,
+      });
     });
-
-    await checkAndUpdateFundingStatus(session.id);
-
-    return { success: true };
   } catch (err) {
-    await prisma.transaction.create({
-      data: {
-        userId: participantUserId,
-        type: "FUNDING",
-        status: "FAILED",
-        amount,
-        currency: "NGN",
-        reference,
-        relatedMergedTrainingEventId: session.id,
-        description: `Failed to fund share of "${session.title}"`,
-      },
-    });
-    return { success: false, error: describeAnchorError(err) };
+    return { success: false, error: describeLedgerError(err, "Payment failed. Please try again.") };
   }
+
+  await createNotification({
+    userId: session.initiatorId,
+    notificationType: "PAYMENT_CONFIRMED",
+    message: `A participant paid their share for "${session.title}".`,
+    link: `/merged-trainings/${session.slug}`,
+  });
+
+  await checkAndUpdateFundingStatus(session.id);
+
+  return { success: true };
 }

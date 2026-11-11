@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/db";
-import { getAccountBalance } from "@/lib/anchor/accounts";
-import { bookTransfer, verifyTransfer } from "@/lib/anchor/transfers";
-import { describeAnchorError } from "@/lib/anchor/types";
+import { AlreadyDoneError, describeLedgerError } from "@/lib/ledger/errors";
+import { inLedgerTransaction, postJournal } from "@/lib/ledger/ledger.service";
+import { fundingLegs } from "@/lib/ledger/journals";
 
 interface FundResult {
   success: boolean;
@@ -9,10 +9,13 @@ interface FundResult {
 }
 
 /**
- * Debits the Event Manager's wallet for the event's training budget and moves it to the
- * platform settlement account. Mirrors Django's confirm_standard_training_payment. On
- * success, the event becomes APPROVED/paymentConfirmed — this is the real gate for
- * visibility to facilitators (the Phase 2 stopgap that skipped this check is now replaced).
+ * Moves the event's training budget from the Event Manager's wallet into escrow. Mirrors Django's
+ * confirm_standard_training_payment. On success, the event becomes APPROVED/paymentConfirmed — this
+ * is the real gate for visibility to facilitators.
+ *
+ * The event is "claimed" (paymentConfirmed false -> true) in the SAME database transaction as the
+ * ledger movement, so the money and the event's status commit together or not at all, and a double
+ * click can't fund an event twice: the second attempt finds it already claimed and changes nothing.
  */
 export async function fundTrainingEvent(eventId: string, userId: string): Promise<FundResult> {
   const event = await prisma.trainingEvent.findUnique({
@@ -26,33 +29,22 @@ export async function fundTrainingEvent(eventId: string, userId: string): Promis
     return { success: false, error: "Your wallet isn't set up yet. Complete KYC first." };
   }
 
-  const settlementAccountId = process.env.ANCHOR_SETTLEMENT_ACCOUNT_ID;
-  if (!settlementAccountId) return { success: false, error: "Payments are not configured yet." };
-
   const amount = Number(event.trainingBudget);
-  const balance = await getAccountBalance(event.company.depositAccountId);
-  if (balance < amount) {
-    return { success: false, error: `Insufficient balance (₦${balance.toLocaleString()}).` };
-  }
-
-  const reference = `evtfund_${event.id.slice(0, 16)}`;
+  const reference = `evtfund_${event.id}`;
 
   try {
-    const { transferId } = await bookTransfer({
-      sourceAccountId: event.company.depositAccountId,
-      destinationAccountId: settlementAccountId,
-      amountNaira: amount,
-      reason: `Funding for training event "${event.title}"`,
-      reference,
-    });
+    await inLedgerTransaction(async (tx) => {
+      const claimed = await tx.trainingEvent.updateMany({
+        where: { id: event.id, paymentConfirmed: false },
+        data: { approval: "APPROVED", paymentConfirmed: true, isAvailable: true },
+      });
+      if (claimed.count !== 1) throw new AlreadyDoneError("This event is already funded.");
 
-    const status = await verifyTransfer(transferId);
-    if (!["successful", "completed"].includes(status)) {
-      throw new Error(`Transfer not successful, status: ${status}`);
-    }
-
-    await prisma.$transaction([
-      prisma.transaction.create({
+      await postJournal(
+        { reference, type: "EVENT_FUNDING", description: `Funded event "${event.title}"`, legs: fundingLegs(userId, amount) },
+        tx
+      );
+      await tx.transaction.create({
         data: {
           userId,
           type: "FUNDING",
@@ -60,31 +52,13 @@ export async function fundTrainingEvent(eventId: string, userId: string): Promis
           amount,
           currency: "NGN",
           reference,
-          anchorTransferId: transferId,
           relatedTrainingEventId: event.id,
           description: `Funded event "${event.title}"`,
         },
-      }),
-      prisma.trainingEvent.update({
-        where: { id: event.id },
-        data: { approval: "APPROVED", paymentConfirmed: true, isAvailable: true },
-      }),
-    ]);
-
+      });
+    });
     return { success: true };
   } catch (err) {
-    await prisma.transaction.create({
-      data: {
-        userId,
-        type: "FUNDING",
-        status: "FAILED",
-        amount,
-        currency: "NGN",
-        reference,
-        relatedTrainingEventId: event.id,
-        description: `Failed to fund event "${event.title}"`,
-      },
-    });
-    return { success: false, error: describeAnchorError(err) };
+    return { success: false, error: describeLedgerError(err, "Funding failed. Please try again.") };
   }
 }

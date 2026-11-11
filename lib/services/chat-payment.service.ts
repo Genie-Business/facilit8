@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/db";
-import { getAccountBalance } from "@/lib/anchor/accounts";
-import { bookTransfer, verifyTransfer } from "@/lib/anchor/transfers";
-import { describeAnchorError } from "@/lib/anchor/types";
+import { AlreadyDoneError, describeLedgerError } from "@/lib/ledger/errors";
+import { inLedgerTransaction, postJournal } from "@/lib/ledger/ledger.service";
+import { chargeLegs } from "@/lib/ledger/journals";
 import { createNotification } from "@/lib/services/notification.service";
 import type { Conversation } from "@/lib/generated/prisma/client";
 
@@ -19,6 +19,12 @@ export async function getActiveChatPricing() {
   return prisma.chatPricing.create({ data: { amount: 5000, durationDays: 30, isActive: true } });
 }
 
+/**
+ * The Event Manager pays Facilit8 directly to unlock a conversation: wallet -> revenue, in one
+ * transaction with the access being granted. The first payment for a pairing grants access for good
+ * (hasChatAccess treats FacilitatorAccess as permanent), so a second payment attempt — a double
+ * click — is refused rather than charged.
+ */
 export async function payForChatAccess(conversation: Conversation, payerId: string): Promise<ChatPaymentResult> {
   if (conversation.eventManagerId !== payerId) {
     return { success: false, error: "Only the Event Manager can unlock this conversation." };
@@ -29,37 +35,26 @@ export async function payForChatAccess(conversation: Conversation, payerId: stri
     return { success: false, error: "Your wallet isn't set up yet. Complete KYC first." };
   }
 
-  const settlementAccountId = process.env.ANCHOR_SETTLEMENT_ACCOUNT_ID;
-  if (!settlementAccountId) return { success: false, error: "Payments are not configured yet." };
-
   const pricing = await getActiveChatPricing();
   const amount = Number(pricing.amount);
-
-  const balance = await getAccountBalance(payer.depositAccountId);
-  if (balance < amount) {
-    return { success: false, error: `Insufficient balance (₦${balance.toLocaleString()}).` };
-  }
-
-  const reference = `chatpay_${conversation.id.slice(0, 16)}`;
+  const reference = `chatpay_${conversation.id}`;
+  const expiresAt = new Date(Date.now() + pricing.durationDays * 24 * 60 * 60 * 1000);
 
   try {
-    const { transferId } = await bookTransfer({
-      sourceAccountId: payer.depositAccountId,
-      destinationAccountId: settlementAccountId,
-      amountNaira: amount,
-      reason: "Chat access via Facilit8",
-      reference,
-    });
+    await inLedgerTransaction(async (tx) => {
+      const alreadyUnlocked = await tx.facilitatorAccess.findUnique({
+        where: { userId_facilitatorId: { userId: conversation.eventManagerId, facilitatorId: conversation.facilitatorId } },
+      });
+      if (alreadyUnlocked) throw new AlreadyDoneError("This conversation is already unlocked.");
 
-    const status = await verifyTransfer(transferId);
-    if (!["successful", "completed"].includes(status)) {
-      throw new Error(`Transfer not successful, status: ${status}`);
-    }
-
-    const expiresAt = new Date(Date.now() + pricing.durationDays * 24 * 60 * 60 * 1000);
-
-    await prisma.$transaction([
-      prisma.transaction.create({
+      const journal = await postJournal(
+        { reference, type: "CHAT_PAYMENT", description: "Chat access unlock", legs: chargeLegs(payerId, amount) },
+        tx
+      );
+      // The journal reference is per conversation, so a concurrent click that got past the check
+      // above finds it already posted: that's "already unlocked", not a second charge.
+      if (!journal.created) throw new AlreadyDoneError("This conversation is already unlocked.");
+      await tx.transaction.create({
         data: {
           userId: payerId,
           type: "CHAT_PAYMENT",
@@ -67,53 +62,33 @@ export async function payForChatAccess(conversation: Conversation, payerId: stri
           amount,
           currency: "NGN",
           reference,
-          anchorTransferId: transferId,
           relatedConversationId: conversation.id,
           description: "Chat access unlock",
         },
-      }),
-      prisma.conversation.update({
+      });
+      await tx.conversation.update({
         where: { id: conversation.id },
         data: { paymentConfirmed: true, accessGranted: true, accessExpiresAt: expiresAt },
-      }),
-      prisma.chatPayment.upsert({
+      });
+      await tx.chatPayment.upsert({
         where: { conversationId: conversation.id },
         create: { conversationId: conversation.id, pricingId: pricing.id, expiresAt, paidAt: new Date() },
         update: { pricingId: pricing.id, expiresAt, paidAt: new Date() },
-      }),
-      prisma.facilitatorAccess.upsert({
-        where: {
-          userId_facilitatorId: {
-            userId: conversation.eventManagerId,
-            facilitatorId: conversation.facilitatorId,
-          },
-        },
-        create: { userId: conversation.eventManagerId, facilitatorId: conversation.facilitatorId },
-        update: {},
-      }),
-    ]);
-
-    await createNotification({
-      userId: conversation.facilitatorId,
-      notificationType: "CHAT_MESSAGE",
-      message: "An Event Manager unlocked a chat with you.",
-      link: `/chat/${conversation.slug}`,
+      });
+      await tx.facilitatorAccess.create({
+        data: { userId: conversation.eventManagerId, facilitatorId: conversation.facilitatorId },
+      });
     });
-
-    return { success: true };
   } catch (err) {
-    await prisma.transaction.create({
-      data: {
-        userId: payerId,
-        type: "CHAT_PAYMENT",
-        status: "FAILED",
-        amount,
-        currency: "NGN",
-        reference,
-        relatedConversationId: conversation.id,
-        description: "Chat access unlock failed",
-      },
-    });
-    return { success: false, error: describeAnchorError(err) };
+    return { success: false, error: describeLedgerError(err, "Payment failed. Please try again.") };
   }
+
+  await createNotification({
+    userId: conversation.facilitatorId,
+    notificationType: "CHAT_MESSAGE",
+    message: "An Event Manager unlocked a chat with you.",
+    link: `/chat/${conversation.slug}`,
+  });
+
+  return { success: true };
 }

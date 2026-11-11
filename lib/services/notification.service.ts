@@ -29,20 +29,33 @@ export async function createNotification(
   input: CreateNotificationInput,
   client: Pick<PrismaClient, "notification"> = prisma
 ): Promise<void> {
-  const slug = await generateUniqueSlug(
+  const baseSlug = await generateUniqueSlug(
     input.message,
     async (candidate) => (await prisma.notification.findUnique({ where: { slug: candidate } })) !== null
   );
 
-  const notification = await client.notification.create({
-    data: {
-      userId: input.userId,
-      message: input.message,
-      notificationType: input.notificationType,
-      link: input.link,
-      slug,
-    },
-  });
+  // generateUniqueSlug checks and the insert happens after, so two notifications with the same text
+  // created at the same moment (several people paid by one payout, say) can both pick the same free
+  // slug. The unique index catches that; the loser retries with a random suffix. Only on the shared
+  // client — a failed insert would abort a caller's own transaction.
+  let notification: Awaited<ReturnType<typeof prisma.notification.create>> | undefined;
+  for (let attempt = 0; !notification; attempt++) {
+    const slug = attempt === 0 ? baseSlug : `${baseSlug}-${Math.random().toString(36).slice(2, 8)}`;
+    try {
+      notification = await client.notification.create({
+        data: {
+          userId: input.userId,
+          message: input.message,
+          notificationType: input.notificationType,
+          link: input.link,
+          slug,
+        },
+      });
+    } catch (err) {
+      const slugCollision = typeof err === "object" && err !== null && (err as { code?: string }).code === "P2002";
+      if (!slugCollision || client !== prisma || attempt >= 4) throw err;
+    }
+  }
 
   await pusherTrigger(userChannel(input.userId), EVENTS.NOTIFICATION_NEW, {
     id: notification.id,

@@ -26,11 +26,9 @@ export async function withdrawAction(_prev: ActionState, formData: FormData): Pr
   revalidatePath("/wallet/transactions");
 
   const naira = (value: number) => `₦${value.toLocaleString("en-NG")}`;
-  const arrival = result.pending ? "will reach your bank shortly" : "is on its way to your bank";
+  const arrival = result.pending ? "will reach your bank shortly" : "has been sent to your bank";
   return {
-    success: result.feeAmount
-      ? `Withdrawal initiated: ${naira(result.netAmount ?? 0)} ${arrival}, after a ${naira(result.feeAmount)} withdrawal fee.`
-      : "Withdrawal initiated.",
+    success: `Withdrawal started: ${naira(result.receive ?? 0)} ${arrival}. Fees: ${naira(result.facilit8Fee ?? 0)} Facilit8 + ${naira(result.transferFee ?? 0)} bank transfer.`,
   };
 }
 

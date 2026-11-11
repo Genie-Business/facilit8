@@ -50,7 +50,7 @@ const num = (value: { toString(): string } | null | undefined) => (value == null
  * CSV of one dataset, limited to records created in the window (`from` null = everything).
  *
  * Deliberately excluded: password hashes, BVN, dates of birth, phone numbers, bank and
- * wallet account details, and Anchor identifiers. Exports are for analysis and outreach by
+ * wallet account details, and payment-provider identifiers. Exports are for analysis and outreach by
  * email — anything that could move money or identify someone to a bank stays in the database.
  */
 export async function buildExportCsv(dataset: ExportDataset, window: { from: Date | null; to: Date }): Promise<{ csv: string; rows: number }> {
@@ -159,19 +159,20 @@ export async function buildExportCsv(dataset: ExportDataset, window: { from: Dat
             reference: true,
             relatedTrainingEventId: true,
             createdAt: true,
-            // Only for the fee state below — the rest of the metadata is never exported.
+            // Only for the bank transfer fee below — the rest of the metadata is never exported.
             metadata: true,
           },
           ...pageArgs(cursor),
         })
       );
-      const feeState = (metadata: unknown) =>
-        (metadata && typeof metadata === "object" ? (metadata as { fee?: { status?: string } }).fee?.status : undefined) ?? null;
+      // Withdrawals record Paystack's transfer fee (passed on to the user) next to Facilit8's own fee.
+      const transferFee = (metadata: unknown) =>
+        (metadata && typeof metadata === "object" ? (metadata as { withdrawal?: { transferFee?: number } }).withdrawal?.transferFee : undefined) ?? null;
       return {
         rows: transactions.length,
         csv: toCsv(
-          ["transaction_id", "user_id", "type", "status", "amount_ngn", "fee_ngn", "net_ngn", "withdrawal_fee_status", "currency", "reference", "related_event_id", "created_at"],
-          transactions.map((t) => [t.id, t.userId, t.type, t.status, num(t.amount), num(t.feeAmount), num(t.netAmount), feeState(t.metadata), t.currency, t.reference, t.relatedTrainingEventId, t.createdAt])
+          ["transaction_id", "user_id", "type", "status", "amount_ngn", "fee_ngn", "net_ngn", "bank_transfer_fee_ngn", "currency", "reference", "related_event_id", "created_at"],
+          transactions.map((t) => [t.id, t.userId, t.type, t.status, num(t.amount), num(t.feeAmount), num(t.netAmount), transferFee(t.metadata), t.currency, t.reference, t.relatedTrainingEventId, t.createdAt])
         ),
       };
     }

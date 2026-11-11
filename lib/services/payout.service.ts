@@ -1,22 +1,71 @@
 import { prisma } from "@/lib/db";
-import { bookTransfer, verifyTransfer } from "@/lib/anchor/transfers";
-import { describeAnchorError } from "@/lib/anchor/types";
+import { AlreadyDoneError, describeLedgerError } from "@/lib/ledger/errors";
+import { inLedgerTransaction, postJournal } from "@/lib/ledger/ledger.service";
+import { payoutLegs } from "@/lib/ledger/journals";
 import { calculateFee } from "./fee.service";
 import { createNotification } from "./notification.service";
 import { getConfirmedCoFacilitators } from "./merged-training-co-facilitator.service";
 import { createAutoProfessionalDevelopment } from "./professional-development.service";
-import { splitNetAmount } from "./payout-math";
+import { roundKobo, splitNetAmount } from "./payout-math";
 
 interface PayoutResult {
   success: boolean;
   error?: string;
 }
 
+/** Every amount in the ledger is whole kobo, so the fee (a percentage, which isn't) is rounded once, here. */
+async function payoutAmounts(scope: "FACILITATOR_PAYOUT" | "MERGED_TRAINING_PAYOUT", gross: number) {
+  const feeAmount = roundKobo(await calculateFee(scope, gross));
+  return { feeAmount, netAmount: roundKobo(gross - feeAmount) };
+}
+
 /**
- * Pays the selected facilitator out of the platform settlement account, net of the active
- * platform fee, and marks the event complete/paid. Mirrors Django's
- * webapp/utils.py::make_facilitator_payment, including logging a FAILED TrainingPayment on
- * error rather than swallowing it.
+ * A payout that failed for a reason other than "someone already did this". The facilitator is told
+ * and a FAILED TrainingPayment row is left for the admin; the reference is suffixed because the
+ * success reference is unique and a retry has to be able to use it.
+ */
+async function recordFailedPayout(input: {
+  targetType: "TRAINING_EVENT" | "MERGED_TRAINING_EVENT";
+  trainingEventId?: string;
+  mergedTrainingEventId?: string;
+  facilitatorId: string;
+  grossAmount: number;
+  feeAmount: number;
+  netAmount: number;
+  reference: string;
+  message: string;
+  emailBody: string;
+}): Promise<void> {
+  await prisma.trainingPayment
+    .create({
+      data: {
+        targetType: input.targetType,
+        trainingEventId: input.trainingEventId,
+        mergedTrainingEventId: input.mergedTrainingEventId,
+        facilitatorId: input.facilitatorId,
+        grossAmount: input.grossAmount,
+        feeAmount: input.feeAmount,
+        netAmount: input.netAmount,
+        reference: `${input.reference}_failed_${Date.now().toString(36)}`,
+        status: "FAILED",
+      },
+    })
+    .catch((err) => console.error("Couldn't record a failed payout:", err));
+  await createNotification({
+    userId: input.facilitatorId,
+    notificationType: "PAYMENT_CONFIRMED",
+    message: input.message,
+    email: { subject: "A Facilit8 payout failed", html: `<p>${input.emailBody}</p>` },
+  });
+}
+
+/**
+ * Pays the selected facilitator out of escrow, net of the active platform fee, and marks the event
+ * complete/paid. Mirrors Django's webapp/utils.py::make_facilitator_payment.
+ *
+ * The payout journal, the TrainingPayment row and the event's isPaid flag commit in ONE database
+ * transaction, with the event "claimed" (isPaid false -> true) first, so an event can never be paid
+ * twice and the money can never move without the event knowing.
  */
 export async function payFacilitatorForEvent(eventId: string, requesterId: string): Promise<PayoutResult> {
   const event = await prisma.trainingEvent.findUnique({
@@ -42,90 +91,76 @@ export async function payFacilitatorForEvent(eventId: string, requesterId: strin
     return { success: false, error: "The facilitator's wallet isn't set up yet." };
   }
 
-  const settlementAccountId = process.env.ANCHOR_SETTLEMENT_ACCOUNT_ID;
-  if (!settlementAccountId) return { success: false, error: "Payments are not configured yet." };
-
   const grossAmount = Number(event.trainingBudget);
-  const feeAmount = await calculateFee("FACILITATOR_PAYOUT", grossAmount);
-  const netAmount = grossAmount - feeAmount;
+  const { feeAmount, netAmount } = await payoutAmounts("FACILITATOR_PAYOUT", grossAmount);
   if (netAmount <= 0) return { success: false, error: "Net payout is zero or negative. Check the fee configuration." };
 
-  const reference = `facpay_${event.id.slice(0, 16)}`;
+  const trainerId = event.selectedTrainerId;
+  const reference = `facpay_${event.id}`;
 
   try {
-    const { transferId, raw } = await bookTransfer({
-      sourceAccountId: settlementAccountId,
-      destinationAccountId: event.selectedTrainer.depositAccountId,
-      amountNaira: netAmount,
-      reason: `Facilitator payment for "${event.title}"`,
-      reference,
-    });
+    await inLedgerTransaction(async (tx) => {
+      const claimed = await tx.trainingEvent.updateMany({
+        where: { id: event.id, isPaid: false },
+        data: { isPaid: true, isCompleted: true, completedAt: new Date() },
+      });
+      if (claimed.count !== 1) throw new AlreadyDoneError("This event has already been paid out.");
 
-    const status = await verifyTransfer(transferId);
-    if (!["successful", "completed"].includes(status)) {
-      throw new Error(`Transfer not successful, status: ${status}`);
-    }
-
-    await prisma.$transaction([
-      prisma.trainingPayment.create({
+      await postJournal(
+        {
+          reference,
+          type: "PAYOUT",
+          description: `Facilitator payment for "${event.title}"`,
+          legs: payoutLegs({ payees: [{ userId: trainerId, amount: netAmount }], fee: feeAmount }),
+        },
+        tx
+      );
+      await tx.trainingPayment.create({
         data: {
           targetType: "TRAINING_EVENT",
           trainingEventId: event.id,
-          facilitatorId: event.selectedTrainerId,
+          facilitatorId: trainerId,
           grossAmount,
           feeAmount,
           netAmount,
           reference,
-          rawResponse: raw as never,
           status: "SUCCESS",
         },
-      }),
-      prisma.trainingEvent.update({
-        where: { id: event.id },
-        data: { isPaid: true, isCompleted: true, completedAt: new Date() },
-      }),
-    ]);
-
-    await createNotification({
-      userId: event.selectedTrainerId,
-      notificationType: "PAYMENT_CONFIRMED",
-      message: `You've been paid ₦${netAmount.toLocaleString()} (after ₦${feeAmount.toLocaleString()} platform fee) for facilitating "${event.title}".`,
+      });
     });
-
-    // Auto-populate the facilitator's Professional Development history — never lets a
-    // logging failure undo an already-successful payment.
-    await createAutoProfessionalDevelopment(event.selectedTrainerId, {
-      title: event.title,
-      dateCompleted: new Date(),
-      skillsAcquired: [event.skillType].filter(Boolean),
-      relatedTrainingEventId: event.id,
-    }).catch(() => {});
-
-    return { success: true };
   } catch (err) {
-    await prisma.trainingPayment.create({
-      data: {
+    if (!(err instanceof AlreadyDoneError)) {
+      await recordFailedPayout({
         targetType: "TRAINING_EVENT",
         trainingEventId: event.id,
-        facilitatorId: event.selectedTrainerId,
+        facilitatorId: trainerId,
         grossAmount,
         feeAmount,
         netAmount,
         reference,
-        status: "FAILED",
-      },
-    });
-    await createNotification({
-      userId: event.selectedTrainerId,
-      notificationType: "PAYMENT_CONFIRMED",
-      message: `Payment attempt for "${event.title}" failed. Please contact support.`,
-      email: {
-        subject: "A Facilit8 payout failed",
-        html: `<p>Your payment attempt for "${event.title}" failed. Please contact support.</p>`,
-      },
-    });
-    return { success: false, error: describeAnchorError(err) };
+        message: `Payment attempt for "${event.title}" failed. Please contact support.`,
+        emailBody: `Your payment attempt for "${event.title}" failed. Please contact support.`,
+      });
+    }
+    return { success: false, error: describeLedgerError(err, "The payout failed. Please try again or contact support.") };
   }
+
+  await createNotification({
+    userId: trainerId,
+    notificationType: "PAYMENT_CONFIRMED",
+    message: `You've been paid ₦${netAmount.toLocaleString()} (after ₦${feeAmount.toLocaleString()} platform fee) for facilitating "${event.title}".`,
+  });
+
+  // Auto-populate the facilitator's Professional Development history — never lets a
+  // logging failure undo an already-successful payment.
+  await createAutoProfessionalDevelopment(trainerId, {
+    title: event.title,
+    dateCompleted: new Date(),
+    skillsAcquired: [event.skillType].filter(Boolean),
+    relatedTrainingEventId: event.id,
+  }).catch(() => {});
+
+  return { success: true };
 }
 
 /**
@@ -164,97 +199,83 @@ export async function payFacilitatorForMilestone(milestoneId: string, requesterI
     return { success: false, error: "Milestone amounts don't add up to the funded budget yet. Fix them before paying out." };
   }
 
-  const settlementAccountId = process.env.ANCHOR_SETTLEMENT_ACCOUNT_ID;
-  if (!settlementAccountId) return { success: false, error: "Payments are not configured yet." };
-
   const grossAmount = Number(milestone.amount);
-  const feeAmount = await calculateFee("FACILITATOR_PAYOUT", grossAmount);
-  const netAmount = grossAmount - feeAmount;
+  const { feeAmount, netAmount } = await payoutAmounts("FACILITATOR_PAYOUT", grossAmount);
   if (netAmount <= 0) return { success: false, error: "Net payout is zero or negative. Check the fee configuration." };
 
-  const reference = `msfacpay_${milestone.id.slice(0, 16)}`;
+  const trainerId = event.selectedTrainerId;
+  const reference = `msfacpay_${milestone.id}`;
+  const allPaidOut = event.milestones.every((m) => m.id === milestone.id || m.isPaidOut);
 
   try {
-    const { transferId, raw } = await bookTransfer({
-      sourceAccountId: settlementAccountId,
-      destinationAccountId: event.selectedTrainer.depositAccountId,
-      amountNaira: netAmount,
-      reason: `Milestone payment for "${event.title}": ${milestone.title}`,
-      reference,
-    });
+    await inLedgerTransaction(async (tx) => {
+      const claimed = await tx.milestone.updateMany({
+        where: { id: milestone.id, isPaidOut: false },
+        data: { isPaidOut: true, paidOutAt: new Date() },
+      });
+      if (claimed.count !== 1) throw new AlreadyDoneError("This milestone has already been paid out.");
 
-    const status = await verifyTransfer(transferId);
-    if (!["successful", "completed"].includes(status)) {
-      throw new Error(`Transfer not successful, status: ${status}`);
-    }
-
-    const allPaidOut = event.milestones.every((m) => m.id === milestone.id || m.isPaidOut);
-
-    await prisma.$transaction([
-      prisma.trainingPayment.create({
+      await postJournal(
+        {
+          reference,
+          type: "PAYOUT",
+          description: `Milestone payment for "${event.title}": ${milestone.title}`,
+          legs: payoutLegs({ payees: [{ userId: trainerId, amount: netAmount }], fee: feeAmount }),
+        },
+        tx
+      );
+      await tx.trainingPayment.create({
         data: {
           targetType: "TRAINING_EVENT",
           trainingEventId: event.id,
-          facilitatorId: event.selectedTrainerId,
+          facilitatorId: trainerId,
           grossAmount,
           feeAmount,
           netAmount,
           reference,
-          rawResponse: raw as never,
           status: "SUCCESS",
         },
-      }),
-      prisma.milestone.update({ where: { id: milestone.id }, data: { isPaidOut: true, paidOutAt: new Date() } }),
-      ...(allPaidOut
-        ? [
-            prisma.trainingEvent.update({
-              where: { id: event.id },
-              data: { isPaid: true, isCompleted: true, completedAt: new Date() },
-            }),
-          ]
-        : []),
-    ]);
-
-    await createNotification({
-      userId: event.selectedTrainerId,
-      notificationType: "PAYMENT_CONFIRMED",
-      message: `You've been paid ₦${netAmount.toLocaleString()} for the "${milestone.title}" milestone of "${event.title}".`,
+      });
+      if (allPaidOut) {
+        await tx.trainingEvent.update({
+          where: { id: event.id },
+          data: { isPaid: true, isCompleted: true, completedAt: new Date() },
+        });
+      }
     });
-
-    if (allPaidOut) {
-      await createAutoProfessionalDevelopment(event.selectedTrainerId, {
-        title: event.title,
-        dateCompleted: new Date(),
-        skillsAcquired: [event.skillType].filter(Boolean),
-        relatedTrainingEventId: event.id,
-      }).catch(() => {});
-    }
-
-    return { success: true };
   } catch (err) {
-    await prisma.trainingPayment.create({
-      data: {
+    if (!(err instanceof AlreadyDoneError)) {
+      await recordFailedPayout({
         targetType: "TRAINING_EVENT",
         trainingEventId: event.id,
-        facilitatorId: event.selectedTrainerId,
+        facilitatorId: trainerId,
         grossAmount,
         feeAmount,
         netAmount,
         reference,
-        status: "FAILED",
-      },
-    });
-    await createNotification({
-      userId: event.selectedTrainerId,
-      notificationType: "PAYMENT_CONFIRMED",
-      message: `Payment attempt for the "${milestone.title}" milestone of "${event.title}" failed. Please contact support.`,
-      email: {
-        subject: "A Facilit8 payout failed",
-        html: `<p>Your payment attempt for the "${milestone.title}" milestone of "${event.title}" failed. Please contact support.</p>`,
-      },
-    });
-    return { success: false, error: describeAnchorError(err) };
+        message: `Payment attempt for the "${milestone.title}" milestone of "${event.title}" failed. Please contact support.`,
+        emailBody: `Your payment attempt for the "${milestone.title}" milestone of "${event.title}" failed. Please contact support.`,
+      });
+    }
+    return { success: false, error: describeLedgerError(err, "The payout failed. Please try again or contact support.") };
   }
+
+  await createNotification({
+    userId: trainerId,
+    notificationType: "PAYMENT_CONFIRMED",
+    message: `You've been paid ₦${netAmount.toLocaleString()} for the "${milestone.title}" milestone of "${event.title}".`,
+  });
+
+  if (allPaidOut) {
+    await createAutoProfessionalDevelopment(trainerId, {
+      title: event.title,
+      dateCompleted: new Date(),
+      skillsAcquired: [event.skillType].filter(Boolean),
+      relatedTrainingEventId: event.id,
+    }).catch(() => {});
+  }
+
+  return { success: true };
 }
 
 interface Payee {
@@ -267,7 +288,10 @@ interface Payee {
  * of what participants actually paid in, not a fixed budget field. When the initiator has
  * confirmed co-facilitators (Facilitator-initiated sessions only — see
  * merged-training-co-facilitator.service.ts), the net amount splits evenly across the
- * initiator + every confirmed co-facilitator instead of going 100% to selectedTrainer. */
+ * initiator + every confirmed co-facilitator instead of going 100% to selectedTrainer.
+ *
+ * Everyone is paid in one journal inside one transaction: the whole payout happens, or none of it
+ * does. (The old per-person transfers could leave a session half-paid and needing manual repair.) */
 export async function payFacilitatorForMergedTrainingEvent(
   mergedTrainingEventId: string,
   requesterId: string
@@ -306,99 +330,76 @@ export async function payFacilitatorForMergedTrainingEvent(
   const missingWallet = payees.find((p) => !p.depositAccountId);
   if (missingWallet) return { success: false, error: `${missingWallet.label}'s wallet isn't set up yet.` };
 
-  const settlementAccountId = process.env.ANCHOR_SETTLEMENT_ACCOUNT_ID;
-  if (!settlementAccountId) return { success: false, error: "Payments are not configured yet." };
-
-  const grossAmount = session.participants.reduce((sum, p) => sum + Number(p.amountPaid), 0);
-  const feeAmount = await calculateFee("MERGED_TRAINING_PAYOUT", grossAmount);
-  const netAmount = grossAmount - feeAmount;
+  const grossAmount = roundKobo(session.participants.reduce((sum, p) => sum + Number(p.amountPaid), 0));
+  const { feeAmount, netAmount } = await payoutAmounts("MERGED_TRAINING_PAYOUT", grossAmount);
   if (netAmount <= 0) return { success: false, error: "Net payout is zero or negative. Check the fee configuration." };
 
   // Equal split, remainder (from rounding to the kobo) goes to the first payee — the
   // initiator/selectedTrainer — so shares always sum exactly to netAmount.
   const shares = splitNetAmount(netAmount, payees.length);
+  const reference = `mtfacpay_${session.id}`;
 
-  const results: { payee: Payee; amount: number; success: boolean; error?: string }[] = [];
-
-  for (let i = 0; i < payees.length; i++) {
-    const payee = payees[i];
-    const amount = shares[i];
-    const reference = `mtfacpay_${session.id.slice(0, 10)}_${payee.id.slice(0, 8)}`;
-
-    try {
-      const { transferId, raw } = await bookTransfer({
-        sourceAccountId: settlementAccountId,
-        destinationAccountId: payee.depositAccountId!,
-        amountNaira: amount,
-        reason: `Facilitator payment for "${session.title}"`,
-        reference,
+  try {
+    await inLedgerTransaction(async (tx) => {
+      const claimed = await tx.mergedTrainingEvent.updateMany({
+        where: { id: session.id, isPaid: false },
+        data: { isPaid: true, isCompleted: true, completedAt: new Date() },
       });
+      if (claimed.count !== 1) throw new AlreadyDoneError("This session has already been paid out.");
 
-      const status = await verifyTransfer(transferId);
-      if (!["successful", "completed"].includes(status)) {
-        throw new Error(`Transfer not successful, status: ${status}`);
-      }
-
-      await prisma.trainingPayment.create({
-        data: {
-          targetType: "MERGED_TRAINING_EVENT",
-          mergedTrainingEventId: session.id,
-          facilitatorId: payee.id,
-          grossAmount: i === 0 ? grossAmount : 0,
-          feeAmount: i === 0 ? feeAmount : 0,
-          netAmount: amount,
+      await postJournal(
+        {
           reference,
-          rawResponse: raw as never,
-          status: "SUCCESS",
+          type: "PAYOUT",
+          description: `Facilitator payment for "${session.title}"`,
+          legs: payoutLegs({ payees: payees.map((payee, i) => ({ userId: payee.id, amount: shares[i] })), fee: feeAmount }),
         },
+        tx
+      );
+      for (let i = 0; i < payees.length; i++) {
+        await tx.trainingPayment.create({
+          data: {
+            targetType: "MERGED_TRAINING_EVENT",
+            mergedTrainingEventId: session.id,
+            facilitatorId: payees[i].id,
+            grossAmount: i === 0 ? grossAmount : 0,
+            feeAmount: i === 0 ? feeAmount : 0,
+            netAmount: shares[i],
+            reference: `${reference}_${payees[i].id}`,
+            status: "SUCCESS",
+          },
+        });
+      }
+    });
+  } catch (err) {
+    if (!(err instanceof AlreadyDoneError)) {
+      await recordFailedPayout({
+        targetType: "MERGED_TRAINING_EVENT",
+        mergedTrainingEventId: session.id,
+        facilitatorId: payees[0].id,
+        grossAmount,
+        feeAmount,
+        netAmount,
+        reference,
+        message: `Your payment for "${session.title}" failed. Please contact support.`,
+        emailBody: `Your payment for "${session.title}" failed. Please contact support.`,
       });
-      await createNotification({
+    }
+    return { success: false, error: describeLedgerError(err, "The payout failed. Please try again or contact support.") };
+  }
+
+  await Promise.all(
+    payees.map((payee, i) =>
+      createNotification({
         userId: payee.id,
         notificationType: "PAYMENT_CONFIRMED",
         message:
           payees.length > 1
-            ? `You've been paid ₦${amount.toLocaleString()} as your split of the facilitator payment for "${session.title}".`
-            : `You've been paid ₦${amount.toLocaleString()} (after ₦${feeAmount.toLocaleString()} platform fee) for facilitating "${session.title}".`,
-      });
-      results.push({ payee, amount, success: true });
-    } catch (err) {
-      await prisma.trainingPayment.create({
-        data: {
-          targetType: "MERGED_TRAINING_EVENT",
-          mergedTrainingEventId: session.id,
-          facilitatorId: payee.id,
-          grossAmount: i === 0 ? grossAmount : 0,
-          feeAmount: i === 0 ? feeAmount : 0,
-          netAmount: amount,
-          reference,
-          status: "FAILED",
-        },
-      });
-      await createNotification({
-        userId: payee.id,
-        notificationType: "PAYMENT_CONFIRMED",
-        message: `Your payment for "${session.title}" failed. Please contact support.`,
-        email: {
-          subject: "A Facilit8 payout failed",
-          html: `<p>Your payment for "${session.title}" failed. Please contact support.</p>`,
-        },
-      });
-      results.push({ payee, amount, success: false, error: describeAnchorError(err) });
-    }
-  }
-
-  const failed = results.filter((r) => !r.success);
-  if (failed.length > 0) {
-    return {
-      success: false,
-      error: `${results.length - failed.length} of ${results.length} payouts succeeded. ${failed.map((f) => f.payee.label).join(", ")} failed. Contact support before retrying.`,
-    };
-  }
-
-  await prisma.mergedTrainingEvent.update({
-    where: { id: session.id },
-    data: { isPaid: true, isCompleted: true, completedAt: new Date() },
-  });
+            ? `You've been paid ₦${shares[i].toLocaleString()} as your split of the facilitator payment for "${session.title}".`
+            : `You've been paid ₦${shares[i].toLocaleString()} (after ₦${feeAmount.toLocaleString()} platform fee) for facilitating "${session.title}".`,
+      })
+    )
+  );
 
   // Auto-populate Professional Development history for every paid facilitator (initiator +
   // confirmed co-facilitators) — never lets a logging failure undo already-successful payments.
