@@ -43,18 +43,6 @@ export function BusinessVerificationForm({ organizationId }: { organizationId: s
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="businessBvn">Business BVN</Label>
-        <Input id="businessBvn" name="businessBvn" inputMode="numeric" maxLength={11} required />
-        <p className="text-xs text-muted-foreground">
-          Your bank can generate a Business BVN for a CAC-registered account, separate from your own
-          personal BVN.
-        </p>
-        {state.fieldErrors?.businessBvn && (
-          <p className="text-sm text-destructive">{state.fieldErrors.businessBvn}</p>
-        )}
-      </div>
-
-      <div className="space-y-2">
         <Label htmlFor="businessDescription">What does your business do?</Label>
         <Textarea id="businessDescription" name="businessDescription" rows={3} maxLength={500} required />
         {state.fieldErrors?.businessDescription && (

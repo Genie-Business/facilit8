@@ -108,7 +108,7 @@ interface NewAccountInput {
 /** Redeems an invite for someone who doesn't have an account yet — creates a new
  * EVENT_MANAGER user (mirrors signupAction's account-creation, minus the org-picker step
  * since the org is already determined by the invite) plus an already-APPROVED membership,
- * then provisions their own individual Anchor wallet exactly like any other new user. */
+ * then provisions their own individual wallet exactly like any other new user. */
 export async function redeemOrgInviteForNewAccount(
   rawToken: string,
   input: NewAccountInput
@@ -148,7 +148,7 @@ export async function redeemOrgInviteForNewAccount(
     prisma.organizationInvite.update({ where: { id: invite.id }, data: { usedAt: new Date() } }),
   ]);
 
-  // Never let account creation fail because Anchor is slow/unreachable — provisioning
+  // Never let account creation fail because Paystack is slow/unreachable — provisioning
   // records its own failure state on the user row and can be retried later (same as signupAction).
   await provisionWallet(user.id);
 

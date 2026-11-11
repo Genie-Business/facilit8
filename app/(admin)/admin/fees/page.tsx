@@ -29,8 +29,7 @@ export default async function AdminFeesPage() {
       <div>
         <h1 className="text-2xl font-semibold">Platform fees</h1>
         <p className="text-muted-foreground">
-          The percentage Facilit8 keeps before paying out, settled to the configured Anchor settlement account. A
-          scope with no active fee takes 0%. Chat access is a flat naira fee instead.
+          The percentage Facilit8 keeps before paying out. A scope with no active fee takes 0%. Chat access is a flat naira fee instead.
         </p>
       </div>
 
@@ -65,11 +64,12 @@ export default async function AdminFeesPage() {
               </CardDescription>
               {isWithdrawal && (
                 <CardDescription>
-                  Taken from the user&apos;s wallet when they withdraw: the bank receives the amount minus this fee, and the
-                  fee is deposited into the settlement account, where Anchor&apos;s own transfer charge comes out of it and
-                  the rest is Facilit8&apos;s. It&apos;s collected once the bank confirms the payout, so a failed withdrawal
-                  costs the user nothing. The maximum fee is the most any one withdrawal is charged, however large;
-                  leave it blank for no cap.
+                  Facilit8&apos;s own fee on a withdrawal, all of it revenue. On top of it the user also pays Paystack&apos;s
+                  bank transfer fee (₦10 up to ₦5,000, ₦25 up to ₦50,000, ₦50 above, plus ₦50 stamp duty from ₦10,000),
+                  which is passed through and isn&apos;t revenue. Both are shown to the user before they confirm and are
+                  only kept once the bank confirms the payout, so a failed withdrawal costs the user nothing. The
+                  maximum fee is the most Facilit8&apos;s fee can be on any one withdrawal, however large; leave it
+                  blank for no cap.
                 </CardDescription>
               )}
             </CardHeader>

@@ -56,8 +56,8 @@ export async function signupAction(_prev: ActionState, formData: FormData): Prom
   if (emailTaken) return { fieldErrors: { email: "An account with this email already exists." } };
   if (phoneTaken) return { fieldErrors: { mobilePhone: "An account with this phone number already exists." } };
 
-  // Checked before the account exists: a code Anchor doesn't know would otherwise be saved on the
-  // user and then fail at counterparty creation, leaving them with a wallet that can't be finished.
+  // Checked before the account exists: a bank code Paystack doesn't know would otherwise be saved on the
+  // user and then fail when the transfer recipient is created, leaving them with a wallet that can't be finished.
   let bankName: string | null = null;
   if (data.bankCode) {
     const bank = await lookupBank(data.bankCode);

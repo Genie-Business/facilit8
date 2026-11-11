@@ -1,7 +1,10 @@
 import { handleUpload, type HandleUploadBody } from "@vercel/blob/client";
 import { NextResponse } from "next/server";
 
+import { auth } from "@/lib/auth";
 import {
+  ORGANIZATION_DOCUMENT_CONTENT_TYPES,
+  ORGANIZATION_DOCUMENT_MAX_BYTES,
   PROFILE_DOCUMENT_CONTENT_TYPES,
   PROFILE_DOCUMENT_MAX_BYTES,
   PROFILE_IMAGE_CONTENT_TYPES,
@@ -13,6 +16,9 @@ import { isRateLimited } from "@/lib/rate-limit";
  * Issues short-lived client-upload tokens for profile pictures/company logos and CV/certificate
  * PDFs. Reachable without a session on purpose — the signup form uploads an image before the
  * account exists — so the only guardrails are content-type/size limits and a per-IP rate limit.
+ *
+ * Organization verification documents are the exception: they are business paperwork, so they need
+ * a signed-in user (who the service then checks is a member of that organization).
  */
 export async function POST(request: Request): Promise<NextResponse> {
   if (await isRateLimited("blob-upload", 20, 60 * 60 * 1000)) {
@@ -26,6 +32,17 @@ export async function POST(request: Request): Promise<NextResponse> {
       body,
       request,
       onBeforeGenerateToken: async (_pathname, clientPayload) => {
+        if (clientPayload === "organization-document") {
+          const session = await auth();
+          if (!session) throw new Error("Sign in to upload documents.");
+          return {
+            allowedContentTypes: ORGANIZATION_DOCUMENT_CONTENT_TYPES,
+            maximumSizeInBytes: ORGANIZATION_DOCUMENT_MAX_BYTES,
+            addRandomSuffix: true,
+            pathname: "organization-documents",
+          };
+        }
+
         const isDocument = clientPayload === "document";
         return {
           allowedContentTypes: isDocument ? PROFILE_DOCUMENT_CONTENT_TYPES : PROFILE_IMAGE_CONTENT_TYPES,

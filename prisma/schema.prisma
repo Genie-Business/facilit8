@@ -965,9 +965,12 @@ model Organization {
   addressLine1             String?
   addressCity              String?
   addressState             String?
-  anchorBusinessCustomerId String?                   @unique
+  anchorBusinessCustomerId String?                   @unique // LEGACY: Anchor-era, unused since verification became a manual review
   verificationStatus       OrgVerificationStatus     @default(UNVERIFIED)
   verificationFailedReason String?
+  verificationSubmittedAt  DateTime?
+  verificationReviewedAt   DateTime?
+  verificationReviewedById String?
 
   memberships     OrganizationMembership[]
   documents       OrganizationDocument[]
@@ -1004,14 +1007,15 @@ enum OrgDocumentStatus {
   REJECTED
 }
 
-// Mirrors Anchor's per-document KYB lifecycle: each row is a document Anchor told us is
-// required (via the customer.identification.awaitingDocument webhook), which we then
-// upload and track through to approval/rejection via document.approved/document.rejected.
+// One document an organization has to provide for verification. The rows are created when the owner
+// submits the business details; the owner uploads each file (fileUrl) and an admin then approves the
+// organization or rejects individual documents with a reason (REQUIRED -> UPLOADED -> APPROVED/REJECTED).
 model OrganizationDocument {
   id               String            @id @default(cuid())
   organizationId   String
   organization     Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  anchorDocumentId String            @unique
+  anchorDocumentId String?           @unique // LEGACY: Anchor-era id; null for documents uploaded for manual review
+  fileUrl          String?
   documentType     String
   status           OrgDocumentStatus @default(REQUIRED)
   rejectionReason  String?

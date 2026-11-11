@@ -2,17 +2,19 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { upload } from "@vercel/blob/client";
+import { ExternalLink } from "lucide-react";
 
-import { uploadOrganizationDocumentAction } from "@/lib/actions/business-verification.actions";
+import { attachOrganizationDocumentAction } from "@/lib/actions/business-verification.actions";
+import { ORGANIZATION_DOCUMENT_CONTENT_TYPES } from "@/lib/storage/blob";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
-const DOCUMENT_LABELS: Record<string, string> = {
-  RC_NUMBER: "RC Number",
-  TIN: "Tax Identification Number",
-  FORM_CAC_3: "Form CAC 3 (registered address)",
-  CERTIFICATE_OF_INCORPORATION: "Certificate of Incorporation",
-  PROOF_OF_ADDRESS: "Proof of Address",
+const STATUS_LABEL: Record<string, string> = {
+  REQUIRED: "Needed",
+  UPLOADED: "Uploaded",
+  APPROVED: "Approved",
+  REJECTED: "Needs replacing",
 };
 
 const STATUS_VARIANT: Record<string, "secondary" | "outline" | "destructive"> = {
@@ -24,61 +26,91 @@ const STATUS_VARIANT: Record<string, "secondary" | "outline" | "destructive"> = 
 
 export function OrganizationDocumentRow({
   organizationId,
-  anchorDocumentId,
-  documentType,
+  documentId,
+  label,
   status,
+  fileUrl,
   rejectionReason,
+  canUpload,
 }: {
   organizationId: string;
-  anchorDocumentId: string;
-  documentType: string;
+  documentId: string;
+  label: string;
   status: string;
+  fileUrl?: string | null;
   rejectionReason?: string | null;
+  /** False once the documents are with the reviewer or the organization is verified. */
+  canUpload: boolean;
 }) {
   const [file, setFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
   const [pending, startTransition] = useTransition();
   const router = useRouter();
 
-  const needsUpload = status === "REQUIRED" || status === "REJECTED";
+  const busy = uploading || pending;
+  // An uploaded file can be swapped until the whole set goes to review; a missing or sent-back one needs a file.
+  const showUploader = canUpload && status !== "APPROVED";
 
-  function submit() {
+  async function submit() {
     if (!file) {
       setError("Choose a file first.");
       return;
     }
     setError(null);
-    const formData = new FormData();
-    formData.set("file", file);
-    startTransition(async () => {
-      const result = await uploadOrganizationDocumentAction(organizationId, anchorDocumentId, formData);
-      if (result.error) setError(result.error);
-      router.refresh();
-    });
+    setUploading(true);
+    try {
+      const blob = await upload(file.name, file, {
+        access: "public",
+        handleUploadUrl: "/api/blob/upload",
+        clientPayload: "organization-document",
+      });
+      startTransition(async () => {
+        const result = await attachOrganizationDocumentAction(organizationId, documentId, blob.url);
+        if (result.error) setError(result.error);
+        else setFile(null);
+        router.refresh();
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Upload failed.");
+    } finally {
+      setUploading(false);
+    }
   }
 
   return (
-    <div className="flex items-center justify-between gap-3 border-b py-3 last:border-b-0">
-      <div>
-        <p className="text-sm font-medium">{DOCUMENT_LABELS[documentType] ?? documentType}</p>
-        {rejectionReason && <p className="text-xs text-destructive">{rejectionReason}</p>}
+    <div className="flex flex-col gap-3 border-b py-3 last:border-b-0 sm:flex-row sm:items-center sm:justify-between">
+      <div className="space-y-1">
+        <p className="text-sm font-medium">{label}</p>
+        {fileUrl && (
+          <a
+            href={fileUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1 text-xs text-muted-foreground underline underline-offset-4"
+          >
+            View uploaded file
+            <ExternalLink className="size-3" />
+          </a>
+        )}
+        {status === "REJECTED" && rejectionReason && <p className="text-xs text-destructive">{rejectionReason}</p>}
         {error && <p className="text-xs text-destructive">{error}</p>}
       </div>
-      <div className="flex items-center gap-2">
-        {needsUpload ? (
+      <div className="flex flex-wrap items-center gap-2">
+        <Badge variant={STATUS_VARIANT[status] ?? "outline"}>{STATUS_LABEL[status] ?? status}</Badge>
+        {showUploader && (
           <>
             <input
               type="file"
-              accept="image/jpeg,image/png,application/pdf"
+              accept={ORGANIZATION_DOCUMENT_CONTENT_TYPES.join(",")}
               onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-              className="text-xs"
+              disabled={busy}
+              className="max-w-52 text-xs"
             />
-            <Button size="sm" onClick={submit} disabled={pending}>
-              {pending ? "Uploading..." : "Upload"}
+            <Button size="sm" onClick={submit} disabled={busy || !file}>
+              {busy ? "Uploading..." : status === "UPLOADED" ? "Replace" : "Upload"}
             </Button>
           </>
-        ) : (
-          <Badge variant={STATUS_VARIANT[status] ?? "outline"}>{status}</Badge>
         )}
       </div>
     </div>

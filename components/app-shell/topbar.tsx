@@ -35,6 +35,8 @@ const PAGE_META: Record<string, { group: string; label: string }> = {
   "/admin/awe-subscriptions": { group: "Admin", label: "Awé Subscriptions" },
   "/admin/disputes": { group: "Admin", label: "Disputes" },
   "/admin/account-recovery": { group: "Admin", label: "Account Recovery" },
+  "/admin/organizations": { group: "Admin", label: "Organizations" },
+  "/admin/wallets": { group: "Admin", label: "Wallets" },
   "/admin/admins": { group: "Admin", label: "Admin Management" },
   "/admin/analytics": { group: "Admin", label: "Analytics" },
   "/admin/fees": { group: "Admin", label: "Platform Fees" },

@@ -3,10 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { auth } from "@/lib/auth";
-import {
-  submitBusinessVerification,
-  uploadOrganizationDocument,
-} from "@/lib/services/business-verification.service";
+import { attachOrganizationDocument, submitBusinessVerification } from "@/lib/services/business-verification.service";
 import { businessVerificationSchema } from "@/lib/validation/business";
 import { ActionState, firstFieldErrors } from "@/lib/actions/shared";
 
@@ -27,27 +24,34 @@ export async function submitBusinessVerificationAction(
     return { fieldErrors: firstFieldErrors(parsed.error.flatten().fieldErrors) };
   }
 
-  const result = await submitBusinessVerification(organizationId, session.user.id, parsed.data);
-  if (!result.success) return { error: result.error };
+  try {
+    const result = await submitBusinessVerification(organizationId, session.user.id, parsed.data);
+    if (!result.success) return { error: result.error };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Couldn't save your details. Please try again." };
+  }
 
   revalidatePath("/organization/verify");
-  return { success: "Business verification started. We'll notify you as it progresses." };
+  return { success: "Details saved. Upload the documents below and we'll review your organization." };
 }
 
-export async function uploadOrganizationDocumentAction(
+/**
+ * The browser uploads the file straight to storage, then tells us where it ended up; this only
+ * records that address against the document (after checking it is one of our own).
+ */
+export async function attachOrganizationDocumentAction(
   organizationId: string,
-  anchorDocumentId: string,
-  formData: FormData
-): Promise<{ error?: string }> {
+  documentId: string,
+  fileUrl: string
+): Promise<{ error?: string; sentForReview?: boolean }> {
   const session = await auth();
   if (!session) return { error: "Not authenticated." };
 
-  const file = formData.get("file");
-  if (!(file instanceof File) || file.size === 0) {
-    return { error: "Choose a file first." };
+  try {
+    const result = await attachOrganizationDocument(organizationId, session.user.id, documentId, fileUrl);
+    revalidatePath("/organization/verify");
+    return result.success ? { sentForReview: result.sentForReview } : { error: result.error };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Couldn't save the document. Please try again." };
   }
-
-  const result = await uploadOrganizationDocument(organizationId, session.user.id, anchorDocumentId, file);
-  revalidatePath("/organization/verify");
-  return result.success ? {} : { error: result.error };
 }

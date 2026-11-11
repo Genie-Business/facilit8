@@ -1,7 +1,7 @@
 /**
  * Nigerian mobile numbers arrive in several shapes — 0810 123 4567, +234 810 123 4567,
- * 2348101234567, with spaces/dashes/brackets. Returns the local 11-digit form Anchor already
- * stores for customers (e.g. "08101234567"), or null if it isn't a Nigerian mobile number.
+ * 2348101234567, with spaces/dashes/brackets. Returns the local 11-digit form we
+ * store for users (e.g. "08101234567"), or null if it isn't a Nigerian mobile number.
  * Mobile prefixes are 070x, 080x, 081x, 090x, 091x — hence [789][01] after the leading 0.
  */
 export function normalizeNigerianPhone(input: string): string | null {

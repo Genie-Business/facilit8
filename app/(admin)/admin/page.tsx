@@ -11,12 +11,15 @@ import {
   ShieldAlert,
   LifeBuoy,
   Users,
+  BadgeCheck,
+  Wallet,
 } from "lucide-react";
 
 import { auth } from "@/lib/auth";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getCronRunStatus } from "@/lib/services/cron-run.service";
 import { getQuickStats } from "@/lib/services/admin-analytics.service";
+import { countOrganizationsInReview } from "@/lib/services/business-verification.service";
 import { formatCount } from "@/lib/analytics/format";
 import { StatTile } from "@/components/admin/analytics/stat-tile";
 import "@/components/admin/analytics/analytics.css";
@@ -27,7 +30,9 @@ const SECTIONS = [
   { href: "/admin/content", icon: FileText, title: "Content", description: "FAQ, Privacy, Terms, and contact info." },
   { href: "/admin/activity", icon: Activity, title: "Activity", description: "Recent applications, reviews, and notifications." },
   { href: "/admin/disputes", icon: ShieldAlert, title: "Disputes", description: "Review refund requests for funded training." },
-  { href: "/admin/account-recovery", icon: LifeBuoy, title: "Account Recovery", description: "Users with incomplete Anchor wallet setup." },
+  { href: "/admin/wallets", icon: Wallet, title: "Wallets", description: "Ledger totals, the Paystack balance check and stuck withdrawals." },
+  { href: "/admin/organizations", icon: BadgeCheck, title: "Organizations", description: "Review CAC details and documents to verify organizations." },
+  { href: "/admin/account-recovery", icon: LifeBuoy, title: "Account Recovery", description: "Users with incomplete wallet setup." },
   { href: "/admin/skills", icon: Tags, title: "Skills", description: "Skills facilitators can select on their profile." },
 ];
 
@@ -47,12 +52,19 @@ const CRON_JOBS = [
 
 export default async function AdminHomePage() {
   const session = await auth();
-  const sections = session?.user.adminTier === "SUPER_ADMIN" ? [...SECTIONS, ...SUPER_ADMIN_SECTIONS] : SECTIONS;
-
-  const [cronStatuses, stats] = await Promise.all([
+  const [cronStatuses, stats, organizationsInReview] = await Promise.all([
     Promise.all(CRON_JOBS.map(async (job) => ({ ...job, ...(await getCronRunStatus(job.jobName, job.intervalMs)) }))),
     getQuickStats(),
+    countOrganizationsInReview(),
   ]);
+
+  // The organizations tile says how many are waiting, so a review doesn't depend on anyone remembering to look.
+  const baseSections = SECTIONS.map((section) =>
+    section.href === "/admin/organizations" && organizationsInReview > 0
+      ? { ...section, description: `${organizationsInReview} waiting for review. Check CAC details and documents to verify them.` }
+      : section
+  );
+  const sections = session?.user.adminTier === "SUPER_ADMIN" ? [...baseSections, ...SUPER_ADMIN_SECTIONS] : baseSections;
 
   return (
     <div className="viz">

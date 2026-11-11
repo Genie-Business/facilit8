@@ -1,12 +1,12 @@
 import { z } from "zod";
 
-// Everything here is display/marketplace metadata — deliberately excludes fields Anchor
-// relies on for KYC/KYB identity matching (bvn, dateOfBirth, gender) so editing a profile can
-// never desync a user's record from their verified Anchor identity.
+// Everything here is display/marketplace metadata — deliberately excludes fields
+// identity verification relies on (bvn, dateOfBirth, gender) so editing a profile can
+// never desync a user's record from their verified identity.
 //
 // firstName, lastName and mobilePhone are the identity fields accepted here, and they're only
 // raw strings at this layer: lib/services/profile-identity.service.ts validates them, syncs
-// them to Anchor while that's still possible, and refuses the change outright once the user
+// them to Paystack while that's still possible, and refuses the change outright once the user
 // is KYC-verified.
 export const profileUpdateSchema = z.object({
   firstName: z.string().optional(),

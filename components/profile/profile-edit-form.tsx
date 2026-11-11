@@ -26,9 +26,9 @@ interface ProfileEditUser {
   firstName: string;
   lastName: string;
   mobilePhone: string;
-  /** Verified identity — Anchor won't update a completed-KYC customer, so name and phone are locked. */
+  /** Verified identity — name and phone must keep matching the BVN they were verified against, so they're locked. */
   identityLocked: boolean;
-  /** Has an Anchor customer record, so a name/phone change gets synced there (and should match the BVN). */
+  /** Has a Paystack customer record, so a name/phone change gets synced there (and should match the BVN). */
   hasPaymentProfile: boolean;
   /** Last verification attempt was rejected — they'll need to resubmit it after correcting these. */
   verificationRejected: boolean;
