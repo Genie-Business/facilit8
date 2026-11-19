@@ -5,7 +5,7 @@ import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/db";
 import { sendEmail } from "@/lib/email/resend";
 import { generateUniqueSlug } from "@/lib/utils/slug";
-import { provisionAnchorCustomer } from "@/lib/services/anchor-provisioning.service";
+import { provisionWallet } from "@/lib/services/wallet-provisioning.service";
 import type { OrgMemberRole } from "@/lib/generated/prisma/client";
 
 const INVITE_TOKEN_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7d
@@ -108,7 +108,7 @@ interface NewAccountInput {
 /** Redeems an invite for someone who doesn't have an account yet — creates a new
  * EVENT_MANAGER user (mirrors signupAction's account-creation, minus the org-picker step
  * since the org is already determined by the invite) plus an already-APPROVED membership,
- * then provisions their own individual Anchor wallet exactly like any other new user. */
+ * then provisions their own individual wallet exactly like any other new user. */
 export async function redeemOrgInviteForNewAccount(
   rawToken: string,
   input: NewAccountInput
@@ -148,9 +148,9 @@ export async function redeemOrgInviteForNewAccount(
     prisma.organizationInvite.update({ where: { id: invite.id }, data: { usedAt: new Date() } }),
   ]);
 
-  // Never let account creation fail because Anchor is slow/unreachable — provisioning
+  // Never let account creation fail because Paystack is slow/unreachable — provisioning
   // records its own failure state on the user row and can be retried later (same as signupAction).
-  await provisionAnchorCustomer(user.id);
+  await provisionWallet(user.id);
 
   return { success: true, userId: user.id };
 }

@@ -4,7 +4,7 @@ import { useActionState, useState } from "react";
 
 import { withdrawAction } from "@/lib/actions/wallet.actions";
 import type { ActionState } from "@/lib/actions/shared";
-import { calculateCappedFee, roundKobo } from "@/lib/services/payout-math";
+import { maxWithdrawable, quoteWithdrawal, type WithdrawalFeeSchedule } from "@/lib/wallet/withdrawal-quote";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,20 +17,22 @@ const naira = (value: number) => `₦${value.toLocaleString("en-NG")}`;
 export function WithdrawForm({
   bankLabel,
   feeSchedule,
+  balance,
 }: {
   bankLabel: string;
-  /** The active withdrawal fee: a percentage, capped at maxAmount naira (null = no cap). */
-  feeSchedule: { percentage: number; maxAmount: number | null };
+  /** Facilit8's withdrawal fee: a percentage, capped at maxAmount naira (null = no cap). */
+  feeSchedule: WithdrawalFeeSchedule;
+  balance: number;
 }) {
   const [state, formAction, pending] = useActionState(withdrawAction, initialState);
   const [amountText, setAmountText] = useState("");
 
-  // Same function the server charges with, so the preview can't drift from the real fee.
-  const entered = roundKobo(Number(amountText));
+  // The very functions the server charges with, so the figures shown can't differ from the real ones.
+  const entered = Math.round(Number(amountText) * 100) / 100;
   const hasAmount = Number.isFinite(entered) && entered > 0;
-  const fee = hasAmount ? calculateCappedFee(entered, feeSchedule.percentage, feeSchedule.maxAmount) : 0;
-  const receive = roundKobo(entered - fee);
-  const chargesFee = feeSchedule.percentage > 0;
+  const quoted = hasAmount ? quoteWithdrawal(entered, feeSchedule) : null;
+  const overBalance = quoted?.ok === true && quoted.quote.debit > balance;
+  const maximum = maxWithdrawable(balance, feeSchedule);
 
   if (state.success) {
     return (
@@ -51,7 +53,7 @@ export function WithdrawForm({
       )}
 
       <div className="space-y-2">
-        <Label htmlFor="amount">Amount (₦)</Label>
+        <Label htmlFor="amount">Amount to receive (₦)</Label>
         <Input
           id="amount"
           name="amount"
@@ -62,35 +64,44 @@ export function WithdrawForm({
           value={amountText}
           onChange={(event) => setAmountText(event.target.value)}
         />
+        <p className="text-sm text-muted-foreground">
+          Your balance: {naira(balance)}.{" "}
+          {maximum > 0 ? (
+            <button type="button" className="underline underline-offset-4" onClick={() => setAmountText(String(maximum))}>
+              Most you can withdraw: {naira(maximum)}
+            </button>
+          ) : (
+            "Not enough for a withdrawal once fees are added."
+          )}
+        </p>
         {state.fieldErrors?.amount && <p className="text-sm text-destructive">{state.fieldErrors.amount}</p>}
-        {chargesFee && (
-          <div className="space-y-1 text-sm text-muted-foreground" aria-live="polite">
-            <p>
-              Withdrawal fee: {feeSchedule.percentage}%
-              {feeSchedule.maxAmount !== null ? `, never more than ${naira(feeSchedule.maxAmount)}` : ""}. It&apos;s taken
-              once your bank confirms the transfer.
-            </p>
-            {hasAmount &&
-              (receive > 0 ? (
-                <p className="text-foreground">
-                  Fee {naira(fee)} · you&apos;ll receive {naira(receive)} at your bank.
-                </p>
-              ) : (
-                <p className="text-destructive">That&apos;s too small to cover the fee. Try a larger amount.</p>
-              ))}
-          </div>
-        )}
+
+        <div className="space-y-1 text-sm text-muted-foreground" aria-live="polite">
+          {quoted?.ok && (
+            <>
+              <p className="text-foreground">You&apos;ll receive {naira(quoted.quote.receive)} at your bank.</p>
+              <p>
+                Fees on top: {naira(quoted.quote.transferFee)} bank transfer
+                {quoted.quote.facilit8Fee > 0 ? ` + ${naira(quoted.quote.facilit8Fee)} Facilit8` : ""}.
+              </p>
+              <p className={overBalance ? "text-destructive" : "text-foreground"}>
+                Total from your wallet: {naira(quoted.quote.debit)}
+                {overBalance ? ` — more than your balance of ${naira(balance)}.` : "."}
+              </p>
+            </>
+          )}
+          {hasAmount && quoted && !quoted.ok && <p className="text-destructive">The smallest withdrawal is ₦100.</p>}
+          <p>Fees are only charged if the transfer goes through. If it fails, the full amount returns to your wallet.</p>
+        </div>
       </div>
 
       <div className="space-y-2">
         <Label htmlFor="password">Confirm your password</Label>
         <Input id="password" name="password" type="password" autoComplete="current-password" required />
-        {state.fieldErrors?.password && (
-          <p className="text-sm text-destructive">{state.fieldErrors.password}</p>
-        )}
+        {state.fieldErrors?.password && <p className="text-sm text-destructive">{state.fieldErrors.password}</p>}
       </div>
 
-      <Button type="submit" disabled={pending}>
+      <Button type="submit" disabled={pending || overBalance || (hasAmount && quoted?.ok === false)}>
         {pending ? "Processing..." : "Withdraw"}
       </Button>
     </form>

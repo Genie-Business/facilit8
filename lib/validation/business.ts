@@ -22,9 +22,9 @@ export const REGISTRATION_TYPE_LABELS: Record<string, string> = {
   PUBLIC_INCORPORATED: "Public Incorporated",
 };
 
-// Verbatim from Anchor's confirmed industry enum
-// (https://docs.getanchor.co/docs/business-customer-requirements, "Registration Types and
-// Industry" accordion) — do not reformat these strings, they're sent to Anchor as-is.
+// The industry list was taken from Anchor's enum when organizations were verified through Anchor.
+// Verification is manual now, but organizations already saved hold these exact strings, so they
+// are kept as they are rather than reformatted.
 export const INDUSTRIES = [
   "Agriculture_AgriculturalCooperatives",
   "Agriculture_AgriculturalServices",
@@ -112,10 +112,6 @@ export function formatIndustryLabel(value: string): string {
 
 export const businessVerificationSchema = z.object({
   cacNumber: z.string().trim().min(1, "CAC/RC number is required."),
-  businessBvn: z
-    .string()
-    .trim()
-    .regex(/^\d{11}$/, "Business BVN must be exactly 11 digits."),
   businessDescription: z.string().trim().min(1, "A short business description is required.").max(500),
   industry: z.enum(INDUSTRIES),
   registrationType: z.enum(REGISTRATION_TYPES),

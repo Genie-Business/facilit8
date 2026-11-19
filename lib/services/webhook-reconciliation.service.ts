@@ -1,19 +1,18 @@
 import { prisma } from "@/lib/db";
-import { processAnchorWebhook } from "@/lib/anchor/webhooks";
-import { provisionAnchorCustomer } from "@/lib/services/anchor-provisioning.service";
-import { describeAnchorError } from "@/lib/anchor/types";
+import { processPaystackEvent, type PaystackEvent } from "@/lib/paystack/webhooks";
+import { provisionWallet } from "@/lib/services/wallet-provisioning.service";
 
 const MAX_EVENTS_PER_RUN = 50;
 const MAX_USERS_PER_RUN = 25;
 
 /**
- * Retries anything Anchor-related that failed transiently: webhook events that never
- * finished processing, and users whose signup-time customer/counterparty provisioning
- * failed (network blip, Anchor downtime, etc). Runs on a schedule so those failures don't
- * sit unresolved until someone notices.
+ * Retries anything Paystack-related that failed transiently: webhook events that never finished
+ * processing (we answered 500 and Paystack may or may not have redelivered), and users whose
+ * signup-time customer/recipient setup failed. Runs on a schedule so those failures don't sit
+ * unresolved until someone notices.
  */
-export async function reconcileAnchorWebhooks(): Promise<{ eventsRetried: number; eventsFixed: number }> {
-  const pending = await prisma.anchorWebhookEvent.findMany({
+export async function reconcilePaystackWebhooks(): Promise<{ eventsRetried: number; eventsFixed: number }> {
+  const pending = await prisma.paystackWebhookEvent.findMany({
     where: { processed: false },
     orderBy: { receivedAt: "asc" },
     take: MAX_EVENTS_PER_RUN,
@@ -22,15 +21,12 @@ export async function reconcileAnchorWebhooks(): Promise<{ eventsRetried: number
   let fixed = 0;
   for (const event of pending) {
     try {
-      await processAnchorWebhook(event.payload as never, event.eventType);
-      await prisma.anchorWebhookEvent.update({
-        where: { id: event.id },
-        data: { processed: true, processingError: null },
-      });
+      await processPaystackEvent(event.payload as unknown as PaystackEvent);
+      await prisma.paystackWebhookEvent.update({ where: { id: event.id }, data: { processed: true, processingError: null } });
       fixed += 1;
     } catch (err) {
-      const message = describeAnchorError(err);
-      await prisma.anchorWebhookEvent.update({ where: { id: event.id }, data: { processingError: message } });
+      const message = err instanceof Error ? err.message : "Unknown error";
+      await prisma.paystackWebhookEvent.update({ where: { id: event.id }, data: { processingError: message } });
     }
   }
 
@@ -44,7 +40,7 @@ export async function reconcileFailedProvisioning(): Promise<{ usersRetried: num
   });
 
   for (const user of failedUsers) {
-    await provisionAnchorCustomer(user.id);
+    await provisionWallet(user.id);
   }
 
   return { usersRetried: failedUsers.length };

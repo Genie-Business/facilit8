@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/db";
-import { updateIndividualCustomer } from "@/lib/anchor/customers";
-import { describeAnchorError } from "@/lib/anchor/types";
+import { updateCustomer } from "@/lib/paystack/api";
+import { describePaystackError } from "@/lib/paystack/client";
 import { normalizeNigerianPhone, nigerianPhoneVariants } from "@/lib/utils/phone";
 
 export interface IdentityFields {
@@ -31,15 +31,15 @@ function tidyName(value: string): string {
 
 /**
  * Validates a name/phone edit from the profile form and, when something really changed,
- * syncs it to Anchor — returning only the fields to save, for the caller to write with the
+ * syncs it to Paystack — returning only the fields to save, for the caller to write with the
  * rest of the profile. Nothing is written locally here.
  *
- * These are the details Anchor matches a BVN against (the customer's name and phone must agree
- * with the BVN record), so a local-only edit would silently set a user up for a failed
- * verification. Hence: no Anchor customer yet → plain local edit (creation will use the new
- * values); customer exists but unverified → Anchor is updated first and a refusal blocks the
- * whole edit; verified → locked, since Anchor won't update a completed-KYC customer and a
- * local-only change would desync the record from the verified identity.
+ * These are the details Paystack matches a BVN against (the customer's name must agree with the BVN
+ * record), so a local-only edit would silently set a user up for a failed verification. Hence: no
+ * Paystack customer yet → plain local edit (creation will use the new values); customer exists but
+ * unverified → Paystack is updated first and a refusal blocks the whole edit; verified → locked, since
+ * a change would desync the record from the identity that was verified. Someone whose verification
+ * was rejected is unverified, so they can correct a wrong name here and resubmit.
  *
  * A field left `undefined` wasn't part of the form (e.g. admins) — nothing to do for it.
  */
@@ -53,7 +53,7 @@ export async function prepareProfileIdentityChange(
       firstName: true,
       lastName: true,
       mobilePhone: true,
-      anchorCustomerId: true,
+      paystackCustomerCode: true,
       kycVerified: true,
       kycFailedReason: true,
     },
@@ -117,27 +117,17 @@ export async function prepareProfileIdentityChange(
     if (taken) return { ok: false, fieldErrors: { mobilePhone: "An account with this phone number already exists." } };
   }
 
-  if (user.anchorCustomerId) {
+  if (user.paystackCustomerCode) {
     try {
-      // One call with the full resulting identity: Anchor's update body mirrors create, so
-      // the fields that didn't change go along with the ones that did.
-      await updateIndividualCustomer(user.anchorCustomerId, {
+      // The full resulting identity, so the fields that didn't change go along with the ones that did.
+      await updateCustomer(user.paystackCustomerCode, {
         firstName: changes.firstName ?? user.firstName,
         lastName: changes.lastName ?? user.lastName,
-        phoneNumber: changes.mobilePhone ?? user.mobilePhone,
+        phone: changes.mobilePhone ?? user.mobilePhone,
       });
     } catch (err) {
-      console.error(`Anchor identity update failed for user ${userId}:`, err);
-      const detail = describeAnchorError(err);
-      if (/already.*(submit|verif)/i.test(detail)) {
-        return {
-          ok: false,
-          error: user.kycFailedReason
-            ? "Our payment partner has already received your verification details and won't accept changes to them here. Please contact support so your verification can be reset."
-            : "Your identity verification is already underway, so these details can't be changed until it finishes.",
-        };
-      }
-      return { ok: false, error: `Couldn't update your details with our payment partner: ${detail}` };
+      console.error(`Paystack customer update failed for user ${userId}:`, err);
+      return { ok: false, error: `Couldn't update your details with our payment partner: ${describePaystackError(err)}` };
     }
   }
 

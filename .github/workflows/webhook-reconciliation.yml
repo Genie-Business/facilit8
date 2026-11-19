@@ -1,8 +1,9 @@
 name: Webhook reconciliation cron
 
 # Vercel Hobby only allows daily-or-less cron schedules, and this job needs to run every
-# 30 minutes (it reconciles Anchor payment webhooks and retries failed account
-# provisioning), so it's triggered from here instead of vercel.json.
+# 30 minutes (it replays Paystack webhooks that failed, settles withdrawals still
+# waiting on Paystack, and retries failed wallet setup), so it's triggered from here
+# instead of vercel.json.
 on:
   schedule:
     - cron: "*/30 * * * *"

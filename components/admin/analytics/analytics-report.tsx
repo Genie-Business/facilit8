@@ -152,7 +152,8 @@ export function AnalyticsReport({ data, isSuperAdmin }: { data: PlatformAnalytic
           <h2>Money</h2>
           <p className="viz-section-note">
             Revenue is the fee kept on facilitator payouts, withdrawal fees, chat unlocks and Awé subscriptions. Only successful payments
-            count. Withdrawal fees are shown before Anchor&apos;s own transfer charge, which comes out of the same fee.
+            count. Withdrawal fees are Facilit8&apos;s own fee only: the bank transfer fee Paystack charges is passed on to the user and
+            isn&apos;t revenue.
           </p>
           <div className="viz-cols-wide">
             <TimeSeriesChart
@@ -170,12 +171,12 @@ export function AnalyticsReport({ data, isSuperAdmin }: { data: PlatformAnalytic
             <StatTile label="Fees kept on payouts" value={formatNaira(money.payouts.fees.current)} current={money.payouts.fees.current} previous={money.payouts.fees.previous} />
             <StatTile label="Withdrawn to banks" value={formatNaira(money.withdrawals.volume.current)} current={money.withdrawals.volume.current} previous={money.withdrawals.volume.previous} note={`${formatCount(money.withdrawals.count.current)} withdrawals`} />
             <StatTile label="Withdrawal fees collected" value={formatNaira(money.withdrawals.fees.current)} current={money.withdrawals.fees.current} previous={money.withdrawals.fees.previous} />
-            {money.withdrawals.feesNeedingAttention.count > 0 && (
+            {money.withdrawals.stuck.count > 0 && (
               <StatTile
-                label="Withdrawal fees to review"
-                title="Withdrawals that reached the user's bank but whose fee could not be taken from their wallet (or got stuck part-way). They are not retried automatically, so a person has to check them."
-                value={formatNaira(money.withdrawals.feesNeedingAttention.amount)}
-                note={`${formatCount(money.withdrawals.feesNeedingAttention.count)} withdrawals, not collected`}
+                label="Withdrawals stuck"
+                title="Withdrawals that have been waiting on Paystack for over an hour. The user's money is held, not lost: the catch-up job keeps asking Paystack and settles or returns it, but if this doesn't clear, a person has to check the transfer in the Paystack dashboard."
+                value={formatNaira(money.withdrawals.stuck.amount)}
+                note={`${formatCount(money.withdrawals.stuck.count)} withdrawals, still waiting`}
               />
             )}
             <StatTile label="Refunded" value={formatNaira(money.refunded.current)} current={money.refunded.current} previous={money.refunded.previous} upIsGood={false} />

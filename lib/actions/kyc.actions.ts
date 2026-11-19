@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { submitKyc } from "@/lib/services/kyc.service";
-import { provisionAnchorCustomer } from "@/lib/services/anchor-provisioning.service";
+import { provisionWallet } from "@/lib/services/wallet-provisioning.service";
 import { kycFormSchema } from "@/lib/validation/kyc";
 import { ActionState, firstFieldErrors } from "@/lib/actions/shared";
 
@@ -37,11 +37,11 @@ export async function retryProvisioningAction(): Promise<void> {
 
   const user = await prisma.user.findUnique({ where: { id: session.user.id } });
   if (!user) return;
-  // provisionAnchorCustomer no-ops per-step internally once each piece is set, so it's
-  // safe to call whenever provisioning isn't fully complete (customer + counterparty).
-  if (user.anchorCustomerId && (user.anchorCounterpartyId || !user.linkedBankCode)) return;
+  // provisionWallet no-ops per-step internally once each piece is set, so it's
+  // safe to call whenever provisioning isn't fully complete (customer + recipient).
+  if (user.paystackCustomerCode && (user.paystackRecipientCode || !user.linkedBankCode)) return;
 
-  await provisionAnchorCustomer(session.user.id);
+  await provisionWallet(session.user.id);
   revalidatePath("/settings/kyc");
   revalidatePath("/wallet");
 }

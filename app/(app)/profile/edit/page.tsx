@@ -36,7 +36,7 @@ export default async function ProfileEditPage() {
 
       <div className="card" style={{ maxWidth: 640 }}>
         {/* An explicit object, not the whole row — everything passed to a client component is
-            serialized into the page payload, and the row includes passwordHash, BVN, Anchor IDs. */}
+            serialized into the page payload, and the row includes passwordHash, BVN, payment-provider IDs. */}
         <ProfileEditForm
           user={{
             role: user.role,
@@ -44,7 +44,7 @@ export default async function ProfileEditPage() {
             lastName: user.lastName,
             mobilePhone: user.mobilePhone,
             identityLocked: user.kycVerified,
-            hasPaymentProfile: !!user.anchorCustomerId,
+            hasPaymentProfile: !!user.paystackCustomerCode,
             verificationRejected: !!user.kycFailedReason,
             profileImageUrl: user.profileImageUrl,
             profileDescription: user.profileDescription,

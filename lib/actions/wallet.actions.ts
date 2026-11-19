@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import { auth } from "@/lib/auth";
 import { withdrawFunds } from "@/lib/services/withdrawal.service";
-import { updateLinkedBankAccount } from "@/lib/services/anchor-provisioning.service";
+import { updateLinkedBankAccount } from "@/lib/services/wallet-provisioning.service";
 import { lookupBank } from "@/lib/services/bank-list.service";
 import { withdrawFormSchema, linkBankAccountSchema } from "@/lib/validation/wallet";
 import { ActionState, firstFieldErrors } from "@/lib/actions/shared";
@@ -26,11 +26,9 @@ export async function withdrawAction(_prev: ActionState, formData: FormData): Pr
   revalidatePath("/wallet/transactions");
 
   const naira = (value: number) => `₦${value.toLocaleString("en-NG")}`;
-  const arrival = result.pending ? "will reach your bank shortly" : "is on its way to your bank";
+  const arrival = result.pending ? "will reach your bank shortly" : "has been sent to your bank";
   return {
-    success: result.feeAmount
-      ? `Withdrawal initiated: ${naira(result.netAmount ?? 0)} ${arrival}, after a ${naira(result.feeAmount)} withdrawal fee.`
-      : "Withdrawal initiated.",
+    success: `Withdrawal started: ${naira(result.receive ?? 0)} ${arrival}. Fees: ${naira(result.facilit8Fee ?? 0)} Facilit8 + ${naira(result.transferFee ?? 0)} bank transfer.`,
   };
 }
 

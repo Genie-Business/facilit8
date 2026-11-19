@@ -25,8 +25,8 @@ export async function updateProfileAction(_prev: ActionState, formData: FormData
   }
   const data = parsed.data;
 
-  // Before anything is saved: a real name/phone change may need to go to Anchor first, and a
-  // refusal there should block the whole save, not leave profile and Anchor disagreeing.
+  // Before anything is saved: a real name/phone change may need to go to Paystack first, and a
+  // refusal there should block the whole save, not leave profile and Paystack disagreeing.
   // formData.has() distinguishes "field not on this form" from "cleared".
   const field = (name: "firstName" | "lastName" | "mobilePhone") => (formData.has(name) ? data[name] ?? "" : undefined);
   const identity = await prepareProfileIdentityChange(session.user.id, {

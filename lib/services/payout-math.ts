@@ -1,6 +1,6 @@
 /**
  * Pure money-math extracted out of fee.service.ts and payout.service.ts so it's testable
- * without a live DB or Anchor API call. Behavior must stay byte-for-byte identical to what
+ * without a live DB or Paystack API call. Behavior must stay byte-for-byte identical to what
  * those services inline before this extraction.
  */
 
@@ -15,7 +15,7 @@ export function roundKobo(amount: number): number {
 
 /**
  * A percentage fee with an optional ceiling (`maxAmount` null = uncapped), rounded to the kobo.
- * Used for withdrawals, where the fee is actually moved between Anchor accounts and so has to be
+ * Used for withdrawals, where the fee is actually moved between ledger accounts and so has to be
  * a real, whole-kobo figure — unlike the payout fee above, which is only ever recorded. Shared
  * with the withdraw form so the preview a user sees is computed by the same code that charges.
  */

@@ -1,6 +1,8 @@
 import { prisma } from "@/lib/db";
-import { bookTransfer, verifyTransfer } from "@/lib/anchor/transfers";
-import { describeAnchorError } from "@/lib/anchor/types";
+import { AlreadyDoneError, describeLedgerError } from "@/lib/ledger/errors";
+import { inLedgerTransaction, postJournal } from "@/lib/ledger/ledger.service";
+import { refundLegs } from "@/lib/ledger/journals";
+import { roundKobo } from "./payout-math";
 import { createNotification } from "./notification.service";
 
 interface DisputeResult {
@@ -161,69 +163,68 @@ export async function resolveDispute(input: ResolveDisputeInput): Promise<Disput
       : dispute.mergedTrainingEvent!.initiator.depositAccountId;
     if (!depositAccountId) return { success: false, error: "The recipient's wallet isn't set up." };
 
-    const amount = dispute.trainingEvent
-      ? Number(dispute.trainingEvent.trainingBudget)
-      : dispute.mergedTrainingEvent!.participants.reduce((sum, p) => sum + Number(p.amountPaid), 0);
+    const amount = roundKobo(
+      dispute.trainingEvent
+        ? Number(dispute.trainingEvent.trainingBudget)
+        : dispute.mergedTrainingEvent!.participants.reduce((sum, p) => sum + Number(p.amountPaid), 0)
+    );
     if (amount <= 0) return { success: false, error: "Nothing was funded for this — nothing to refund." };
 
-    const settlementAccountId = process.env.ANCHOR_SETTLEMENT_ACCOUNT_ID;
-    if (!settlementAccountId) return { success: false, error: "Payments are not configured yet." };
-
-    const reference = `refund_${dispute.id.slice(0, 16)}`;
+    const reference = `refund_${dispute.id}`;
     try {
-      const { transferId } = await bookTransfer({
-        sourceAccountId: settlementAccountId,
-        destinationAccountId: depositAccountId,
-        amountNaira: amount,
-        reason: `Dispute refund for "${target.title}"`,
-        reference,
+      // One transaction: close the books on the escrow (so a payout can never ALSO pay out money that
+      // is being refunded, nor a second refund repeat it), return the money, and resolve the dispute.
+      await inLedgerTransaction(async (tx) => {
+        const claimed = dispute.trainingEvent
+          ? await tx.trainingEvent.updateMany({ where: { id: dispute.trainingEvent.id, isPaid: false }, data: { isPaid: true } })
+          : await tx.mergedTrainingEvent.updateMany({ where: { id: dispute.mergedTrainingEvent!.id, isPaid: false }, data: { isPaid: true } });
+        if (claimed.count !== 1) throw new AlreadyDoneError("This has already been paid out or refunded.");
+
+        await postJournal(
+          { reference, type: "REFUND", description: `Dispute refund for "${target.title}"`, legs: refundLegs(recipientId, amount) },
+          tx
+        );
+        await tx.transaction.create({
+          data: {
+            userId: recipientId,
+            type: "REFUND",
+            status: "SUCCESS",
+            amount,
+            currency: "NGN",
+            reference,
+            ...(dispute.trainingEvent
+              ? { relatedTrainingEventId: dispute.trainingEvent.id }
+              : { relatedMergedTrainingEventId: dispute.mergedTrainingEvent!.id }),
+            description: `Dispute refund for "${target.title}"`,
+          },
+        });
+        await tx.dispute.update({
+          where: { id: dispute.id },
+          data: {
+            status: input.status,
+            resolutionNotes: input.resolutionNotes,
+            resolvedById: input.resolvedById,
+            resolvedAt: new Date(),
+          },
+        });
       });
-
-      const status = await verifyTransfer(transferId);
-      if (!["successful", "completed"].includes(status)) {
-        throw new Error(`Transfer not successful, status: ${status}`);
-      }
-
-      await prisma.transaction.create({
-        data: {
-          userId: recipientId,
-          type: "REFUND",
-          status: "SUCCESS",
-          amount,
-          currency: "NGN",
-          reference,
-          anchorTransferId: transferId,
-          ...(dispute.trainingEvent
-            ? { relatedTrainingEventId: dispute.trainingEvent.id }
-            : { relatedMergedTrainingEventId: dispute.mergedTrainingEvent!.id }),
-          description: `Dispute refund for "${target.title}"`,
-        },
-      });
-
-      // Close the books on this escrow amount the same way a completed payout would, so
-      // payFacilitatorForEvent/payFacilitatorForMergedTrainingEvent can never also pay out
-      // funds that have already been refunded.
-      if (dispute.trainingEvent) {
-        await prisma.trainingEvent.update({ where: { id: dispute.trainingEvent.id }, data: { isPaid: true } });
-      } else {
-        await prisma.mergedTrainingEvent.update({ where: { id: dispute.mergedTrainingEvent!.id }, data: { isPaid: true } });
-      }
-
       refundedAmount = amount;
     } catch (err) {
-      return { success: false, error: describeAnchorError(err) };
+      return { success: false, error: describeLedgerError(err, "The refund failed. Please try again.") };
     }
   }
 
-  await prisma.dispute.update({
-    where: { id: dispute.id },
-    data: {
-      status: input.status,
-      resolutionNotes: input.resolutionNotes,
-      resolvedById: input.resolvedById,
-      resolvedAt: new Date(),
-    },
-  });
+  if (input.status === "RESOLVED_NO_ACTION") {
+    await prisma.dispute.update({
+      where: { id: dispute.id },
+      data: {
+        status: input.status,
+        resolutionNotes: input.resolutionNotes,
+        resolvedById: input.resolvedById,
+        resolvedAt: new Date(),
+      },
+    });
+  }
 
   const message =
     input.status === "RESOLVED_REFUNDED"

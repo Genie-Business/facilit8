@@ -91,6 +91,7 @@ enum TrainingPaymentStatus {
 }
 
 enum TransactionType {
+  DEPOSIT // money paid into the user's Paystack virtual account and credited to their wallet
   FUNDING
   PAYOUT
   WITHDRAWAL
@@ -170,17 +171,30 @@ model User {
   kycFailedReason String?
   kycTier         Int       @default(0)
 
-  // Anchor linkage — own virtual account (for receiving funds)
+  // Wallet. The wallet itself is a row in our own ledger (WalletAccount); Paystack only holds the
+  // pooled money and gives each user a dedicated virtual account number to pay into.
+  //   depositAccountId  = this user's WalletAccount.id, set once the wallet is active (KYC passed
+  //                       and a virtual account assigned). "Has a wallet" checks key off this.
+  //   vaAccountNumber / vaAccountName / vaBankName = the Paystack dedicated virtual account.
+  //   vaCreationFailed / vaFailureReason = account-recovery flags for incomplete provisioning.
+  depositAccountId String? @unique
+  vaAccountNumber  String?
+  vaAccountName    String?
+  vaBankName       String?
+  vaCreationFailed Boolean @default(false)
+  vaFailureReason  String?
+
+  // Paystack linkage.
+  paystackCustomerCode  String? @unique // CUS_... — created at signup
+  paystackRecipientCode String? @unique // RCP_... — the linked bank account withdrawals are sent to
+
+  // LEGACY (Anchor wallets, branch `anchor-wallets`): no longer read or written. Kept only so the
+  // migration that introduced the Paystack ledger is purely additive and can be applied before the
+  // deploy without breaking the code that is still running; drop in a later cleanup migration.
   anchorCustomerId     String? @unique
   anchorCounterpartyId String? @unique
-  depositAccountId     String? @unique
   anchorAccountId      String? @unique
   anchorVaId           String? @unique
-  vaAccountNumber      String?
-  vaAccountName        String?
-  vaBankName           String?
-  vaCreationFailed     Boolean @default(false)
-  vaFailureReason      String?
 
   // Linked external bank account (withdrawal destination, collected at signup;
   // anchorCounterpartyId above is Anchor's CounterParty record for this account)
@@ -199,6 +213,7 @@ model User {
   updatedAt DateTime @updatedAt
 
   virtualAccount        VirtualAccount?
+  wallet                WalletAccount?
   passwordResetTokens   PasswordResetToken[]
   accountRecoveryTokens AccountRecoveryToken[]
   transactions          Transaction[]
@@ -304,7 +319,8 @@ model Transaction {
   netAmount                    Decimal?          @db.Decimal(14, 2)
   currency                     String            @default("NGN")
   reference                    String            @unique
-  anchorTransferId             String?
+  anchorTransferId             String? // LEGACY (Anchor)
+  paystackTransferCode         String? // TRF_... for withdrawals; the transfer is looked up by `reference`
   counterpartyAccountNumber    String?
   counterpartyBankCode         String?
   description                  String?
@@ -318,6 +334,100 @@ model Transaction {
 
   @@index([userId, createdAt])
   @@index([reference])
+}
+
+// ---------- Wallet ledger (Paystack) ----------
+//
+// Paystack has no per-customer wallets: it holds ONE pooled balance for the business. Each user's
+// wallet is therefore a row here, and every movement of money is a balanced journal of entries
+// (they sum to zero), so the total across all accounts is always 0 and any balance can be
+// rebuilt from its entries. See lib/ledger/ledger.service.ts.
+
+enum WalletAccountKind {
+  USER // a person's spendable wallet
+  ESCROW // event / merged-training money held until the facilitator is paid or it is refunded
+  REVENUE // Facilit8's own income: payout fees, withdrawal fees, chat unlocks, Awe subscriptions
+  TRANSFERS_PENDING // money debited from a user for a withdrawal that Paystack hasn't confirmed yet
+  PAYSTACK_FEES // Paystack's fees on deposits, absorbed by Facilit8 (an expense, so it runs negative)
+  EXTERNAL // the outside world: deposits come out of it, withdrawals go into it (runs negative)
+}
+
+enum LedgerJournalType {
+  DEPOSIT
+  EVENT_FUNDING
+  MERGED_FUNDING
+  PAYOUT
+  REFUND
+  CHAT_PAYMENT
+  AWE_SUBSCRIPTION
+  WITHDRAWAL_HOLD
+  WITHDRAWAL_SETTLE
+  WITHDRAWAL_RELEASE
+  WITHDRAWAL_REVERSAL
+  ADJUSTMENT
+}
+
+model WalletAccount {
+  id        String            @id @default(cuid())
+  // "user:<userId>" for wallets, or a fixed name ("escrow", "revenue", ...) for system accounts.
+  code      String            @unique
+  kind      WalletAccountKind
+  userId    String?           @unique
+  // Restrict, not Cascade: ledger history must outlive everything else (CBN record retention).
+  user      User?             @relation(fields: [userId], references: [id], onDelete: Restrict)
+  // Always equals the sum of this account's entries; changed only inside postJournal(), together
+  // with the entry rows, in one database transaction. A CHECK constraint (see the migration) stops
+  // every account except PAYSTACK_FEES and EXTERNAL from ever going below zero.
+  balance   Decimal           @default(0) @db.Decimal(16, 2)
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+
+  entries LedgerEntry[]
+
+  @@index([kind])
+}
+
+model LedgerJournal {
+  id          String            @id @default(cuid())
+  // Idempotency key: posting the same reference twice is a no-op, so retried webhooks and
+  // double-clicks can never move money twice.
+  reference   String            @unique
+  type        LedgerJournalType
+  description String?
+  metadata    Json?
+  createdAt   DateTime          @default(now())
+
+  entries LedgerEntry[]
+}
+
+model LedgerEntry {
+  id           String        @id @default(cuid())
+  journalId    String
+  journal      LedgerJournal @relation(fields: [journalId], references: [id], onDelete: Restrict)
+  accountId    String
+  account      WalletAccount @relation(fields: [accountId], references: [id], onDelete: Restrict)
+  // Signed: positive credits the account, negative debits it.
+  amount       Decimal       @db.Decimal(16, 2)
+  balanceAfter Decimal       @db.Decimal(16, 2)
+  createdAt    DateTime      @default(now())
+
+  @@index([accountId, createdAt])
+  @@index([journalId])
+}
+
+// Audit log + idempotency for inbound Paystack webhooks (Paystack events carry no id of their
+// own, so eventKey is "<event>:<data.id | data.reference | sha256(body)>").
+model PaystackWebhookEvent {
+  id              String   @id @default(cuid())
+  eventKey        String   @unique
+  eventType       String
+  payload         Json
+  receivedAt      DateTime @default(now())
+  processed       Boolean  @default(false)
+  processingError String?
+
+  @@index([eventType])
+  @@index([processed, receivedAt])
 }
 
 // Fixes Django's duplicate PlatformFee / PlatformFeeMergerTraining models.
@@ -855,9 +965,12 @@ model Organization {
   addressLine1             String?
   addressCity              String?
   addressState             String?
-  anchorBusinessCustomerId String?                   @unique
+  anchorBusinessCustomerId String?                   @unique // LEGACY: Anchor-era, unused since verification became a manual review
   verificationStatus       OrgVerificationStatus     @default(UNVERIFIED)
   verificationFailedReason String?
+  verificationSubmittedAt  DateTime?
+  verificationReviewedAt   DateTime?
+  verificationReviewedById String?
 
   memberships     OrganizationMembership[]
   documents       OrganizationDocument[]
@@ -894,14 +1007,15 @@ enum OrgDocumentStatus {
   REJECTED
 }
 
-// Mirrors Anchor's per-document KYB lifecycle: each row is a document Anchor told us is
-// required (via the customer.identification.awaitingDocument webhook), which we then
-// upload and track through to approval/rejection via document.approved/document.rejected.
+// One document an organization has to provide for verification. The rows are created when the owner
+// submits the business details; the owner uploads each file (fileUrl) and an admin then approves the
+// organization or rejects individual documents with a reason (REQUIRED -> UPLOADED -> APPROVED/REJECTED).
 model OrganizationDocument {
   id               String            @id @default(cuid())
   organizationId   String
   organization     Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  anchorDocumentId String            @unique
+  anchorDocumentId String?           @unique // LEGACY: Anchor-era id; null for documents uploaded for manual review
+  fileUrl          String?
   documentType     String
   status           OrgDocumentStatus @default(REQUIRED)
   rejectionReason  String?

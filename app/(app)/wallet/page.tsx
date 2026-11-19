@@ -30,7 +30,8 @@ export default async function WalletPage() {
               <p className="text-3xl font-semibold">₦{(balance ?? 0).toLocaleString()}</p>
               {user.vaAccountNumber && (
                 <p className="text-sm text-muted-foreground">
-                  Fund via {user.vaBankName}: {user.vaAccountNumber}
+                  Fund via {user.vaBankName}: {user.vaAccountNumber}. Paystack&apos;s small fee on a transfer in is taken
+                  from what&apos;s credited.
                 </p>
               )}
               <div className="flex gap-2 pt-2">

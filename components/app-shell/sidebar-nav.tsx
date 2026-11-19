@@ -79,6 +79,8 @@ const MISC_LINKS: NavItem[] = [
 const ADMIN_BASE_LINKS: (Omit<NavItem, "crossDomain"> & { superAdminOnly?: boolean })[] = [
   { href: "/admin", label: "Admin Home", icon: LayoutGrid },
   { href: "/admin/analytics", label: "Analytics", icon: ChartColumn },
+  { href: "/admin/wallets", label: "Wallets", icon: Wallet },
+  { href: "/admin/organizations", label: "Organizations", icon: BadgeCheck },
   { href: "/admin/account-recovery", label: "Account Recovery", icon: LifeBuoy },
   { href: "/admin/content", label: "Content", icon: FileText },
   { href: "/admin/disputes", label: "Disputes", icon: ShieldAlert },

@@ -2,25 +2,22 @@ import { randomBytes, createHash } from "node:crypto";
 
 import { prisma } from "@/lib/db";
 import { sendEmail } from "@/lib/email/resend";
-import { updateLinkedBankAccount, provisionAnchorCustomer } from "@/lib/services/anchor-provisioning.service";
+import { updateLinkedBankAccount, provisionWallet } from "@/lib/services/wallet-provisioning.service";
 
 const RECOVERY_TOKEN_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7d — longer than password reset's 1h,
 // since this isn't a credential change and users may not check email right away.
 
 /**
- * Anyone whose Anchor wallet setup never finished: either provisioning outright failed
- * (vaCreationFailed — e.g. the historical leading-"+" phone bug, now fixed in code but not
- * retroactively applied to already-broken rows), or it silently stalled because
- * linkedBankCode/etc. were never collected (Professionals were exempt from bank fields at
- * signup until later in the product's life — see provisionAnchorCustomer's silent-skip
- * condition). ADMIN role excluded; this is only ever meaningful for the three roles that get
- * a wallet.
+ * Anyone whose wallet setup never finished: either provisioning outright failed
+ * (vaCreationFailed), or it silently stalled because no bank account was ever collected
+ * (see provisionWallet's skip condition). ADMIN role excluded; this is only ever meaningful
+ * for the three roles that get a wallet.
  */
 export async function listUsersNeedingRecovery() {
   return prisma.user.findMany({
     where: {
       role: { in: ["EVENT_MANAGER", "FACILITATOR", "PROFESSIONAL"] },
-      OR: [{ vaCreationFailed: true }, { anchorCustomerId: null }, { anchorCounterpartyId: null }],
+      OR: [{ vaCreationFailed: true }, { paystackCustomerCode: null }, { paystackRecipientCode: null }],
     },
     select: {
       id: true,
@@ -28,8 +25,8 @@ export async function listUsersNeedingRecovery() {
       lastName: true,
       email: true,
       role: true,
-      anchorCustomerId: true,
-      anchorCounterpartyId: true,
+      paystackCustomerCode: true,
+      paystackRecipientCode: true,
       vaCreationFailed: true,
       vaFailureReason: true,
       createdAt: true,
@@ -112,19 +109,19 @@ export async function redeemAccountRecoveryToken(rawToken: string, input: Redeem
   if (!bankResult.success) return bankResult;
 
   // Retries whatever's still missing — customer creation if that never succeeded, then the
-  // counterparty now that bank details exist. Never throws; failures land back on the user
+  // recipient now that bank details exist. Never throws; failures land back on the user
   // row (vaCreationFailed/vaFailureReason), which is why the user is re-queried below rather
   // than trusting this call's return value (it has none).
-  await provisionAnchorCustomer(recoveryToken.userId);
+  await provisionWallet(recoveryToken.userId);
 
   await prisma.accountRecoveryToken.update({ where: { id: recoveryToken.id }, data: { usedAt: new Date() } });
 
   const user = await prisma.user.findUnique({
     where: { id: recoveryToken.userId },
-    select: { anchorCustomerId: true, anchorCounterpartyId: true, vaFailureReason: true },
+    select: { paystackCustomerCode: true, paystackRecipientCode: true, vaFailureReason: true },
   });
 
-  if (!user?.anchorCustomerId || !user?.anchorCounterpartyId) {
+  if (!user?.paystackCustomerCode || !user?.paystackRecipientCode) {
     return {
       success: false,
       error: `Your bank account was saved, but we couldn't finish setting up your wallet${

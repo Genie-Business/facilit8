@@ -47,10 +47,10 @@ export interface MoneyAnalytics {
   withdrawals: {
     count: Metric;
     volume: Metric;
-    /** Fees actually taken from users' wallets and deposited to the settlement account. */
+    /** Facilit8's own fee on withdrawals that went through (Paystack's transfer fee is passed on to the user and isn't revenue). */
     fees: Metric;
-    /** Withdrawals that paid out but whose fee failed to collect (or got stuck): a person has to look. All time. */
-    feesNeedingAttention: { count: number; amount: number };
+    /** Withdrawals still waiting on Paystack after more than an hour (money held, not yet settled or returned): a person has to look. Right now. */
+    stuck: { count: number; amount: number };
   };
 }
 
@@ -372,14 +372,12 @@ async function moneyAnalytics(range: ResolvedRange): Promise<MoneyAnalytics> {
     createdAt: within(w),
   });
 
-  const collectedFee = (w: DateWindow) => ({
-    type: "WITHDRAWAL" as const,
-    status: "SUCCESS" as const,
-    createdAt: within(w),
-    metadata: { path: ["fee", "status"], equals: "COLLECTED" },
-  });
+  // A withdrawal's money is held the moment it starts and settled or returned when Paystack answers,
+  // which is normally seconds. Past an hour something is wrong (a missed webhook the catch-up job
+  // hasn't fixed, a Paystack outage), and the held money is the user's.
+  const stuckBefore = new Date(Date.now() - 60 * 60 * 1000);
 
-  const [funding, refunds, payouts, chat, awe, withdrawals, withdrawalFees, feesNeedingAttention, revenueRows] = await Promise.all([
+  const [funding, refunds, payouts, chat, awe, withdrawals, stuckWithdrawals, revenueRows] = await Promise.all([
     forWindows(range, (w) => prisma.transaction.aggregate({ where: successful("FUNDING", w), _sum: { amount: true }, _count: { _all: true } })),
     forWindows(range, (w) => prisma.transaction.aggregate({ where: successful("REFUND", w), _sum: { amount: true } })),
     forWindows(range, (w) =>
@@ -391,18 +389,11 @@ async function moneyAnalytics(range: ResolvedRange): Promise<MoneyAnalytics> {
     ),
     forWindows(range, (w) => prisma.transaction.aggregate({ where: successful("CHAT_PAYMENT", w), _sum: { amount: true }, _count: { _all: true } })),
     forWindows(range, (w) => prisma.transaction.aggregate({ where: successful("AWE_SUBSCRIPTION", w), _sum: { amount: true }, _count: { _all: true } })),
-    forWindows(range, (w) => prisma.transaction.aggregate({ where: successful("WITHDRAWAL", w), _sum: { amount: true }, _count: { _all: true } })),
-    forWindows(range, (w) => prisma.transaction.aggregate({ where: collectedFee(w), _sum: { feeAmount: true } })),
+    // netAmount is what reached the bank; feeAmount is Facilit8's fee. (amount is the whole debit, which also covers Paystack's fee.)
+    forWindows(range, (w) => prisma.transaction.aggregate({ where: successful("WITHDRAWAL", w), _sum: { netAmount: true, feeAmount: true }, _count: { _all: true } })),
     prisma.transaction.aggregate({
-      where: {
-        type: "WITHDRAWAL",
-        status: "SUCCESS",
-        OR: [
-          { metadata: { path: ["fee", "status"], equals: "FAILED" } },
-          { metadata: { path: ["fee", "status"], equals: "COLLECTING" } },
-        ],
-      },
-      _sum: { feeAmount: true },
+      where: { type: "WITHDRAWAL", status: "PENDING", createdAt: { lt: stuckBefore } },
+      _sum: { amount: true },
       _count: { _all: true },
     }),
     prisma.$queryRaw<{ bucket: string; amount: number }[]>(Prisma.sql`
@@ -413,14 +404,14 @@ async function moneyAnalytics(range: ResolvedRange): Promise<MoneyAnalytics> {
         WHERE status = 'SUCCESS' AND type IN ('CHAT_PAYMENT', 'AWE_SUBSCRIPTION')
         UNION ALL
         SELECT "createdAt", "feeAmount" FROM "Transaction"
-        WHERE type = 'WITHDRAWAL' AND status = 'SUCCESS' AND metadata->'fee'->>'status' = 'COLLECTED'
+        WHERE type = 'WITHDRAWAL' AND status = 'SUCCESS'
       ) revenue
       WHERE "createdAt" >= ${asTimestamp(range.from)} AND "createdAt" < ${asTimestamp(range.to)}
       GROUP BY 1`),
   ]);
 
   const payoutFees = pick(payouts, (value) => num(value._sum.feeAmount));
-  const withdrawalFeeRevenue = pick(withdrawalFees, (value) => num(value._sum.feeAmount));
+  const withdrawalFeeRevenue = pick(withdrawals, (value) => num(value._sum.feeAmount));
   const chatRevenue = pick(chat, (value) => num(value._sum.amount));
   const aweRevenue = pick(awe, (value) => num(value._sum.amount));
   const add = (...metrics: Metric[]): Metric => ({
@@ -460,9 +451,9 @@ async function moneyAnalytics(range: ResolvedRange): Promise<MoneyAnalytics> {
     awe: { count: pick(awe, (value) => value._count._all) },
     withdrawals: {
       count: pick(withdrawals, (value) => value._count._all),
-      volume: pick(withdrawals, (value) => num(value._sum.amount)),
+      volume: pick(withdrawals, (value) => num(value._sum.netAmount)),
       fees: withdrawalFeeRevenue,
-      feesNeedingAttention: { count: feesNeedingAttention._count._all, amount: num(feesNeedingAttention._sum.feeAmount) },
+      stuck: { count: stuckWithdrawals._count._all, amount: num(stuckWithdrawals._sum.amount) },
     },
   };
 }
