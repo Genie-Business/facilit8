@@ -4,6 +4,8 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { fetchCustomerDedicatedAccount, readDedicatedAccount, toE164 } from "./api";
 import { isDefinitiveFailure, PaystackApiError } from "./client";
+import { isFacilit8Event } from "./event-ownership";
+import { WITHDRAWAL_REFERENCE_PREFIX } from "./references";
 import { normalizeTransferStatus } from "./status";
 import { paystackEventKey, verifyPaystackSignature } from "./webhook-signature";
 
@@ -184,5 +186,50 @@ describe("fetchCustomerDedicatedAccount", () => {
 
     respond(401, { status: false, message: "Invalid key" });
     await expect(fetchCustomerDedicatedAccount("ada@example.com")).rejects.toThrow(/Invalid key/);
+  });
+});
+
+describe("isFacilit8Event", () => {
+  it("keeps virtual-account and identity events, under either spelling Paystack uses", () => {
+    for (const event of [
+      "dedicatedaccount.assign.success",
+      "dedicatedaccount.assign.failed",
+      "assigndedicatedaccount.success",
+      "customeridentification.success",
+      "customeridentification.failed",
+    ]) {
+      expect(isFacilit8Event({ event, data: {} }), event).toBe(true);
+    }
+  });
+
+  it("keeps deposits into a virtual account, wherever Paystack puts the channel", () => {
+    expect(isFacilit8Event({ event: "charge.success", data: { channel: "dedicated_nuban" } })).toBe(true);
+    expect(isFacilit8Event({ event: "charge.success", data: { authorization: { channel: "dedicated_nuban" } } })).toBe(true);
+  });
+
+  it("drops card and other payments that belong to someone else", () => {
+    expect(isFacilit8Event({ event: "charge.success", data: { channel: "card", reference: "PAY-1" } })).toBe(false);
+    expect(isFacilit8Event({ event: "charge.success", data: { authorization: { channel: "bank_transfer" } } })).toBe(false);
+    expect(isFacilit8Event({ event: "charge.success", data: {} })).toBe(false);
+  });
+
+  it("keeps only transfers that are our withdrawals, by reference", () => {
+    for (const event of ["transfer.success", "transfer.failed", "transfer.reversed"]) {
+      expect(isFacilit8Event({ event, data: { reference: "wd-clx123-abc" } }), event).toBe(true);
+      expect(isFacilit8Event({ event, data: { reference: "WD-CLX123-ABC" } }), `${event} upper-case`).toBe(true);
+      expect(isFacilit8Event({ event, data: { reference: "po-261101-abc123" } }), `${event} other product`).toBe(false);
+    }
+    expect(isFacilit8Event({ event: "transfer.success", data: {} })).toBe(false);
+    expect(isFacilit8Event({ event: "transfer.success", data: { reference: 42 } })).toBe(false);
+  });
+
+  it("drops every other event and copes with odd payloads", () => {
+    expect(isFacilit8Event({ event: "refund.processed", data: { reference: "wd-1" } })).toBe(false);
+    expect(isFacilit8Event({ event: "charge.success", data: null })).toBe(false);
+    expect(isFacilit8Event({ event: "transfer.success" })).toBe(false);
+  });
+
+  it("agrees with the withdrawal reference prefix the service uses", () => {
+    expect(WITHDRAWAL_REFERENCE_PREFIX).toBe("wd-");
   });
 });
