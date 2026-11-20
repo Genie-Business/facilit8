@@ -138,6 +138,48 @@ export async function assignDedicatedAccount(input: DedicatedAccountRequest): Pr
   });
 }
 
+export interface DedicatedAccountDetails {
+  accountNumber: string;
+  accountName: string | null;
+  bankName: string | null;
+}
+
+interface CustomerWithAccountRow {
+  customer_code?: string;
+  dedicated_account?: {
+    account_number?: string | null;
+    account_name?: string | null;
+    active?: boolean;
+    bank?: { name?: string | null } | null;
+  } | null;
+}
+
+/** The usable virtual account in a Fetch Customer response, or null if the customer has none (yet). */
+export function readDedicatedAccount(row: CustomerWithAccountRow | null | undefined): DedicatedAccountDetails | null {
+  const account = row?.dedicated_account;
+  const accountNumber = typeof account?.account_number === "string" ? account.account_number.trim() : "";
+  if (!account || !accountNumber || account.active === false) return null;
+  return { accountNumber, accountName: account.account_name?.trim() || null, bankName: account.bank?.name?.trim() || null };
+}
+
+/**
+ * Asks Paystack whether this customer (by email or customer code) has a virtual account yet. This is
+ * what the webhook would have told us, fetched directly, so a lost or late event can't leave someone
+ * with a virtual account and no wallet. Returns null when Paystack doesn't know the customer.
+ * Unverified: the `dedicated_account` field on Fetch Customer comes from Paystack's docs.
+ */
+export async function fetchCustomerDedicatedAccount(
+  emailOrCode: string
+): Promise<{ customerCode: string | null; account: DedicatedAccountDetails | null } | null> {
+  try {
+    const row = await paystackRequest<CustomerWithAccountRow>(`/customer/${encodeURIComponent(emailOrCode)}`);
+    return { customerCode: row?.customer_code ?? null, account: readDedicatedAccount(row) };
+  } catch (err) {
+    if (err instanceof PaystackApiError && err.kind === "api" && err.status === 404) return null;
+    throw err;
+  }
+}
+
 export async function listDedicatedAccountProviders(): Promise<string[]> {
   const data = await paystackRequest<{ provider_slug?: string; bank_id?: number; bank_name?: string }[]>("/dedicated_account/available_providers");
   return (data ?? []).map((provider) => provider.provider_slug ?? "").filter(Boolean);

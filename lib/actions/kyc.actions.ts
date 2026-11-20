@@ -6,6 +6,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { submitKyc } from "@/lib/services/kyc.service";
 import { provisionWallet } from "@/lib/services/wallet-provisioning.service";
+import { syncWalletFromPaystack } from "@/lib/services/wallet-sync.service";
 import { kycFormSchema } from "@/lib/validation/kyc";
 import { ActionState, firstFieldErrors } from "@/lib/actions/shared";
 
@@ -29,6 +30,23 @@ export async function submitKycAction(_prev: ActionState, formData: FormData): P
 
   revalidatePath("/settings/kyc");
   return { success: "KYC submitted. We'll notify you once it's verified." };
+}
+
+/** "Check again" on the verification page: asks Paystack directly whether the wallet is ready. */
+export async function checkWalletAction(): Promise<ActionState> {
+  const session = await auth();
+  if (!session) return { error: "Not authenticated." };
+
+  const outcome = await syncWalletFromPaystack(session.user.id);
+  if (outcome === "activated" || outcome === "already_active") {
+    revalidatePath("/settings/kyc");
+    revalidatePath("/wallet");
+    return { success: "Your wallet is ready." };
+  }
+  if (outcome === "unavailable" || outcome === "not_configured") {
+    return { error: "We couldn't check right now. Please try again in a few minutes." };
+  }
+  return { success: "Still being verified. This usually takes a few minutes; try again shortly." };
 }
 
 export async function retryProvisioningAction(): Promise<void> {
