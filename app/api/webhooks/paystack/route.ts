@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { prisma } from "@/lib/db";
+import { isFacilit8Event } from "@/lib/paystack/event-ownership";
 import { processPaystackEvent, type PaystackEvent } from "@/lib/paystack/webhooks";
 import { paystackEventKey, verifyPaystackSignature } from "@/lib/paystack/webhook-signature";
 
@@ -22,6 +23,10 @@ export async function POST(request: Request) {
   if (!payload?.event || typeof payload.event !== "string") {
     return NextResponse.json({ error: "Not a Paystack event" }, { status: 400 });
   }
+
+  // The signature is genuine, but the event may belong to another product sharing this Paystack
+  // account. Answer 200 so Paystack doesn't retry it, and keep nothing.
+  if (!isFacilit8Event(payload)) return NextResponse.json({ status: "not_ours" });
 
   const eventKey = paystackEventKey(payload, rawBody);
 

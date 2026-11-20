@@ -6,6 +6,7 @@ import { getUserBalance, inLedgerTransaction, postJournal } from "@/lib/ledger/l
 import { withdrawalHoldLegs } from "@/lib/ledger/journals";
 import { initiateTransfer } from "@/lib/paystack/api";
 import { describePaystackError, isDefinitiveFailure, isPaystackConfigured } from "@/lib/paystack/client";
+import { WITHDRAWAL_REFERENCE_PREFIX } from "@/lib/paystack/references";
 import { MIN_WITHDRAWAL_RECEIVE } from "@/lib/paystack/transfer-fees";
 import { quoteWithdrawal } from "@/lib/wallet/withdrawal-quote";
 import { getFeeSchedule } from "./fee.service";
@@ -75,7 +76,7 @@ export async function withdrawFunds(userId: string, params: { amount: number; pa
   }
 
   // 16-50 characters of lowercase letters, digits, "-" and "_" is Paystack's rule for a reference.
-  const reference = `wd-${userId}-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 5)}`.toLowerCase();
+  const reference = `${WITHDRAWAL_REFERENCE_PREFIX}${userId}-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 5)}`.toLowerCase();
 
   try {
     await inLedgerTransaction(async (tx) => {
