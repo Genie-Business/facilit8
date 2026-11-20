@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { isAuthorizedCronRequest } from "@/lib/cron-auth";
 import { reconcilePaystackWebhooks, reconcileFailedProvisioning } from "@/lib/services/webhook-reconciliation.service";
+import { reconcilePendingKyc } from "@/lib/services/wallet-sync.service";
 import { reconcileWithdrawals } from "@/lib/services/withdrawal-settlement.service";
 import { recordCronRun } from "@/lib/services/cron-run.service";
 
@@ -14,9 +15,11 @@ export async function GET(request: Request) {
   // after it only has the leftovers to look up with Paystack directly.
   const webhooks = await reconcilePaystackWebhooks();
   const provisioning = await reconcileFailedProvisioning();
+  // Anyone who submitted identity verification but whose "virtual account assigned" event never arrived.
+  const kyc = await reconcilePendingKyc();
   const withdrawals = await reconcileWithdrawals();
 
   await recordCronRun("webhook-reconciliation");
 
-  return NextResponse.json({ status: "ok", ...webhooks, ...provisioning, withdrawals });
+  return NextResponse.json({ status: "ok", ...webhooks, ...provisioning, ...kyc, withdrawals });
 }

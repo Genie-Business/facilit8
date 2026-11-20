@@ -1,8 +1,8 @@
 import { createHmac } from "node:crypto";
 
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { toE164 } from "./api";
+import { fetchCustomerDedicatedAccount, readDedicatedAccount, toE164 } from "./api";
 import { isDefinitiveFailure, PaystackApiError } from "./client";
 import { normalizeTransferStatus } from "./status";
 import { paystackEventKey, verifyPaystackSignature } from "./webhook-signature";
@@ -120,5 +120,69 @@ describe("toE164", () => {
   it("returns undefined for something that isn't a Nigerian mobile number", () => {
     expect(toE164("12345")).toBeUndefined();
     expect(toE164("+14155550100")).toBeUndefined();
+  });
+});
+
+describe("readDedicatedAccount", () => {
+  const row = {
+    customer_code: "CUS_abc",
+    dedicated_account: { account_number: "9819734087", account_name: "FACILIT8 / ADA OBI", active: true, bank: { name: "Wema Bank" } },
+  };
+
+  it("reads the account number, name and bank from a Fetch Customer response", () => {
+    expect(readDedicatedAccount(row)).toEqual({ accountNumber: "9819734087", accountName: "FACILIT8 / ADA OBI", bankName: "Wema Bank" });
+  });
+
+  it("says there is no account when Paystack hasn't created one", () => {
+    expect(readDedicatedAccount({ customer_code: "CUS_abc", dedicated_account: null })).toBeNull();
+    expect(readDedicatedAccount({ customer_code: "CUS_abc" })).toBeNull();
+    expect(readDedicatedAccount(null)).toBeNull();
+    expect(readDedicatedAccount({ dedicated_account: { account_number: "  " } })).toBeNull();
+  });
+
+  it("ignores an account that has been deactivated", () => {
+    expect(readDedicatedAccount({ dedicated_account: { ...row.dedicated_account, active: false } })).toBeNull();
+  });
+
+  it("copes with missing optional fields", () => {
+    expect(readDedicatedAccount({ dedicated_account: { account_number: "0123456789" } })).toEqual({
+      accountNumber: "0123456789",
+      accountName: null,
+      bankName: null,
+    });
+  });
+});
+
+describe("fetchCustomerDedicatedAccount", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    delete process.env.PAYSTACK_SECRET_KEY;
+  });
+
+  const respond = (status: number, json: unknown) =>
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify(json), { status })));
+
+  it("looks the customer up by email and returns their virtual account", async () => {
+    process.env.PAYSTACK_SECRET_KEY = "sk_test_x";
+    respond(200, { status: true, data: { customer_code: "CUS_abc", dedicated_account: { account_number: "9819734087", bank: { name: "Wema Bank" } } } });
+    const result = await fetchCustomerDedicatedAccount("ada@example.com");
+    expect(result).toEqual({ customerCode: "CUS_abc", account: { accountNumber: "9819734087", accountName: null, bankName: "Wema Bank" } });
+    const [url] = (fetch as unknown as { mock: { calls: [URL][] } }).mock.calls[0];
+    expect(String(url)).toBe("https://api.paystack.co/customer/ada%40example.com");
+  });
+
+  it("returns the customer with no account while Paystack is still working on it", async () => {
+    process.env.PAYSTACK_SECRET_KEY = "sk_test_x";
+    respond(200, { status: true, data: { customer_code: "CUS_abc", dedicated_account: null } });
+    expect(await fetchCustomerDedicatedAccount("ada@example.com")).toEqual({ customerCode: "CUS_abc", account: null });
+  });
+
+  it("returns null for a customer Paystack doesn't know, and lets other failures through", async () => {
+    process.env.PAYSTACK_SECRET_KEY = "sk_test_x";
+    respond(404, { status: false, message: "Customer not found" });
+    expect(await fetchCustomerDedicatedAccount("nobody@example.com")).toBeNull();
+
+    respond(401, { status: false, message: "Invalid key" });
+    await expect(fetchCustomerDedicatedAccount("ada@example.com")).rejects.toThrow(/Invalid key/);
   });
 });

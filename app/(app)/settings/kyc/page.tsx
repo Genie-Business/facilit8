@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { CheckWalletForm } from "@/components/kyc/check-wallet-form";
 import { KycForm } from "@/components/kyc/kyc-form";
 import { LinkBankAccountForm } from "@/components/wallet/link-bank-account-form";
 import { retryProvisioningAction } from "@/lib/actions/kyc.actions";
@@ -53,10 +54,13 @@ export default async function KycPage() {
           {user.vaFailureReason && <p className="text-destructive">Setup error: {user.vaFailureReason}</p>}
           {user.kycFailedReason && <p className="text-destructive">Verification error: {user.kycFailedReason}</p>}
           {!user.kycVerified && submitted && (
-            <p className="text-muted-foreground">
-              Your details have been submitted. We&apos;ll notify you as soon as they&apos;re confirmed, usually within a
-              few minutes.
-            </p>
+            <div className="space-y-2">
+              <p className="text-muted-foreground">
+                Your details have been submitted. We&apos;ll notify you as soon as they&apos;re confirmed, usually
+                within a few minutes.
+              </p>
+              <CheckWalletForm />
+            </div>
           )}
         </CardContent>
       </Card>
