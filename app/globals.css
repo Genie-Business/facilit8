@@ -42,6 +42,11 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
+  --color-action: var(--action);
+  --color-action-hover: var(--action-hover);
+  --color-action-foreground: var(--action-foreground);
+  --color-field: var(--field);
+  --color-field-hover: var(--field-hover);
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -70,6 +75,13 @@
   --border: oklch(0.922 0 0);
   --input: oklch(0.922 0 0);
   --ring: #47bbd1;
+  /* Solid buttons: a deeper teal so white text is readable (4.8:1; the brand teal alone is 2.2:1). */
+  --action: #2a7c8c;
+  --action-hover: #236a78;
+  --action-foreground: #ffffff;
+  /* Form field outlines: clearly visible against both white and the app's pale background. */
+  --field: #94a3b8;
+  --field-hover: #64748b;
   --brand: #47bbd1;
   --brand-light: #90d6e3;
   --brand-dark: #358c9d;
@@ -108,6 +120,11 @@
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
   --ring: oklch(0.556 0 0);
+  --action: #47bbd1;
+  --action-hover: #6cc9db;
+  --action-foreground: #0b1120;
+  --field: oklch(1 0 0 / 30%);
+  --field-hover: oklch(1 0 0 / 50%);
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
@@ -422,4 +439,35 @@
   .hero-orbit-container {
     transform: scale(0.4);
   }
+}
+
+/*
+ * The signed-in app and the admin run inside .adminator-shell, which has its own light/dark theme
+ * (data-theme) and never gets the .dark class. Point the shared component tokens at its palette so
+ * every shared component follows the theme toggle instead of staying light.
+ */
+.adminator-shell {
+  --background: var(--bg-card);
+  --foreground: var(--t-base);
+  --card: var(--bg-card);
+  --card-foreground: var(--t-base);
+  --popover: var(--bg-card);
+  --popover-foreground: var(--t-base);
+  --secondary: var(--bg-muted);
+  --secondary-foreground: var(--t-base);
+  --muted: var(--bg-muted);
+  --muted-foreground: var(--t-muted);
+  --input: var(--border);
+  --ring: var(--primary);
+  --destructive: var(--danger);
+  /* Text on the shell's teal (--primary): dark, because white on that teal is too faint to read. */
+  --primary-foreground: #0b1b22;
+}
+
+.adminator-shell[data-theme="dark"] {
+  --action: #47bbd1;
+  --action-hover: #6cc9db;
+  --action-foreground: #0b1120;
+  --field: #475569;
+  --field-hover: #64748b;
 }

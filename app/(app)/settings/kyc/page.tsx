@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CheckWalletForm } from "@/components/kyc/check-wallet-form";
+import { FundingDetails } from "@/components/wallet/funding-details";
 import { KycForm } from "@/components/kyc/kyc-form";
 import { LinkBankAccountForm } from "@/components/wallet/link-bank-account-form";
 import { retryProvisioningAction } from "@/lib/actions/kyc.actions";
@@ -46,10 +47,10 @@ export default async function KycPage() {
             </div>
           )}
           {user.kycVerified && user.vaAccountNumber && (
-            <p className="text-muted-foreground">
-              Pay into {user.vaBankName ?? "your account"} <span className="font-medium text-foreground">{user.vaAccountNumber}</span>{" "}
-              to add money to your wallet.
-            </p>
+            <div className="space-y-3">
+              <p className="text-muted-foreground">Pay into this account to add money to your wallet.</p>
+              <FundingDetails bankName={user.vaBankName} accountNumber={user.vaAccountNumber} accountName={user.vaAccountName} />
+            </div>
           )}
           {user.vaFailureReason && <p className="text-destructive">Setup error: {user.vaFailureReason}</p>}
           {user.kycFailedReason && <p className="text-destructive">Verification error: {user.kycFailedReason}</p>}

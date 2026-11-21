@@ -6,14 +6,11 @@ import { submitBusinessVerificationAction } from "@/lib/actions/business-verific
 import type { ActionState } from "@/lib/actions/shared";
 import { REGISTRATION_TYPES, REGISTRATION_TYPE_LABELS, INDUSTRIES, formatIndustryLabel } from "@/lib/validation/business";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Input, nativeSelectClassName } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { NIGERIA_STATES } from "@/lib/data/nigeria-locations";
-
-const nativeSelectClassName =
-  "flex h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30";
 
 const initialState: ActionState = {};
 

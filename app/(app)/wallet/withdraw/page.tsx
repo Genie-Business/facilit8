@@ -1,7 +1,10 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
+import { ArrowLeft } from "lucide-react";
 
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { Card, CardContent } from "@/components/ui/card";
 import { WithdrawForm } from "@/components/wallet/withdraw-form";
 import { LinkBankAccountForm } from "@/components/wallet/link-bank-account-form";
 import { ChangeBankAccount } from "@/components/wallet/change-bank-account";
@@ -28,18 +31,37 @@ export default async function WithdrawPage() {
   const bankLabel = `${user.linkedBankName ?? "linked bank"} · ${user.linkedAccountNumber ?? ""}`;
 
   return (
-    <div className="max-w-md space-y-6">
-      <h1 className="text-2xl font-semibold">Withdraw funds</h1>
+    <div className="max-w-xl space-y-6">
+      <header className="space-y-2">
+        <Link
+          href="/wallet"
+          className="inline-flex items-center gap-1 rounded-md text-sm text-muted-foreground transition-colors outline-none hover:text-foreground focus-visible:ring-4 focus-visible:ring-action/30"
+        >
+          <ArrowLeft aria-hidden="true" className="size-4" />
+          Wallet
+        </Link>
+        <h1 className="text-2xl font-semibold tracking-tight">Withdraw funds</h1>
+      </header>
 
       {!user.paystackRecipientCode ? (
-        <div className="space-y-3">
-          <p className="text-sm text-muted-foreground">Link a bank account to withdraw from your wallet.</p>
-          <LinkBankAccountForm banks={banks} />
-        </div>
+        <Card size="lg" className="shadow-sm">
+          <CardContent className="space-y-4">
+            <p className="text-sm text-muted-foreground">Link a bank account to withdraw from your wallet.</p>
+            <LinkBankAccountForm banks={banks} />
+          </CardContent>
+        </Card>
       ) : (
         <>
-          <ChangeBankAccount banks={banks} currentLabel={bankLabel} />
-          <WithdrawForm bankLabel={bankLabel} feeSchedule={feeSchedule} balance={balance} />
+          <Card size="lg" className="shadow-sm">
+            <CardContent>
+              <ChangeBankAccount banks={banks} currentLabel={bankLabel} />
+            </CardContent>
+          </Card>
+          <Card size="lg" className="shadow-sm">
+            <CardContent>
+              <WithdrawForm feeSchedule={feeSchedule} balance={balance} />
+            </CardContent>
+          </Card>
         </>
       )}
     </div>

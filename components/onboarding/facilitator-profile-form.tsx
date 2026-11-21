@@ -5,7 +5,7 @@ import { useActionState } from "react";
 import { updateFacilitatorProfileAction } from "@/lib/actions/onboarding.actions";
 import type { ActionState } from "@/lib/actions/shared";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Input, nativeSelectClassName } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -16,9 +16,6 @@ import {
   FACILITATOR_TRAINING_FORMATS,
   PROFICIENCY_LABELS,
 } from "@/lib/data/onboarding-options";
-
-const nativeSelectClassName =
-  "flex h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30";
 
 const initialState: ActionState = {};
 

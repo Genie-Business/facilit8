@@ -5,13 +5,11 @@ import { useActionState } from "react";
 import { submitKycAction } from "@/lib/actions/kyc.actions";
 import type { ActionState } from "@/lib/actions/shared";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Input, nativeSelectClassName } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const initialState: ActionState = {};
-const nativeSelectClassName =
-  "flex h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30";
 
 export function KycForm() {
   const [state, formAction, pending] = useActionState(submitKycAction, initialState);

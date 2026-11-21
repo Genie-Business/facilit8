@@ -7,13 +7,10 @@ import { signupAction, type ActionState } from "@/lib/actions/auth.actions";
 import { resolveAccountNameAction } from "@/lib/actions/bank.actions";
 import { BANK_LIST_UNAVAILABLE } from "@/lib/bank-messages";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Input, nativeSelectClassName } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { NIGERIA_STATES } from "@/lib/data/nigeria-locations";
-
-const nativeSelectClassName =
-  "flex h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30";
 
 const initialState: ActionState = {};
 
