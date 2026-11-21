@@ -19,6 +19,7 @@ import { getWalletBalance } from "@/lib/services/wallet.service";
 import { getUserOrganizationMembership, listPendingMembershipRequests } from "@/lib/services/organization.service";
 import { eventStatus } from "@/lib/utils/event-status";
 import { MembershipRequestRow } from "@/components/dashboard/membership-request-row";
+import { CopyButton } from "@/components/ui/copy-button";
 import { siteUrl } from "@/lib/site";
 
 const EVENT_MANAGER_ACTIONS = [
@@ -109,7 +110,7 @@ export default async function DashboardPage() {
     isEventManager ? listPendingMembershipRequests(userId) : Promise.resolve([]),
     prisma.user.findUnique({
       where: { id: userId },
-      select: { firstName: true, onboardingSkippedAt: true, onboardingCompletedAt: true },
+      select: { firstName: true, onboardingSkippedAt: true, onboardingCompletedAt: true, vaAccountNumber: true, vaBankName: true },
     }),
   ]);
 
@@ -178,6 +179,15 @@ export default async function DashboardPage() {
           <div className="kpi-value" style={{ fontSize: 30 }}>
             ₦{balance.toLocaleString()}
           </div>
+          {onboarding?.vaAccountNumber && (
+            <div className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
+              <span className="truncate">
+                {onboarding.vaBankName ?? "Account"} ·{" "}
+                <span className="font-mono tracking-wide text-foreground tabular-nums">{onboarding.vaAccountNumber}</span>
+              </span>
+              <CopyButton value={onboarding.vaAccountNumber} label="Copy account number" iconOnly variant="ghost" size="xs" />
+            </div>
+          )}
           <div className="kpi-compare">
             <Link href="/wallet" className="card-action">
               View wallet <ArrowRight style={{ height: 12, width: 12 }} />

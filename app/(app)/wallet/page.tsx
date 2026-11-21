@@ -1,10 +1,12 @@
 import Link from "next/link";
+import { ArrowUpRight, History, ShieldCheck } from "lucide-react";
 
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { getWalletBalance } from "@/lib/services/wallet.service";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { FundingDetails } from "@/components/wallet/funding-details";
 
 export default async function WalletPage() {
   const session = await auth();
@@ -17,49 +19,76 @@ export default async function WalletPage() {
   const balance = hasWallet ? await getWalletBalance(session.user.id) : null;
 
   return (
-    <div className="max-w-md space-y-6">
-      <h1 className="text-2xl font-semibold">Wallet</h1>
+    <div className="max-w-2xl space-y-6">
+      <header className="space-y-1">
+        <h1 className="text-2xl font-semibold tracking-tight">Wallet</h1>
+        <p className="text-sm text-muted-foreground">Add money by bank transfer, and withdraw to your own bank account.</p>
+      </header>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Balance</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {hasWallet ? (
-            <>
-              <p className="text-3xl font-semibold">₦{(balance ?? 0).toLocaleString()}</p>
-              {user.vaAccountNumber && (
-                <p className="text-sm text-muted-foreground">
-                  Fund via {user.vaBankName}: {user.vaAccountNumber}. Paystack&apos;s small fee on a transfer in is taken
-                  from what&apos;s credited.
+      {hasWallet ? (
+        <>
+          <Card size="lg" className="shadow-sm">
+            <CardContent className="space-y-5">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Available balance</p>
+                <p className="mt-1 text-4xl font-semibold tracking-tight tabular-nums">
+                  ₦{(balance ?? 0).toLocaleString("en-NG")}
                 </p>
-              )}
-              <div className="flex gap-2 pt-2">
-                <Button size="sm" render={<Link href="/wallet/withdraw" />} nativeButton={false}>
+              </div>
+              <div className="flex flex-wrap gap-3">
+                <Button size="lg" render={<Link href="/wallet/withdraw" />} nativeButton={false}>
+                  <ArrowUpRight aria-hidden="true" data-icon="inline-start" />
                   Withdraw
                 </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  render={<Link href="/wallet/transactions" />}
-                  nativeButton={false}
-                >
+                <Button size="lg" variant="outline" render={<Link href="/wallet/transactions" />} nativeButton={false}>
+                  <History aria-hidden="true" data-icon="inline-start" />
                   Transaction history
                 </Button>
               </div>
-            </>
-          ) : (
-            <div className="space-y-2">
-              <p className="text-sm text-muted-foreground">
-                Your wallet isn&apos;t set up yet. Complete identity verification to get one.
-              </p>
-              <Button size="sm" render={<Link href="/settings/kyc" />} nativeButton={false}>
-                Verify identity
-              </Button>
-            </div>
+            </CardContent>
+          </Card>
+
+          {user.vaAccountNumber && (
+            <Card size="lg" className="shadow-sm">
+              <CardHeader>
+                <CardTitle className="text-base">Add money</CardTitle>
+                <CardDescription>
+                  Send money from any bank app to your personal account below. It reaches your wallet automatically.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <FundingDetails
+                  bankName={user.vaBankName}
+                  accountNumber={user.vaAccountNumber}
+                  accountName={user.vaAccountName}
+                />
+                <p className="text-xs text-muted-foreground">
+                  A small bank fee on a transfer in is taken from the amount that&apos;s credited.
+                </p>
+              </CardContent>
+            </Card>
           )}
-        </CardContent>
-      </Card>
+        </>
+      ) : (
+        <Card size="lg" className="shadow-sm">
+          <CardContent className="space-y-4">
+            <div className="flex items-start gap-3">
+              <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground">
+                <ShieldCheck aria-hidden="true" className="size-5" />
+              </span>
+              <div className="space-y-1">
+                <p className="font-medium">Your wallet isn&apos;t set up yet</p>
+                <p className="text-sm text-muted-foreground">
+                  Complete identity verification to get a wallet and your own account number to pay into.
+                </p>
+              </div>
+            </div>
+            <Button size="lg" render={<Link href="/settings/kyc" />} nativeButton={false}>
+              Verify identity
+            </Button>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

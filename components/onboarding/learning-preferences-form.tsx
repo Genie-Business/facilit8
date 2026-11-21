@@ -14,9 +14,7 @@ import {
   PREFERRED_DELIVERIES,
   PREFERRED_SCHEDULES,
 } from "@/lib/data/onboarding-options";
-
-const nativeSelectClassName =
-  "flex h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30";
+import { nativeSelectClassName } from "@/components/ui/input";
 
 const initialState: ActionState = {};
 
